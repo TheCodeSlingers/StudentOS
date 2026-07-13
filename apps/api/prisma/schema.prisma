@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MembershipRole {
+  ADMIN
+  MENTOR
+  STUDENT
+}
+
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+}
+
+enum SubscriptionStatus {
+  FREE
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  GRACE_PERIOD
+  SUSPENDED
+  CANCELLED
+  DELETED
+}
+
+enum PlatformAdminRole {
+  SUPPORT
+  PLATFORM_OWNER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String?
+  authProvider String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  memberships           Membership[]
+  impersonationSessions ImpersonationSession[]
+
+  @@index([email])
+  @@index([deletedAt])
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  logoUrl   String?
+  timezone  String    @default("UTC")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  settings     OrganizationSettings?
+  subscription Subscription?
+  memberships  Membership[]
+
+  @@index([deletedAt])
+}
+
+model OrganizationSettings {
+  id                            String       @id @default(cuid())
+  organizationId                String       @unique
+  organization                  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  defaultAttendanceDurationMins Int          @default(15)
+  lateThresholdMins             Int          @default(10)
+  updatedAt                     DateTime     @updatedAt
+}
+
+model Membership {
+  id             String           @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MembershipRole
+  status         MembershipStatus @default(ACTIVE)
+
+  invitedByMembershipId String?
+  invitedByMembership   Membership?  @relation("MembershipInviter", fields: [invitedByMembershipId], references: [id], onDelete: SetNull)
+  invitedMemberships    Membership[] @relation("MembershipInviter")
+  inviteToken           String?      @unique
+  inviteExpiresAt       DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId, role])
+  @@index([organizationId])
+  @@index([organizationId, role])
+  @@index([userId])
+  @@index([deletedAt])
+}
+
+model Plan {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  maxBatches   Int
+  maxStudents  Int
+  maxEmployees Int
+  priceCents   Int      @default(0)
+  featureFlags Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id               String             @id @default(cuid())
+  organizationId   String             @unique
+  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  planId           String
+  plan             Plan               @relation(fields: [planId], references: [id])
+  status           SubscriptionStatus @default(TRIAL)
+  currentPeriodEnd DateTime?
+
+  overrideMaxBatches          Int?
+  overrideMaxStudents         Int?
+  overrideMaxEmployees        Int?
+  overrideReason              String?
+  overriddenByPlatformAdminId String?
+  overriddenByPlatformAdmin   PlatformAdmin? @relation(fields: [overriddenByPlatformAdminId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([planId])
+}
+
+model PlatformAdmin {
+  id           String            @id @default(cuid())
+  email        String            @unique
+  name         String
+  passwordHash String
+  role         PlatformAdminRole @default(SUPPORT)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  impersonationSessions ImpersonationSession[]
+  subscriptionOverrides Subscription[]
+}
+
+model ImpersonationSession {
+  id                   String        @id @default(cuid())
+  platformAdminId      String
+  platformAdmin        PlatformAdmin @relation(fields: [platformAdminId], references: [id])
+  targetUserId         String
+  targetUser           User          @relation(fields: [targetUserId], references: [id])
+  targetOrganizationId String?
+  reason               String
+  startedAt            DateTime      @default(now())
+  endedAt              DateTime?
+
+  @@index([platformAdminId])
+  @@index([targetUserId])
+}
