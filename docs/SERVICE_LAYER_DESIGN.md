@@ -86,8 +86,11 @@ AuthModule ──────► WorkspaceModule ──────► BatchModu
 - **Responsibility**: Handles CSV file uploads and performs bulk student creations.
 - **Depends on**: `AuthModule`, `BatchModule` (workspace membership and batch allocations).
 - **Key Methods**:
-  - `importCsv(batchId, fileBuffer)`:
-    - Parses CSV records.
-    - Checks User existence; creates User and `STUDENT` Workspace Membership.
-    - Allocates BatchMembership and creates empty `StudentProfile`.
-    - Returns report detailing successful imports and line failures.
+  - `startImport(batchId, fileBuffer)`:
+    - Creates a background import job (`StudentImportJob`) in `PENDING` status.
+    - Triggers asynchronous CSV parsing and row-by-row transaction processing.
+    - Returns the `jobId` immediately.
+  - `getJobSummary(jobId)`:
+    - Retrieves the current status, total rows, successful rows, and failed rows count for a specific job.
+  - `getJobRows(jobId)`:
+    - Retrieves individual row-level report records detailing the import status and error messages.

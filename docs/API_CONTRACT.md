@@ -293,10 +293,8 @@
     "phone": "+8801700000000",
     "address": "Dhaka, Bangladesh",
     "avatarUrl": "https://images.studentos.com/avatar.jpg",
-    "institution": "Dhaka University",
-    "department": "Computer Science",
-    "studentId": "2020-CS-12",
-    "graduationYear": 2024,
+    "courseName": "Full Stack Web Development",
+    "specialization": "Frontend",
     "skills": ["JavaScript", "Node.js", "React"],
     "hireStatus": "JOB_SEEKING",
     "jobType": "FULL_TIME",
@@ -330,6 +328,59 @@
     "currentEmployer": "Tech Solutions",
     "currentPosition": "Frontend Engineer"
   }
+}
+```
+
+**`POST /batches/:batchId/students/import`**
+```json
+// Request: multipart/form-data with field "file" containing the CSV file.
+// Response 202 Accepted
+{
+  "data": {
+    "jobId": "job_cuid1122",
+    "status": "PENDING",
+    "totalRows": 0
+  }
+}
+```
+
+**`GET /batches/:batchId/students/import/:jobId`**
+```json
+// Response 200 OK
+{
+  "data": {
+    "id": "job_cuid1122",
+    "batchId": "bat_cuid1111",
+    "status": "COMPLETED",
+    "totalRows": 45,
+    "successRows": 42,
+    "failedRows": 3,
+    "createdAt": "2026-07-14T20:00:00Z",
+    "updatedAt": "2026-07-14T20:00:05Z"
+  }
+}
+```
+
+**`GET /batches/:batchId/students/import/:jobId/rows`**
+```json
+// Response 200 OK
+{
+  "data": [
+    {
+      "id": "row_cuid2233",
+      "rowNumber": 1,
+      "email": "student1@example.com",
+      "status": "SUCCESS",
+      "errorMessage": null
+    },
+    {
+      "id": "row_cuid2234",
+      "rowNumber": 2,
+      "email": "student2@example.com",
+      "status": "FAILED",
+      "errorMessage": "Invalid email address format"
+    }
+  ]
 }
 ```
 
