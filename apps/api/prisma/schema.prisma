@@ -165,6 +165,7 @@ model Batch {
   workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   batchMemberships BatchMembership[]
   sessions         Session[]
+  importJobs       StudentImportJob[]
 
   @@index([workspaceId])
   @@index([isArchived])
@@ -234,4 +235,46 @@ model Attendance {
   @@index([sessionId])
   @@index([studentBatchMembershipId])
   @@index([status])
+}
+
+enum ImportJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+}
+
+enum ImportRowStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+model StudentImportJob {
+  id          String          @id @default(cuid())
+  batchId     String
+  status      ImportJobStatus @default(PENDING)
+  totalRows   Int             @default(0)
+  successRows Int             @default(0)
+  failedRows  Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  batch Batch              @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  rows  StudentImportRow[]
+
+  @@index([batchId])
+}
+
+model StudentImportRow {
+  id           String          @id @default(cuid())
+  jobId        String
+  rowNumber    Int
+  email        String
+  status       ImportRowStatus
+  errorMessage String?
+
+  job StudentImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
 }
