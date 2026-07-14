@@ -235,4 +235,3 @@ model Attendance {
   @@index([studentBatchMembershipId])
   @@index([status])
 }
-
