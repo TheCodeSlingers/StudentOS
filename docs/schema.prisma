@@ -126,10 +126,8 @@ model StudentProfile {
   address      String?
   avatarUrl    String?
 
-  institution  String?
-  department   String?
-  studentId    String?
-  graduationYear Int?
+  courseName         String?
+  specialization     String?
 
   skills       String[]
 
@@ -145,6 +143,7 @@ model StudentProfile {
 
   membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
 
+  @@index([specialization])
   @@index([hireStatus])
   @@index([jobType])
 }
@@ -236,3 +235,4 @@ model Attendance {
   @@index([studentBatchMembershipId])
   @@index([status])
 }
+
