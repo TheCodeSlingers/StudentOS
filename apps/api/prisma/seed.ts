@@ -10,79 +10,22 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const freePlan = await prisma.plan.upsert({
-    where: { name: "Free" },
+  const mentorUser = await prisma.user.upsert({
+    where: { email: "mentor@studentos.com" },
     update: {},
     create: {
-      name: "Free",
-      maxBatches: 1,
-      maxStudents: 30,
-      maxEmployees: 2,
-      priceCents: 0,
-      featureFlags: {
-        dynamicReportBuilder: false,
-        discordWebhooks: false,
-        fraudReviewPrioritization: false,
-        csvExport: true,
-        excelExport: false,
-      },
+      email: "mentor@studentos.com",
+      name: "Default Mentor",
+      passwordHash: "Mentor123!",
     },
   });
 
-  const starterPlan = await prisma.plan.upsert({
-    where: { name: "Starter" },
+  const workspace = await prisma.workspace.upsert({
+    where: { id: "workspace_default" },
     update: {},
     create: {
-      name: "Starter",
-      maxBatches: 3,
-      maxStudents: 150,
-      maxEmployees: 5,
-      priceCents: 1900,
-      featureFlags: {
-        dynamicReportBuilder: false,
-        discordWebhooks: true,
-        fraudReviewPrioritization: false,
-        csvExport: true,
-        excelExport: true,
-      },
-    },
-  });
-
-  const growthPlan = await prisma.plan.upsert({
-    where: { name: "Growth" },
-    update: {},
-    create: {
-      name: "Growth",
-      maxBatches: 10,
-      maxStudents: 500,
-      maxEmployees: 15,
-      priceCents: 4900,
-      featureFlags: {
-        dynamicReportBuilder: true,
-        discordWebhooks: true,
-        fraudReviewPrioritization: true,
-        csvExport: true,
-        excelExport: true,
-      },
-    },
-  });
-
-  const adminUser = await prisma.user.upsert({
-    where: { email: "admin@studentos.com" },
-    update: {},
-    create: {
-      email: "admin@studentos.com",
-      name: "Super Admin",
-      passwordHash: "Admin123!",
-    },
-  });
-
-  const org = await prisma.organization.upsert({
-    where: { id: "org_default" },
-    update: {},
-    create: {
-      id: "org_default",
-      name: "StudentOS Demo Org",
+      id: "workspace_default",
+      name: "Default Workspace",
       timezone: "UTC",
       settings: {
         create: {
@@ -95,27 +38,17 @@ async function main() {
 
   await prisma.membership.upsert({
     where: {
-      userId_organizationId_role: {
-        userId: adminUser.id,
-        organizationId: org.id,
-        role: "ADMIN",
+      userId_workspaceId_role: {
+        userId: mentorUser.id,
+        workspaceId: workspace.id,
+        role: "MENTOR",
       },
     },
     update: {},
     create: {
-      userId: adminUser.id,
-      organizationId: org.id,
-      role: "ADMIN",
-      status: "ACTIVE",
-    },
-  });
-
-  await prisma.subscription.upsert({
-    where: { organizationId: org.id },
-    update: {},
-    create: {
-      organizationId: org.id,
-      planId: freePlan.id,
+      userId: mentorUser.id,
+      workspaceId: workspace.id,
+      role: "MENTOR",
       status: "ACTIVE",
     },
   });

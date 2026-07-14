@@ -4,42 +4,27 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum MembershipRole {
-  ADMIN   
-  MENTOR  
-  STUDENT 
+  MENTOR
+  STUDENT
 }
 
 enum MembershipStatus {
   ACTIVE
   INVITED
-  SUSPENDED
-}
-
-enum SubscriptionStatus {
-  FREE
-  TRIAL
-  ACTIVE
-  PAST_DUE
-  GRACE_PERIOD
-  SUSPENDED
-  CANCELLED
-  DELETED
 }
 
 enum SessionType {
-  ONE_TIME
-  RECURRING
+  REGULAR
+  MAKEUP
+  EXAM
 }
 
 enum SessionStatus {
   SCHEDULED
   STARTED
-  ATTENDANCE_OPEN
-  ATTENDANCE_CLOSED
   ENDED
   CANCELLED
 }
@@ -48,271 +33,181 @@ enum AttendanceStatus {
   PRESENT
   LATE
   ABSENT
-  INFORMED
+  EXCUSED
 }
 
 enum AttendanceMethod {
-  SELF_SUBMITTED 
-  MANUAL  
+  SELF_SUBMITTED
+  MANUAL
 }
 
-enum TicketStatus {
-  PENDING
-  CR_ACCEPTED     
-  CR_REJECTED     
-  APPEALED       
-  MENTOR_ACCEPTED 
-  MENTOR_REJECTED 
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+  FREELANCE
+  NOT_LOOKING
 }
 
-enum NotificationChannel {
-  EMAIL
-  IN_APP
-  WEBHOOK
+enum WorkplacePreference {
+  REMOTE
+  ONSITE
+  HYBRID
+  NO_PREFERENCE
 }
 
-enum PlatformAdminRole {
-  SUPPORT
-  PLATFORM_OWNER
-}
-
-enum ImportJobStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  COMPLETED_WITH_ERRORS
-  FAILED
-}
-
-enum ImportRowStatus {
-  PENDING
-  SUCCESS
-  FAILED
-}
-
-enum FraudReviewOutcome {
-  PENDING
-  CONFIRMED_FRAUD
-  CLEARED
+enum HireStatus {
+  EMPLOYED
+  JOB_SEEKING
+  FREELANCING
+  STUDENT_ONLY
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
+  id           String   @id @default(cuid())
+  email        String   @unique
   name         String
   passwordHash String?
   authProvider String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime? 
-
-  memberships           Membership[]
-  actorAuditLogs        AuditLog[]             @relation("AuditActorUser")
-  tickets               Ticket[]               @relation("TicketStudent")
-  presenceHeartbeats    PresenceHeartbeat[]
-  notifications         Notification[]
-  impersonationSessions ImpersonationSession[]
-
-  @@index([email])
-  @@index([deletedAt])
-}
-
-model Organization {
-  id        String    @id @default(cuid())
-  name      String
-  logoUrl   String?
-  timezone  String    @default("UTC")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
-
-  settings         OrganizationSettings?
-  subscription     Subscription?
-  memberships      Membership[]
-  batches          Batch[]
-  auditLogs        AuditLog[]
-  studentImportJobs StudentImportJob[]
-  notifications    Notification[]
-  webhookConfigs   WebhookConfig[]
-
-  @@index([deletedAt])
-}
-
-model OrganizationSettings {
-  id                            String       @id @default(cuid())
-  organizationId                String       @unique
-  organization                  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  defaultAttendanceDurationMins Int          @default(15)
-  lateThresholdMins             Int          @default(10)
-  updatedAt                     DateTime     @updatedAt
-}
-
-model Membership {
-  id             String           @id @default(cuid())
-  userId         String
-  organizationId String
-  role           MembershipRole
-  status         MembershipStatus @default(ACTIVE)
-
-  invitedByMembershipId String?
-  invitedByMembership   Membership?  @relation("MembershipInviter", fields: [invitedByMembershipId], references: [id], onDelete: SetNull)
-  invitedMemberships    Membership[] @relation("MembershipInviter")
-  inviteToken           String?      @unique
-  inviteExpiresAt       DateTime?
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime? 
-
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  batchMemberships       BatchMembership[]
-  manualAttendanceMarks  Attendance[]            @relation("ManualMarker")
-  sessionActivityEvents  SessionActivityEvent[]
-  openedSessions         Session[]               @relation("SessionOpener")
-  closedSessions         Session[]               @relation("SessionCloser")
-  crTicketDecisions      Ticket[]                @relation("TicketCRDecision")
-  mentorTicketDecisions  Ticket[]                @relation("TicketMentorDecision")
-  initiatedImportJobs    StudentImportJob[]
-  reviewedAttendances    Attendance[]            @relation("AttendanceReviewer")
-
-  @@unique([userId, organizationId, role])
-  @@index([organizationId])
-  @@index([organizationId, role])
-  @@index([userId])
-  @@index([deletedAt])
-}
-
-model Plan {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  maxBatches   Int
-  maxStudents  Int
-  maxEmployees Int
-  priceCents   Int      @default(0)
-  featureFlags Json     @default("{}")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  subscriptions Subscription[]
+  memberships Membership[]
+
+  @@index([email])
 }
 
-model Subscription {
-  id               String             @id @default(cuid())
-  organizationId   String             @unique
-  organization     Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  planId           String
-  plan             Plan               @relation(fields: [planId], references: [id])
-  status           SubscriptionStatus @default(TRIAL)
-  currentPeriodEnd DateTime?
-
-  overrideMaxBatches           Int?
-  overrideMaxStudents          Int?
-  overrideMaxEmployees         Int?
-  overrideReason               String?
-  overriddenByPlatformAdminId  String?
-  overriddenByPlatformAdmin    PlatformAdmin? @relation(fields: [overriddenByPlatformAdminId], references: [id], onDelete: SetNull)
-
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  timezone  String   @default("UTC")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([status])
-  @@index([planId])
+  settings    WorkspaceSettings?
+  memberships Membership[]
+  batches     Batch[]
+}
+
+model WorkspaceSettings {
+  id                            String    @id @default(cuid())
+  workspaceId                   String    @unique
+  workspace                     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  defaultAttendanceDurationMins Int       @default(15)
+  lateThresholdMins             Int       @default(10)
+  updatedAt                     DateTime  @updatedAt
+}
+
+model Membership {
+  id          String           @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        MembershipRole
+  status      MembershipStatus @default(ACTIVE)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  studentProfile   StudentProfile?
+  batchMemberships BatchMembership[]
+  markedAttendance Attendance[]      @relation("AttendanceMarker")
+
+  @@unique([userId, workspaceId, role])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model StudentProfile {
+  id           String @id @default(cuid())
+  membershipId String @unique
+
+  phone        String?
+  address      String?
+  avatarUrl    String?
+
+  courseName         String?
+  specialization     String?
+
+  skills       String[]
+
+  hireStatus         HireStatus          @default(STUDENT_ONLY)
+  jobType            JobType             @default(NOT_LOOKING)
+  workplacePreference WorkplacePreference @default(NO_PREFERENCE)
+  currentEmployer    String?
+  currentPosition    String?
+  portfolioUrl       String?
+  linkedinUrl        String?
+
+  updatedAt DateTime @updatedAt
+
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([specialization])
+  @@index([hireStatus])
+  @@index([jobType])
 }
 
 model Batch {
-  id              String       @id @default(cuid())
-  organizationId  String
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name            String
-  startDate       DateTime
-  endDate         DateTime?
-  capacity        Int?
-  defaultMeetLink String?
-  isArchived      Boolean      @default(false)
-
-  lateThresholdMinsOverride     Int?
+  id                             String   @id @default(cuid())
+  workspaceId                    String
+  name                           String
+  startDate                      DateTime
+  endDate                        DateTime?
+  capacity                       Int?
+  defaultMeetLink                String?
+  isArchived                     Boolean  @default(false)
+  lateThresholdMinsOverride      Int?
   attendanceDurationMinsOverride Int?
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  batchMemberships BatchMembership[]
+  sessions         Session[]
 
-  batchMemberships  BatchMembership[]
-  sessionTemplates  SessionTemplate[]
-  sessions          Session[]
-  studentImportJobs StudentImportJob[]
-  webhookConfigs    WebhookConfig[]
-
-  @@index([organizationId])
+  @@index([workspaceId])
   @@index([isArchived])
 }
 
 model BatchMembership {
-  id           String     @id @default(cuid())
+  id           String    @id @default(cuid())
   membershipId String
-  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
   batchId      String
-  batch        Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  isCR         Boolean    @default(false)
-  assignedAt   DateTime   @default(now())
+  isCR         Boolean   @default(false)
+  assignedAt   DateTime  @default(now())
   revokedAt    DateTime?
 
+  membership  Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  batch       Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
   attendances Attendance[]
 
   @@unique([membershipId, batchId])
   @@index([batchId])
   @@index([membershipId])
-  @@index([batchId, isCR])
-}
-
-model SessionTemplate {
-  id             String   @id @default(cuid())
-  batchId        String
-  batch          Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  title          String
-  description    String?
-  recurrenceRule Json   
-  durationMins   Int      @default(60)
-  meetLink       String?
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-
-  sessions Session[]
-
-  @@index([batchId])
 }
 
 model Session {
-  id             String           @id @default(cuid())
-  batchId        String
-  batch          Batch            @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  templateId     String?
-  template       SessionTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  title          String
-  description    String?
-  scheduledStart DateTime
-  scheduledEnd   DateTime
-  meetLink       String?
-  type           SessionType      @default(ONE_TIME)
-  status         SessionStatus    @default(SCHEDULED)
-
+  id                   String        @id @default(cuid())
+  batchId              String
+  title                String
+  description          String?
+  scheduledStart       DateTime
+  scheduledEnd         DateTime
+  meetLink             String?
+  type                 SessionType   @default(REGULAR)
+  status               SessionStatus @default(SCHEDULED)
   attendanceOpenedAt   DateTime?
   attendanceOpenedById String?
-  attendanceOpenedBy   Membership? @relation("SessionOpener", fields: [attendanceOpenedById], references: [id], onDelete: SetNull)
   attendanceClosedAt   DateTime?
   attendanceClosedById String?
-  attendanceClosedBy   Membership? @relation("SessionCloser", fields: [attendanceClosedById], references: [id], onDelete: SetNull)
+  currentCode          String?
+  codeRotatedAt        DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
-  currentCode   String?
-  codeRotatedAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  attendances    Attendance[]
-  activityEvents SessionActivityEvent[]
-  tickets        Ticket[]
+  batch       Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  attendances Attendance[]
 
   @@index([batchId])
   @@index([scheduledStart])
@@ -320,233 +215,24 @@ model Session {
 }
 
 model Attendance {
-  id        String   @id @default(cuid())
-  sessionId String
-  session   Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-
+  id                       String           @id @default(cuid())
+  sessionId                String
   studentBatchMembershipId String
-  studentBatchMembership   BatchMembership @relation(fields: [studentBatchMembershipId], references: [id], onDelete: Restrict)
+  status                   AttendanceStatus
+  method                   AttendanceMethod
+  submittedAt              DateTime?
+  markedById               String?
+  manualReason             String?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
 
-  status      AttendanceStatus @default(ABSENT)
-  method      AttendanceMethod @default(SELF_SUBMITTED)
-  submittedAt DateTime?
-
-  markedByMembershipId String?
-  markedByMembership    Membership? @relation("ManualMarker", fields: [markedByMembershipId], references: [id], onDelete: SetNull)
-  manualReason          String?
-
-  ipAddress         String?
-  deviceFingerprint String?
-  userAgent         String?
-
-  riskScore Float?  @default(0)
-  isFlagged Boolean @default(false)
-
-  reviewedByMembershipId String?
-  reviewedBy             Membership?         @relation("AttendanceReviewer", fields: [reviewedByMembershipId], references: [id], onDelete: SetNull)
-  reviewedAt              DateTime?
-  reviewOutcome           FraudReviewOutcome? 
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  presenceHeartbeats PresenceHeartbeat[]
-  ticket             Ticket?
+  session                Session         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentBatchMembership BatchMembership @relation(fields: [studentBatchMembershipId], references: [id], onDelete: Restrict)
+  markedBy               Membership?     @relation("AttendanceMarker", fields: [markedById], references: [id], onDelete: SetNull)
 
   @@unique([sessionId, studentBatchMembershipId])
   @@index([sessionId])
   @@index([studentBatchMembershipId])
-  @@index([isFlagged])
-  @@index([status])
-  @@index([reviewOutcome])
-}
-
-model PresenceHeartbeat {
-  id           String     @id @default(cuid())
-  attendanceId String
-  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pingAt       DateTime   @default(now())
-
-  @@index([attendanceId, pingAt])
-  @@index([userId])
-}
-
-model Ticket {
-  id           String     @id @default(cuid())
-  sessionId    String
-  session      Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  attendanceId String     @unique
-  attendance   Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
-  studentId    String
-  student      User       @relation("TicketStudent", fields: [studentId], references: [id], onDelete: Cascade)
-
-  reason String
-  status TicketStatus @default(PENDING)
-
-  crDecisionById   String?
-  crDecisionBy     Membership? @relation("TicketCRDecision", fields: [crDecisionById], references: [id], onDelete: SetNull)
-  crDecisionReason String?
-  crDecisionAt     DateTime?
-
-  mentorDecisionById   String?
-  mentorDecisionBy     Membership? @relation("TicketMentorDecision", fields: [mentorDecisionById], references: [id], onDelete: SetNull)
-  mentorDecisionReason String?
-  mentorDecisionAt     DateTime?
-
-  createdAt DateTime @default(now()) 
-  updatedAt DateTime @updatedAt
-
-  @@index([sessionId])
-  @@index([studentId])
   @@index([status])
 }
 
-model StudentImportJob {
-  id                      String          @id @default(cuid())
-  organizationId          String
-  organization            Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  batchId                 String
-  batch                   Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  initiatedByMembershipId String
-  initiatedByMembership   Membership      @relation(fields: [initiatedByMembershipId], references: [id])
-  originalFileName        String
-  status                  ImportJobStatus @default(PENDING)
-  totalRows               Int             @default(0)
-  successCount            Int             @default(0)
-  failureCount            Int             @default(0)
-  createdAt               DateTime        @default(now())
-  completedAt             DateTime?
-
-  rows StudentImportRow[]
-
-  @@index([organizationId])
-  @@index([batchId])
-  @@index([status])
-}
-
-model StudentImportRow {
-  id            String           @id @default(cuid())
-  jobId         String
-  job           StudentImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  rowNumber     Int
-  rawData       Json
-  status        ImportRowStatus  @default(PENDING)
-  errorMessage  String?
-  createdUserId String?
-  createdAt     DateTime         @default(now())
-
-  @@index([jobId])
-  @@index([status])
-}
-
-model SessionActivityEvent {
-  id                String      @id @default(cuid())
-  sessionId         String
-  session           Session     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  type              String   
-  actorMembershipId String?
-  actorMembership   Membership? @relation(fields: [actorMembershipId], references: [id], onDelete: SetNull)
-  metadata          Json?
-  createdAt         DateTime    @default(now())
-
-  @@index([sessionId, createdAt])
-  @@index([actorMembershipId])
-}
-
-model AuditLog {
-  id             String        @id @default(cuid())
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  actorUserId    String?
-  actorUser      User?         @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: SetNull)
-  action         String   
-  targetType     String  
-  targetId       String
-  beforeValue    Json?
-  afterValue     Json?
-  reason         String?
-  createdAt      DateTime      @default(now())
-
-  @@index([organizationId])
-  @@index([targetType, targetId])
-  @@index([createdAt])
-}
-
-model Notification {
-  id             String              @id @default(cuid())
-  userId         String
-  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organizationId String?
-  organization   Organization?       @relation(fields: [organizationId], references: [id], onDelete: SetNull)
-  type           String         
-  channel        NotificationChannel
-  payload        Json
-  isRead         Boolean             @default(false)
-  createdAt      DateTime            @default(now())
-  deletedAt      DateTime?
-
-  @@index([userId, isRead])
-  @@index([organizationId])
-  @@index([deletedAt])
-}
-
-model WebhookConfig {
-  id             String   @id @default(cuid())
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  batchId        String?
-  batch          Batch?   @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  url            String
-  events         String[]
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([organizationId])
-  @@index([batchId])
-}
-
-model PlatformAdmin {
-  id           String            @id @default(cuid())
-  email        String            @unique
-  name         String
-  passwordHash String
-  role         PlatformAdminRole @default(SUPPORT)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  platformAuditLogs     PlatformAuditLog[]
-  impersonationSessions ImpersonationSession[]
-  subscriptionOverrides Subscription[]
-}
-
-model PlatformAuditLog {
-  id              String        @id @default(cuid())
-  platformAdminId String
-  platformAdmin   PlatformAdmin @relation(fields: [platformAdminId], references: [id])
-  action          String    
-  targetOrgId     String?
-  metadata        Json?
-  reason          String?
-  createdAt       DateTime      @default(now())
-
-  @@index([platformAdminId])
-  @@index([targetOrgId])
-}
-
-model ImpersonationSession {
-  id                   String        @id @default(cuid())
-  platformAdminId      String
-  platformAdmin        PlatformAdmin @relation(fields: [platformAdminId], references: [id])
-  targetUserId         String
-  targetUser           User          @relation(fields: [targetUserId], references: [id])
-  targetOrganizationId String?
-  reason               String
-  startedAt            DateTime      @default(now())
-  endedAt              DateTime?
-
-  @@index([platformAdminId])
-  @@index([targetUserId])
-}
