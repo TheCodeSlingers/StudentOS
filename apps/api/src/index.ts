@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import importRouter from "./modules/student-import/import.routes";
+import attendanceRouter from "./modules/attendance/attendance.routes";
 import { errorHandler } from "./middleware/error";
 import { env } from "./config/env";
 
@@ -15,6 +16,7 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 app.use("/api/v1", importRouter);
+app.use("/api/v1", attendanceRouter);
 
 app.get("/", (req, res) => {
   res.status(200).json({
