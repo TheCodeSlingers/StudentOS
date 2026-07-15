@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import importRouter from "./modules/student-import/import.routes";
+import studentRouter from "./modules/student/student.routes";
 import attendanceRouter from "./modules/attendance/attendance.routes";
 import batchRouter from "./modules/batch/batch.routes";
 import { errorHandler } from "./middleware/error";
@@ -17,6 +18,7 @@ app.use(morgan("dev"));
 app.use(express.json());
 
 app.use("/api/v1", importRouter);
+app.use("/api/v1", studentRouter);
 app.use("/api/v1", attendanceRouter);
 app.use("/api/v1", batchRouter);
 
