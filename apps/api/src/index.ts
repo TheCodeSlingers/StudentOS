@@ -3,7 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import importRouter from "./modules/student-import/import.routes";
-import studentRouter from "./routes/student";
+import studentRouter from "./modules/student/student.routes";
 import { errorHandler } from "./middleware/error";
 import { env } from "./config/env";
 

@@ -1,5 +1,5 @@
-import { prisma } from "../lib/prisma";
-import { NotFoundError, BadRequestError } from "../common/errors";
+import { prisma } from "../../lib/prisma";
+import { NotFoundError, BadRequestError } from "../../common/errors";
 
 type HireStatus = "EMPLOYED" | "JOB_SEEKING" | "FREELANCING" | "STUDENT_ONLY";
 type JobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "FREELANCE" | "NOT_LOOKING";
