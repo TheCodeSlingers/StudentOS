@@ -167,6 +167,8 @@ export function manualMarkAttendance(sessionId: string, payload: ManualMarkPaylo
 
 export function submitAttendance(sessionId: string, code: string): Promise<AttendanceRecord> {
   return postJson<AttendanceRecord>(`/sessions/${sessionId}/attendance/submit`, { code });
+}
+
 export type MembershipRole = "MENTOR" | "STUDENT";
 
 export interface InviteMemberPayload {
