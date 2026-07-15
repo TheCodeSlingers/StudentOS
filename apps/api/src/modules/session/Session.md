@@ -199,9 +199,20 @@ Authorization: Bearer <token>
   "title": "Module 3: Advanced APIs",
   "scheduledStart": "2026-07-14T20:00:00Z",
   "scheduledEnd": "2026-07-14T21:00:00Z",
-  "meetLink": "https://meet.google.com/abc-defg-hij"
+  "meetLink": "https://meet.google.com/abc-defg-hij",
+  "description": "Covers REST API design patterns and best practices",
+  "type": "REGULAR"
 }
 ```
+
+| Field | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `title` | Yes | — | Session title |
+| `scheduledStart` | Yes | — | ISO 8601 datetime string |
+| `scheduledEnd` | Yes | — | ISO 8601 datetime string, must be after `scheduledStart` |
+| `meetLink` | No | null | Valid URL for the video meeting |
+| `description` | No | null | Optional session description |
+| `type` | No | `REGULAR` | One of `REGULAR`, `MAKEUP`, `EXAM` |
 
 **Response 201:**
 
@@ -539,6 +550,8 @@ export const createSessionSchema = z.object({
     scheduledStart: z.string().datetime("Invalid start time"),
     scheduledEnd: z.string().datetime("Invalid end time"),
     meetLink: z.string().url().optional(),
+    description: z.string().optional(),
+    type: z.enum(["REGULAR", "MAKEUP", "EXAM"]).optional(),
   }),
 });
 
