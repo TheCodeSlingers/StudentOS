@@ -1,6 +1,6 @@
-import { prisma } from "../../lib/prisma";
-import { parseCSV, CSVRow } from "../../utils/csv-parser";
 import { NotFoundError } from "../../common/errors";
+import { prisma } from "../../lib/prisma";
+import { importQueue } from "../../lib/queue";
 
 export interface ImportJobSummary {
   id: string;
@@ -11,6 +11,7 @@ export interface ImportJobSummary {
   failedRows: number;
   createdAt: Date;
   updatedAt: Date;
+  queueProgress?: number | null;
 }
 
 export interface ImportJobRowReport {
@@ -22,13 +23,20 @@ export interface ImportJobRowReport {
 }
 
 export class ImportService {
-  static async startImport(batchId: string, fileBuffer: Buffer): Promise<string> {
+  static async startImport(
+    batchId: string,
+    fileBuffer: Buffer,
+  ): Promise<string> {
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
+      select: { id: true, workspaceId: true },
     });
 
     if (!batch) {
-      throw new NotFoundError("The target batch does not exist.", "BATCH_NOT_FOUND");
+      throw new NotFoundError(
+        "The target batch does not exist.",
+        "BATCH_NOT_FOUND",
+      );
     }
 
     const job = await prisma.studentImportJob.create({
@@ -41,19 +49,30 @@ export class ImportService {
       },
     });
 
-    this.processImportAsync(job.id, batch.workspaceId, batchId, fileBuffer).catch(() => {});
+    if (importQueue) {
+      await importQueue.add("process-csv", {
+        jobId: job.id,
+        workspaceId: batch.workspaceId,
+        batchId,
+        csvBase64: fileBuffer.toString("base64"),
+      });
+    }
 
     return job.id;
   }
 
   static async getJobSummary(jobId: string): Promise<ImportJobSummary | null> {
-    const job = await prisma.studentImportJob.findUnique({
-      where: { id: jobId },
-    });
+    const [job, bullJob] = await Promise.all([
+      prisma.studentImportJob.findUnique({ where: { id: jobId } }),
+      importQueue?.getJob(jobId).catch(() => null) ?? Promise.resolve(null),
+    ]);
 
     if (!job) {
       return null;
     }
+
+    const progress =
+      typeof bullJob?.progress === "number" ? bullJob.progress : null;
 
     return {
       id: job.id,
@@ -64,6 +83,7 @@ export class ImportService {
       failedRows: job.failedRows,
       createdAt: job.createdAt,
       updatedAt: job.updatedAt,
+      queueProgress: progress,
     };
   }
 
@@ -80,164 +100,5 @@ export class ImportService {
       status: r.status as any,
       errorMessage: r.errorMessage,
     }));
-  }
-
-  private static async processImportAsync(
-    jobId: string,
-    workspaceId: string,
-    batchId: string,
-    fileBuffer: Buffer
-  ): Promise<void> {
-    let rows: CSVRow[] = [];
-
-    await prisma.studentImportJob.update({
-      where: { id: jobId },
-      data: { status: "PROCESSING" },
-    });
-
-    try {
-      rows = parseCSV(fileBuffer);
-    } catch (err: any) {
-      await prisma.studentImportJob.update({
-        where: { id: jobId },
-        data: { status: "COMPLETED_WITH_ERRORS" },
-      });
-      await prisma.studentImportRow.create({
-        data: {
-          jobId,
-          rowNumber: 0,
-          email: "N/A",
-          status: "FAILED",
-          errorMessage: err.message || "Failed to parse CSV file",
-        },
-      });
-      return;
-    }
-
-    await prisma.studentImportJob.update({
-      where: { id: jobId },
-      data: { totalRows: rows.length },
-    });
-
-    let successCount = 0;
-    let failedCount = 0;
-
-    for (const row of rows) {
-      try {
-        await prisma.$transaction(async tx => {
-          let user = await tx.user.findUnique({
-            where: { email: row.email },
-          });
-
-          if (!user) {
-            user = await tx.user.create({
-              data: {
-                email: row.email,
-                name: row.name,
-              },
-            });
-          }
-
-          let membership = await tx.membership.findFirst({
-            where: {
-              workspaceId,
-              userId: user.id,
-            },
-          });
-
-          if (!membership) {
-            membership = await tx.membership.create({
-              data: {
-                workspaceId,
-                userId: user.id,
-                role: "STUDENT",
-                status: "ACTIVE",
-              },
-            });
-          }
-
-          let batchMembership = await tx.batchMembership.findFirst({
-            where: {
-              batchId,
-              membershipId: membership.id,
-            },
-          });
-
-          if (!batchMembership) {
-            batchMembership = await tx.batchMembership.create({
-              data: {
-                batchId,
-                membershipId: membership.id,
-                isCR: false,
-              },
-            });
-          }
-
-          const existingProfile = await tx.studentProfile.findUnique({
-            where: { membershipId: membership.id },
-          });
-
-          if (!existingProfile) {
-            await tx.studentProfile.create({
-              data: {
-                membershipId: membership.id,
-                phone: row.phone || null,
-                courseName: row.courseName || null,
-                specialization: row.specialization || null,
-                skills: row.skills || [],
-              },
-            });
-          } else {
-            const updateData: any = {};
-            if (row.phone) updateData.phone = row.phone;
-            if (row.courseName) updateData.courseName = row.courseName;
-            if (row.specialization) updateData.specialization = row.specialization;
-            if (row.skills && row.skills.length > 0) {
-              const currentSkills = existingProfile.skills || [];
-              const combinedSkills = Array.from(new Set([...currentSkills, ...row.skills]));
-              updateData.skills = combinedSkills;
-            }
-
-            if (Object.keys(updateData).length > 0) {
-              await tx.studentProfile.update({
-                where: { membershipId: membership.id },
-                data: updateData,
-              });
-            }
-          }
-        });
-
-        await prisma.studentImportRow.create({
-          data: {
-            jobId,
-            rowNumber: row.rowNumber,
-            email: row.email,
-            status: "SUCCESS",
-          },
-        });
-        successCount++;
-      } catch (err: any) {
-        await prisma.studentImportRow.create({
-          data: {
-            jobId,
-            rowNumber: row.rowNumber,
-            email: row.email,
-            status: "FAILED",
-            errorMessage: err.message || "Error during transaction processing",
-          },
-        });
-        failedCount++;
-      }
-    }
-
-    const finalStatus = failedCount > 0 ? "COMPLETED_WITH_ERRORS" : "COMPLETED";
-    await prisma.studentImportJob.update({
-      where: { id: jobId },
-      data: {
-        successRows: successCount,
-        failedRows: failedCount,
-        status: finalStatus,
-      },
-    });
   }
 }

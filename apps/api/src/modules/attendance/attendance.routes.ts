@@ -3,6 +3,7 @@ import { AttendanceController } from "./attendance.controller";
 import { authMiddleware } from "../../middleware/auth";
 import { requireRole } from "../../middleware/permission";
 import { validateRequest } from "../../common/validation";
+import { attendanceRateLimiter } from "../../middleware/rate-limit";
 import {
   submitAttendanceSchema,
   manualAttendanceSchema,
@@ -16,8 +17,9 @@ router.post(
   "/sessions/:sessionId/attendance/submit",
   authMiddleware,
   requireRole(["STUDENT"]),
+  attendanceRateLimiter,
   validateRequest(submitAttendanceSchema),
-  AttendanceController.submit
+  AttendanceController.submit,
 );
 
 router.post(
@@ -25,7 +27,7 @@ router.post(
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(manualAttendanceSchema),
-  AttendanceController.manualMark
+  AttendanceController.manualMark,
 );
 
 router.get(
@@ -33,7 +35,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(sessionAttendanceSchema),
-  AttendanceController.getRoster
+  AttendanceController.getRoster,
 );
 
 router.get(
@@ -41,7 +43,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(studentAttendanceSchema),
-  AttendanceController.getHistory
+  AttendanceController.getHistory,
 );
 
 export default router;

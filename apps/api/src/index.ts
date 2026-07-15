@@ -1,49 +1,30 @@
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import morgan from "morgan";
-import importRouter from "./modules/student-import/import.routes";
-import studentRouter from "./modules/student/student.routes";
-import attendanceRouter from "./modules/attendance/attendance.routes";
-import batchRouter from "./modules/batch/batch.routes";
-import { errorHandler } from "./middleware/error";
+import { app } from "./app";
 import { env } from "./config/env";
-import { toNodeHandler } from "better-auth/node";
-import { auth } from "./lib/auth";
-import { mainRouter } from "./routes/router";
+import { logger } from "./lib/logger";
+import { startImportWorker } from "./workers/import.worker";
 
-const app = express();
 const PORT = env.PORT;
 
-app.use(helmet());
-app.use(cors());
-app.use(morgan("dev"));
-app.use(express.json());
-console.log(process.env.DATABASE_URL);
+const importWorker = startImportWorker();
 
-// Register the auth route handler for all routes starting with /api/auth/
-app.all("/api/auth/*splat", toNodeHandler(auth));
-// app.use("/api/v1", mainRouter);
+const server = app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT} (${env.NODE_ENV})`);
+});
 
-app.use("/api/v1", importRouter);
-app.use("/api/v1", studentRouter);
-app.use("/api/v1", attendanceRouter);
-app.use("/api/v1", batchRouter);
+async function shutdown(signal: string): Promise<void> {
+  logger.info({ signal }, "Shutdown signal received.");
 
-app.get("/", (req, res) => {
-  res.status(200).json({
-    name: "StudentOS API",
-    version: "1.0.0",
-    status: "healthy",
-    uptime: process.uptime(),
+  server.close(async () => {
+    if (importWorker) {
+      await importWorker.close();
+    }
+    process.exit(0);
   });
-});
 
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
-});
-app.use(errorHandler);
+  setTimeout(() => {
+    process.exit(1);
+  }, 15_000);
+}
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));

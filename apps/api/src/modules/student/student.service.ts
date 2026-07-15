@@ -3,7 +3,12 @@ import { Prisma } from "@prisma/client";
 import { NotFoundError, BadRequestError } from "../../common/errors";
 
 type HireStatus = "EMPLOYED" | "JOB_SEEKING" | "FREELANCING" | "STUDENT_ONLY";
-type JobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "FREELANCE" | "NOT_LOOKING";
+type JobType =
+  | "FULL_TIME"
+  | "PART_TIME"
+  | "INTERNSHIP"
+  | "FREELANCE"
+  | "NOT_LOOKING";
 type WorkplacePreference = "REMOTE" | "ONSITE" | "HYBRID" | "NO_PREFERENCE";
 
 export interface UpdateProfileData {
@@ -23,10 +28,20 @@ export interface UpdateProfileData {
 }
 
 export class StudentService {
-  static async enrollStudent(batchId: string, membershipId: string, isCR: boolean = false) {
+  static async enrollStudent(
+    batchId: string,
+    membershipId: string,
+    isCR: boolean = false,
+  ) {
     const [batch, membership] = await Promise.all([
-      prisma.batch.findUnique({ where: { id: batchId }, select: { id: true } }),
-      prisma.membership.findUnique({ where: { id: membershipId }, select: { id: true } }),
+      prisma.batch.findUnique({
+        where: { id: batchId },
+        select: { id: true },
+      }),
+      prisma.membership.findUnique({
+        where: { id: membershipId },
+        select: { id: true },
+      }),
     ]);
 
     if (!batch) {
@@ -69,7 +84,11 @@ export class StudentService {
     });
   }
 
-  static async getEnrolledStudents(batchId: string, page: number = 1, limit: number = 10) {
+  static async getEnrolledStudents(
+    batchId: string,
+    page: number = 1,
+    limit: number = 10,
+  ) {
     const skip = (page - 1) * limit;
 
     const [students, total] = await Promise.all([
@@ -172,7 +191,10 @@ export class StudentService {
     return membership;
   }
 
-  static async updateStudentProfile(membershipId: string, data: UpdateProfileData) {
+  static async updateStudentProfile(
+    membershipId: string,
+    data: UpdateProfileData,
+  ) {
     try {
       return await prisma.studentProfile.upsert({
         where: { membershipId },
@@ -183,7 +205,10 @@ export class StudentService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      ) {
         throw new NotFoundError("Membership not found");
       }
       throw error;

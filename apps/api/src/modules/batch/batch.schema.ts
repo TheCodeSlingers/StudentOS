@@ -3,10 +3,26 @@ import { z } from "zod";
 export const createBatchSchema = z.object({
   body: z.object({
     name: z.string().min(1, "Name is required"),
-    startDate: z.string().datetime({ message: "Invalid startDate format, must be ISO datetime" }),
-    endDate: z.string().datetime({ message: "Invalid endDate format, must be ISO datetime" }).optional().nullable(),
-    lateThresholdMinsOverride: z.number().int().nonnegative().optional().nullable(),
-    attendanceDurationMinsOverride: z.number().int().nonnegative().optional().nullable(),
+    startDate: z
+      .string()
+      .datetime({ message: "Invalid startDate format, must be ISO datetime" }),
+    endDate: z
+      .string()
+      .datetime({ message: "Invalid endDate format, must be ISO datetime" })
+      .optional()
+      .nullable(),
+    lateThresholdMinsOverride: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .nullable(),
+    attendanceDurationMinsOverride: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .nullable(),
   }),
 });
 
@@ -16,10 +32,27 @@ export const updateBatchSchema = z.object({
   }),
   body: z.object({
     name: z.string().min(1, "Name cannot be empty").optional(),
-    startDate: z.string().datetime({ message: "Invalid startDate format" }).optional(),
-    endDate: z.string().datetime({ message: "Invalid endDate format" }).optional().nullable(),
-    lateThresholdMinsOverride: z.number().int().nonnegative().optional().nullable(),
-    attendanceDurationMinsOverride: z.number().int().nonnegative().optional().nullable(),
+    startDate: z
+      .string()
+      .datetime({ message: "Invalid startDate format" })
+      .optional(),
+    endDate: z
+      .string()
+      .datetime({ message: "Invalid endDate format" })
+      .optional()
+      .nullable(),
+    lateThresholdMinsOverride: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .nullable(),
+    attendanceDurationMinsOverride: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .nullable(),
   }),
 });
 
@@ -49,7 +82,11 @@ export const updateMemberSchema = z.object({
   }),
   body: z.object({
     isCR: z.boolean().optional(),
-    revokedAt: z.string().datetime({ message: "Invalid revokedAt format" }).optional().nullable(),
+    revokedAt: z
+      .string()
+      .datetime({ message: "Invalid revokedAt format" })
+      .optional()
+      .nullable(),
   }),
 });
 

@@ -58,17 +58,22 @@ export function parseCSV(buffer: Buffer): CSVRow[] {
     rows.push(currentRow);
   }
 
-  const cleanRows = rows.filter(r => r.some(cell => cell.trim().length > 0));
+  const cleanRows = rows.filter((r) =>
+    r.some((cell) => cell.trim().length > 0),
+  );
   if (cleanRows.length === 0) {
     throw new BadRequestError("CSV file is empty", "EMPTY_FILE");
   }
 
-  const headers = cleanRows[0].map(h => h.trim().toLowerCase());
+  const headers = cleanRows[0].map((h) => h.trim().toLowerCase());
   const emailIdx = headers.indexOf("email");
   const nameIdx = headers.indexOf("name");
 
   if (emailIdx === -1 || nameIdx === -1) {
-    throw new BadRequestError("CSV is missing required headers: email, name", "MISSING_HEADERS");
+    throw new BadRequestError(
+      "CSV is missing required headers: email, name",
+      "MISSING_HEADERS",
+    );
   }
 
   const phoneIdx = headers.indexOf("phone");
@@ -106,8 +111,8 @@ export function parseCSV(buffer: Buffer): CSVRow[] {
       const skillsStr = values[skillsIdx].trim();
       row.skills = skillsStr
         .split(",")
-        .map(s => s.trim())
-        .filter(s => s.length > 0);
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0);
     }
 
     results.push(row);

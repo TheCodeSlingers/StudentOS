@@ -5,6 +5,7 @@ import { requireRole } from "../../middleware/permission";
 import { uploadSingle } from "../../middleware/upload";
 import { validateRequest } from "../../common/validation";
 import { importRosterSchema, getSummarySchema } from "./import.schema";
+import { importRateLimiter } from "../../middleware/rate-limit";
 
 const router = Router();
 
@@ -12,9 +13,10 @@ router.post(
   "/batches/:batchId/students/import",
   authMiddleware,
   requireRole(["MENTOR"]),
+  importRateLimiter,
   validateRequest(importRosterSchema),
   uploadSingle,
-  ImportController.importRoster
+  ImportController.importRoster,
 );
 
 router.get(
@@ -22,7 +24,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR"]),
   validateRequest(getSummarySchema),
-  ImportController.getSummary
+  ImportController.getSummary,
 );
 
 router.get(
@@ -30,7 +32,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR"]),
   validateRequest(getSummarySchema),
-  ImportController.getRows
+  ImportController.getRows,
 );
 
 export default router;
