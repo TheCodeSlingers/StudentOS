@@ -74,3 +74,22 @@ export function login(payload: LoginPayload): Promise<AuthResult> {
 export function signup(payload: SignupPayload): Promise<AuthResult> {
   return postJson<AuthResult>("/auth/signup", payload);
 }
+
+export type MembershipRole = "MENTOR" | "STUDENT";
+
+export interface InviteMemberPayload {
+  email: string;
+  name: string;
+  role: MembershipRole;
+}
+
+export interface InviteMemberResult {
+  membershipId: string;
+  role: MembershipRole;
+  status: "ACTIVE" | "INVITED";
+  user: AuthUser;
+}
+
+export function inviteMember(payload: InviteMemberPayload): Promise<InviteMemberResult> {
+  return postJson<InviteMemberResult>("/workspace/members/invite", payload);
+}
