@@ -32,9 +32,21 @@ export const updateProfileSchema = z.object({
     courseName: z.string().optional().nullable(),
     specialization: z.string().optional().nullable(),
     skills: z.array(z.string()).optional(),
-    hireStatus: z.enum(["EMPLOYED", "JOB_SEEKING", "FREELANCING", "STUDENT_ONLY"]).optional(),
-    jobType: z.enum(["FULL_TIME", "PART_TIME", "INTERNSHIP", "FREELANCE", "NOT_LOOKING"]).optional(),
-    workplacePreference: z.enum(["REMOTE", "ONSITE", "HYBRID", "NO_PREFERENCE"]).optional(),
+    hireStatus: z
+      .enum(["EMPLOYED", "JOB_SEEKING", "FREELANCING", "STUDENT_ONLY"])
+      .optional(),
+    jobType: z
+      .enum([
+        "FULL_TIME",
+        "PART_TIME",
+        "INTERNSHIP",
+        "FREELANCE",
+        "NOT_LOOKING",
+      ])
+      .optional(),
+    workplacePreference: z
+      .enum(["REMOTE", "ONSITE", "HYBRID", "NO_PREFERENCE"])
+      .optional(),
     currentEmployer: z.string().optional().nullable(),
     currentPosition: z.string().optional().nullable(),
     portfolioUrl: z.string().url().optional().nullable(),

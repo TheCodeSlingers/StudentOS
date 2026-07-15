@@ -73,7 +73,11 @@ describe("BatchService", () => {
         where: { id: workspaceId },
       }),
       prisma.user.deleteMany({
-        where: { email: { in: ["batch-mentor@example.com", "batch-student@example.com"] } },
+        where: {
+          email: {
+            in: ["batch-mentor@example.com", "batch-student@example.com"],
+          },
+        },
       }),
     ]);
   });
@@ -113,7 +117,9 @@ describe("BatchService", () => {
     });
 
     it("should throw NotFoundError if batch does not exist", async () => {
-      await expect(BatchService.getBatch(workspaceId, "non-existent-batch")).rejects.toThrow(NotFoundError);
+      await expect(
+        BatchService.getBatch(workspaceId, "non-existent-batch"),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 
@@ -131,10 +137,14 @@ describe("BatchService", () => {
 
   describe("allocateMember", () => {
     it("should successfully allocate a workspace member to the batch", async () => {
-      const allocation = await BatchService.allocateMember(workspaceId, batchId, {
-        membershipId: studentMembershipId,
-        isCR: false,
-      });
+      const allocation = await BatchService.allocateMember(
+        workspaceId,
+        batchId,
+        {
+          membershipId: studentMembershipId,
+          isCR: false,
+        },
+      );
 
       expect(allocation).toBeDefined();
       expect(allocation.batchId).toBe(batchId);
@@ -146,7 +156,7 @@ describe("BatchService", () => {
       await expect(
         BatchService.allocateMember(workspaceId, batchId, {
           membershipId: studentMembershipId,
-        })
+        }),
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -154,7 +164,7 @@ describe("BatchService", () => {
       await expect(
         BatchService.allocateMember(workspaceId, batchId, {
           membershipId: "non-existent-mem",
-        })
+        }),
       ).rejects.toThrow(NotFoundError);
     });
   });
@@ -168,27 +178,45 @@ describe("BatchService", () => {
     });
 
     it("should filter batch members roster by role", async () => {
-      const students = await BatchService.listBatchMembers(workspaceId, batchId, "STUDENT");
+      const students = await BatchService.listBatchMembers(
+        workspaceId,
+        batchId,
+        "STUDENT",
+      );
       expect(students.length).toBe(1);
 
-      const mentors = await BatchService.listBatchMembers(workspaceId, batchId, "MENTOR");
+      const mentors = await BatchService.listBatchMembers(
+        workspaceId,
+        batchId,
+        "MENTOR",
+      );
       expect(mentors.length).toBe(0);
     });
   });
 
   describe("updateBatchMembership", () => {
     it("should update student CR flag successfully", async () => {
-      const updated = await BatchService.updateBatchMembership(workspaceId, batchId, batchMembershipId, {
-        isCR: true,
-      });
+      const updated = await BatchService.updateBatchMembership(
+        workspaceId,
+        batchId,
+        batchMembershipId,
+        {
+          isCR: true,
+        },
+      );
       expect(updated.isCR).toBe(true);
     });
 
     it("should revoke student enrollment successfully", async () => {
       const revokedAtDate = new Date().toISOString();
-      const updated = await BatchService.updateBatchMembership(workspaceId, batchId, batchMembershipId, {
-        revokedAt: revokedAtDate,
-      });
+      const updated = await BatchService.updateBatchMembership(
+        workspaceId,
+        batchId,
+        batchMembershipId,
+        {
+          revokedAt: revokedAtDate,
+        },
+      );
       expect(updated.revokedAt).not.toBeNull();
 
       const roster = await BatchService.listBatchMembers(workspaceId, batchId);

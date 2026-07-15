@@ -19,12 +19,33 @@ jest.mock("../../middleware/permission", () => ({
 // Mock the service to avoid hitting the actual database during these tests
 jest.mock("./student.service", () => ({
   StudentService: {
-    enrollStudent: jest.fn().mockResolvedValue({ id: "enrollment_1", batchId: "b1", membershipId: "m1" }),
-    getEnrolledStudents: jest.fn().mockResolvedValue({ data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } }),
-    revokeEnrollment: jest.fn().mockResolvedValue({ id: "enrollment_1", revokedAt: new Date() }),
-    getStudentProfile: jest.fn().mockResolvedValue({ id: "m1", user: { name: "Test" }, studentProfile: {} }),
-    updateStudentProfile: jest.fn().mockResolvedValue({ id: "profile_1", hireStatus: "EMPLOYED" }),
-  }
+    enrollStudent: jest
+      .fn()
+      .mockResolvedValue({
+        id: "enrollment_1",
+        batchId: "b1",
+        membershipId: "m1",
+      }),
+    getEnrolledStudents: jest
+      .fn()
+      .mockResolvedValue({
+        data: [],
+        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+      }),
+    revokeEnrollment: jest
+      .fn()
+      .mockResolvedValue({ id: "enrollment_1", revokedAt: new Date() }),
+    getStudentProfile: jest
+      .fn()
+      .mockResolvedValue({
+        id: "m1",
+        user: { name: "Test" },
+        studentProfile: {},
+      }),
+    updateStudentProfile: jest
+      .fn()
+      .mockResolvedValue({ id: "profile_1", hireStatus: "EMPLOYED" }),
+  },
 }));
 
 describe("Student Module Integration Tests", () => {
@@ -51,7 +72,7 @@ describe("Student Module Integration Tests", () => {
   describe("Profile Endpoints", () => {
     it("GET /students/:membershipId/profile - retrieves a profile", async () => {
       const response = await request(app).get("/api/v1/students/m1/profile");
-      
+
       expect(response.status).toBe(200);
       expect(response.body.data.id).toBe("m1");
     });
@@ -59,7 +80,10 @@ describe("Student Module Integration Tests", () => {
     it("PATCH /students/:membershipId/profile - updates a profile with valid data", async () => {
       const response = await request(app)
         .patch("/api/v1/students/m1/profile")
-        .send({ hireStatus: "EMPLOYED", linkedinUrl: "https://linkedin.com/in/test" });
+        .send({
+          hireStatus: "EMPLOYED",
+          linkedinUrl: "https://linkedin.com/in/test",
+        });
 
       expect(response.status).toBe(200);
       expect(response.body.data.hireStatus).toBe("EMPLOYED");

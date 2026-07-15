@@ -28,7 +28,7 @@ export class BatchService {
       endDate?: string | null;
       lateThresholdMinsOverride?: number | null;
       attendanceDurationMinsOverride?: number | null;
-    }
+    },
   ): Promise<any> {
     return prisma.batch.create({
       data: {
@@ -37,7 +37,8 @@ export class BatchService {
         startDate: new Date(data.startDate),
         endDate: data.endDate ? new Date(data.endDate) : null,
         lateThresholdMinsOverride: data.lateThresholdMinsOverride ?? null,
-        attendanceDurationMinsOverride: data.attendanceDurationMinsOverride ?? null,
+        attendanceDurationMinsOverride:
+          data.attendanceDurationMinsOverride ?? null,
       },
     });
   }
@@ -54,7 +55,10 @@ export class BatchService {
     });
   }
 
-  static async getBatch(workspaceId: string, batchId: string): Promise<BatchDetails> {
+  static async getBatch(
+    workspaceId: string,
+    batchId: string,
+  ): Promise<BatchDetails> {
     const [batch, totalStudents, totalCRs, totalSessions] = await Promise.all([
       prisma.batch.findFirst({
         where: { id: batchId, workspaceId },
@@ -92,7 +96,10 @@ export class BatchService {
     ]);
 
     if (!batch) {
-      throw new NotFoundError("The specified batch was not found.", "BATCH_NOT_FOUND");
+      throw new NotFoundError(
+        "The specified batch was not found.",
+        "BATCH_NOT_FOUND",
+      );
     }
 
     return {
@@ -120,22 +127,30 @@ export class BatchService {
       endDate?: string | null;
       lateThresholdMinsOverride?: number | null;
       attendanceDurationMinsOverride?: number | null;
-    }
+    },
   ): Promise<any> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
     });
 
     if (!batch) {
-      throw new NotFoundError("The specified batch was not found.", "BATCH_NOT_FOUND");
+      throw new NotFoundError(
+        "The specified batch was not found.",
+        "BATCH_NOT_FOUND",
+      );
     }
 
     const updateData: any = {};
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.startDate !== undefined) updateData.startDate = new Date(data.startDate);
-    if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null;
-    if (data.lateThresholdMinsOverride !== undefined) updateData.lateThresholdMinsOverride = data.lateThresholdMinsOverride;
-    if (data.attendanceDurationMinsOverride !== undefined) updateData.attendanceDurationMinsOverride = data.attendanceDurationMinsOverride;
+    if (data.startDate !== undefined)
+      updateData.startDate = new Date(data.startDate);
+    if (data.endDate !== undefined)
+      updateData.endDate = data.endDate ? new Date(data.endDate) : null;
+    if (data.lateThresholdMinsOverride !== undefined)
+      updateData.lateThresholdMinsOverride = data.lateThresholdMinsOverride;
+    if (data.attendanceDurationMinsOverride !== undefined)
+      updateData.attendanceDurationMinsOverride =
+        data.attendanceDurationMinsOverride;
 
     return prisma.batch.update({
       where: { id: batchId },
@@ -143,13 +158,19 @@ export class BatchService {
     });
   }
 
-  static async archiveBatch(workspaceId: string, batchId: string): Promise<any> {
+  static async archiveBatch(
+    workspaceId: string,
+    batchId: string,
+  ): Promise<any> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
     });
 
     if (!batch) {
-      throw new NotFoundError("The specified batch was not found.", "BATCH_NOT_FOUND");
+      throw new NotFoundError(
+        "The specified batch was not found.",
+        "BATCH_NOT_FOUND",
+      );
     }
 
     return prisma.batch.update({
@@ -166,7 +187,7 @@ export class BatchService {
     data: {
       membershipId: string;
       isCR?: boolean;
-    }
+    },
   ): Promise<any> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
@@ -174,7 +195,10 @@ export class BatchService {
     });
 
     if (!batch) {
-      throw new NotFoundError("The specified batch was not found.", "BATCH_NOT_FOUND");
+      throw new NotFoundError(
+        "The specified batch was not found.",
+        "BATCH_NOT_FOUND",
+      );
     }
 
     const membership = await prisma.membership.findFirst({
@@ -185,7 +209,7 @@ export class BatchService {
     if (!membership) {
       throw new NotFoundError(
         "The specified active workspace member was not found.",
-        "MEMBER_NOT_FOUND"
+        "MEMBER_NOT_FOUND",
       );
     }
 
@@ -198,7 +222,10 @@ export class BatchService {
         },
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
         const existing = await prisma.batchMembership.findUnique({
           where: {
             membershipId_batchId: {
@@ -211,7 +238,10 @@ export class BatchService {
 
         if (existing) {
           if (existing.revokedAt === null) {
-            throw new BadRequestError("Member is already active in this batch.", "DUPLICATE_ALLOCATION");
+            throw new BadRequestError(
+              "Member is already active in this batch.",
+              "DUPLICATE_ALLOCATION",
+            );
           }
 
           return prisma.batchMembership.update({
@@ -231,14 +261,17 @@ export class BatchService {
   static async listBatchMembers(
     workspaceId: string,
     batchId: string,
-    roleFilter?: "MENTOR" | "STUDENT"
+    roleFilter?: "MENTOR" | "STUDENT",
   ): Promise<any[]> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
     });
 
     if (!batch) {
-      throw new NotFoundError("The specified batch was not found.", "BATCH_NOT_FOUND");
+      throw new NotFoundError(
+        "The specified batch was not found.",
+        "BATCH_NOT_FOUND",
+      );
     }
 
     const whereClause: any = {
@@ -272,7 +305,7 @@ export class BatchService {
       },
     });
 
-    return members.map(m => ({
+    return members.map((m) => ({
       batchMembershipId: m.id,
       membershipId: m.membershipId,
       userId: m.membership.user.id,
@@ -291,14 +324,17 @@ export class BatchService {
     data: {
       isCR?: boolean;
       revokedAt?: string | null;
-    }
+    },
   ): Promise<any> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
     });
 
     if (!batch) {
-      throw new NotFoundError("The specified batch was not found.", "BATCH_NOT_FOUND");
+      throw new NotFoundError(
+        "The specified batch was not found.",
+        "BATCH_NOT_FOUND",
+      );
     }
 
     const batchMembership = await prisma.batchMembership.findUnique({
@@ -306,7 +342,10 @@ export class BatchService {
     });
 
     if (!batchMembership || batchMembership.batchId !== batchId) {
-      throw new NotFoundError("The batch membership record was not found.", "MEMBERSHIP_NOT_FOUND");
+      throw new NotFoundError(
+        "The batch membership record was not found.",
+        "MEMBERSHIP_NOT_FOUND",
+      );
     }
 
     const updateData: any = {};
