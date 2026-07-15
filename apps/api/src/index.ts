@@ -2,6 +2,10 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import importRouter from "./modules/student-import/import.routes";
+import studentRouter from "./modules/student/student.routes";
+import attendanceRouter from "./modules/attendance/attendance.routes";
+import batchRouter from "./modules/batch/batch.routes";
 import { errorHandler } from "./middleware/error";
 import { env } from "./config/env";
 import { toNodeHandler } from "better-auth/node";
@@ -20,6 +24,11 @@ console.log(process.env.DATABASE_URL);
 // Register the auth route handler for all routes starting with /api/auth/
 app.all("/api/auth/*splat", toNodeHandler(auth));
 // app.use("/api/v1", mainRouter);
+
+app.use("/api/v1", importRouter);
+app.use("/api/v1", studentRouter);
+app.use("/api/v1", attendanceRouter);
+app.use("/api/v1", batchRouter);
 
 app.get("/", (req, res) => {
   res.status(200).json({
