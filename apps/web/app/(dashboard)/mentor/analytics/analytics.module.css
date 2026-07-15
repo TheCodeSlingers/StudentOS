@@ -1,0 +1,88 @@
+.grid {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-5);
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: var(--space-6);
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.statCard {
+  composes: card;
+  padding: var(--space-5);
+  gap: var(--space-3);
+}
+
+.statCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.statCardIcon {
+  color: var(--color-text-muted);
+  width: 1.5rem; /* 24px */
+  height: 1.5rem; /* 24px */
+}
+
+.statCardValue {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  line-height: var(--line-height-tight);
+}
+
+.statCardFooter {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.chartCard {
+  composes: card;
+  min-height: 400px;
+}
+
+.chartHeader {
+  margin-bottom: var(--space-6);
+}
+
+.chartHeader h2 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.chartHeader p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+
+.chartContainer {
+  flex-grow: 1;
+  width: 100%;
+  height: 100%;
+  /* Recharts ResponsiveContainer needs a defined height parent */
+  min-height: 300px;
+}

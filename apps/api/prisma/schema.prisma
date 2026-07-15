@@ -1,5 +1,7 @@
+
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -64,17 +66,22 @@ enum HireStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String?
-  authProvider String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String  @id
+  name          String
+  email         String  @unique
+  emailVerified Boolean @default(false)
+  image         String?
 
-  memberships Membership[]
+  phone            String?
+  currentPeriodEnd DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  memberships      Membership[]
 
-  @@index([email])
+  sessions Session[]
+  accounts Account[]
+
+  @@map("user")
 }
 
 model Workspace {
@@ -122,22 +129,22 @@ model StudentProfile {
   id           String @id @default(cuid())
   membershipId String @unique
 
-  phone        String?
-  address      String?
-  avatarUrl    String?
+  phone     String?
+  address   String?
+  avatarUrl String?
 
-  courseName         String?
-  specialization     String?
+  courseName     String?
+  specialization String?
 
-  skills       String[]
+  skills String[]
 
-  hireStatus         HireStatus          @default(STUDENT_ONLY)
-  jobType            JobType             @default(NOT_LOOKING)
+  hireStatus          HireStatus          @default(STUDENT_ONLY)
+  jobType             JobType             @default(NOT_LOOKING)
   workplacePreference WorkplacePreference @default(NO_PREFERENCE)
-  currentEmployer    String?
-  currentPosition    String?
-  portfolioUrl       String?
-  linkedinUrl        String?
+  currentEmployer     String?
+  currentPosition     String?
+  portfolioUrl        String?
+  linkedinUrl         String?
 
   updatedAt DateTime @updatedAt
 
@@ -149,23 +156,22 @@ model StudentProfile {
 }
 
 model Batch {
-  id                             String   @id @default(cuid())
+  id                             String    @id @default(cuid())
   workspaceId                    String
   name                           String
   startDate                      DateTime
   endDate                        DateTime?
   capacity                       Int?
   defaultMeetLink                String?
-  isArchived                     Boolean  @default(false)
+  isArchived                     Boolean   @default(false)
   lateThresholdMinsOverride      Int?
   attendanceDurationMinsOverride Int?
-  createdAt                      DateTime @default(now())
-  updatedAt                      DateTime @updatedAt
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
 
   workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   batchMemberships BatchMembership[]
-  sessions         Session[]
-  importJobs       StudentImportJob[]
+  sessions         ClassSession[]
 
   @@index([workspaceId])
   @@index([isArchived])
@@ -188,10 +194,10 @@ model BatchMembership {
   @@index([membershipId])
 }
 
-model Session {
+model ClassSession {
   id                   String        @id @default(cuid())
   batchId              String
-  title                String
+  title                String?
   description          String?
   scheduledStart       DateTime
   scheduledEnd         DateTime
@@ -213,6 +219,7 @@ model Session {
   @@index([batchId])
   @@index([scheduledStart])
   @@index([status])
+  @@map("class_session")
 }
 
 model Attendance {
@@ -227,7 +234,7 @@ model Attendance {
   createdAt                DateTime         @default(now())
   updatedAt                DateTime         @updatedAt
 
-  session                Session         @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session                ClassSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   studentBatchMembership BatchMembership @relation(fields: [studentBatchMembershipId], references: [id], onDelete: Restrict)
   markedBy               Membership?     @relation("AttendanceMarker", fields: [markedById], references: [id], onDelete: SetNull)
 
@@ -237,44 +244,50 @@ model Attendance {
   @@index([status])
 }
 
-enum ImportJobStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  COMPLETED_WITH_ERRORS
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
 }
 
-enum ImportRowStatus {
-  SUCCESS
-  FAILED
-  SKIPPED
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
 }
 
-model StudentImportJob {
-  id          String          @id @default(cuid())
-  batchId     String
-  status      ImportJobStatus @default(PENDING)
-  totalRows   Int             @default(0)
-  successRows Int             @default(0)
-  failedRows  Int             @default(0)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  batch Batch              @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  rows  StudentImportRow[]
-
-  @@index([batchId])
-}
-
-model StudentImportRow {
-  id           String          @id @default(cuid())
-  jobId        String
-  rowNumber    Int
-  email        String
-  status       ImportRowStatus
-  errorMessage String?
-
-  job StudentImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
-
-  @@index([jobId])
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
 }
