@@ -1,5 +1,7 @@
+
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -74,7 +76,13 @@ model User {
 
   memberships Membership[]
 
+  emailVerified Boolean   @default(false)
+  image         String?
+  sessions      Session[]
+  accounts      Account[]
+
   @@index([email])
+  @@map("user")
 }
 
 model Workspace {
@@ -122,22 +130,22 @@ model StudentProfile {
   id           String @id @default(cuid())
   membershipId String @unique
 
-  phone        String?
-  address      String?
-  avatarUrl    String?
+  phone     String?
+  address   String?
+  avatarUrl String?
 
-  courseName         String?
-  specialization     String?
+  courseName     String?
+  specialization String?
 
-  skills       String[]
+  skills String[]
 
-  hireStatus         HireStatus          @default(STUDENT_ONLY)
-  jobType            JobType             @default(NOT_LOOKING)
+  hireStatus          HireStatus          @default(STUDENT_ONLY)
+  jobType             JobType             @default(NOT_LOOKING)
   workplacePreference WorkplacePreference @default(NO_PREFERENCE)
-  currentEmployer    String?
-  currentPosition    String?
-  portfolioUrl       String?
-  linkedinUrl        String?
+  currentEmployer     String?
+  currentPosition     String?
+  portfolioUrl        String?
+  linkedinUrl         String?
 
   updatedAt DateTime @updatedAt
 
@@ -149,18 +157,18 @@ model StudentProfile {
 }
 
 model Batch {
-  id                             String   @id @default(cuid())
+  id                             String    @id @default(cuid())
   workspaceId                    String
   name                           String
   startDate                      DateTime
   endDate                        DateTime?
   capacity                       Int?
   defaultMeetLink                String?
-  isArchived                     Boolean  @default(false)
+  isArchived                     Boolean   @default(false)
   lateThresholdMinsOverride      Int?
   attendanceDurationMinsOverride Int?
-  createdAt                      DateTime @default(now())
-  updatedAt                      DateTime @updatedAt
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
 
   workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   batchMemberships BatchMembership[]
@@ -209,9 +217,19 @@ model Session {
   batch       Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
   attendances Attendance[]
 
+  expiresAt DateTime
+  token     String
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([batchId])
   @@index([scheduledStart])
   @@index([status])
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
 }
 
 model Attendance {
@@ -234,4 +252,36 @@ model Attendance {
   @@index([sessionId])
   @@index([studentBatchMembershipId])
   @@index([status])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
 }
