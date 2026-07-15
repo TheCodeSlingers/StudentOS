@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { Prisma } from "@prisma/client";
 import { NotFoundError, BadRequestError } from "../../common/errors";
 
 type HireStatus = "EMPLOYED" | "JOB_SEEKING" | "FREELANCING" | "STUDENT_ONLY";
@@ -23,12 +24,15 @@ export interface UpdateProfileData {
 
 export class StudentService {
   static async enrollStudent(batchId: string, membershipId: string, isCR: boolean = false) {
-    const batch = await prisma.batch.findUnique({ where: { id: batchId } });
+    const [batch, membership] = await Promise.all([
+      prisma.batch.findUnique({ where: { id: batchId }, select: { id: true } }),
+      prisma.membership.findUnique({ where: { id: membershipId }, select: { id: true } }),
+    ]);
+
     if (!batch) {
       throw new NotFoundError("Batch not found");
     }
 
-    const membership = await prisma.membership.findUnique({ where: { id: membershipId } });
     if (!membership) {
       throw new NotFoundError("Membership not found");
     }
@@ -40,11 +44,14 @@ export class StudentService {
           batchId,
         },
       },
+      select: {
+        id: true,
+        revokedAt: true,
+      },
     });
 
     if (existingEnrollment) {
       if (existingEnrollment.revokedAt) {
-        // Re-enroll
         return prisma.batchMembership.update({
           where: { id: existingEnrollment.id },
           data: { revokedAt: null, isCR },
@@ -71,9 +78,16 @@ export class StudentService {
           batchId,
           revokedAt: null,
         },
-        include: {
+        select: {
+          id: true,
+          batchId: true,
+          membershipId: true,
+          isCR: true,
+          assignedAt: true,
           membership: {
-            include: {
+            select: {
+              id: true,
+              role: true,
               user: {
                 select: {
                   id: true,
@@ -81,7 +95,15 @@ export class StudentService {
                   email: true,
                 },
               },
-              studentProfile: true,
+              studentProfile: {
+                select: {
+                  id: true,
+                  phone: true,
+                  courseName: true,
+                  specialization: true,
+                  skills: true,
+                },
+              },
             },
           },
         },
@@ -151,21 +173,20 @@ export class StudentService {
   }
 
   static async updateStudentProfile(membershipId: string, data: UpdateProfileData) {
-    const membership = await prisma.membership.findUnique({
-      where: { id: membershipId },
-    });
-
-    if (!membership) {
-      throw new NotFoundError("Membership not found");
+    try {
+      return await prisma.studentProfile.upsert({
+        where: { membershipId },
+        update: data as any,
+        create: {
+          ...(data as any),
+          membershipId,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+        throw new NotFoundError("Membership not found");
+      }
+      throw error;
     }
-
-    return prisma.studentProfile.upsert({
-      where: { membershipId },
-      update: data as any,
-      create: {
-        ...(data as any),
-        membershipId,
-      },
-    });
   }
 }
