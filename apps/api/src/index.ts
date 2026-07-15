@@ -15,11 +15,11 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
+console.log(process.env.DATABASE_URL);
 
 // Register the auth route handler for all routes starting with /api/auth/
 app.all("/api/auth/*splat", toNodeHandler(auth));
-app.use("/api/v1", mainRouter);
-
+// app.use("/api/v1", mainRouter);
 
 app.get("/", (req, res) => {
   res.status(200).json({
