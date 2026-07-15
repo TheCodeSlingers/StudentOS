@@ -228,20 +228,16 @@ export class ImportService {
         });
         failedCount++;
       }
-
-      await prisma.studentImportJob.update({
-        where: { id: jobId },
-        data: {
-          successRows: successCount,
-          failedRows: failedCount,
-        },
-      });
     }
 
     const finalStatus = failedCount > 0 ? "COMPLETED_WITH_ERRORS" : "COMPLETED";
     await prisma.studentImportJob.update({
       where: { id: jobId },
-      data: { status: finalStatus },
+      data: {
+        successRows: successCount,
+        failedRows: failedCount,
+        status: finalStatus,
+      },
     });
   }
 }
