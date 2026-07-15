@@ -11,14 +11,10 @@ import {
 import { StatCard } from "@/components/dashboard/StatCard";
 import { PlacementDonutChart } from "@/components/dashboard/PlacementDonutChart";
 import { SkillsBarChart } from "@/components/dashboard/SkillsBarChart";
+import { HireStatus } from "../../student/profile/profile.interface";
 
 // This enum is defined here for mock data purposes.
 // In a real app, it would be imported from a shared location.
-export enum HireStatus {
-  STUDENT_ONLY = "STUDENT_ONLY",
-  ACTIVELY_LOOKING = "ACTIVELY_LOOKING",
-  EMPLOYED = "EMPLOYED",
-}
 
 // --- MOCK DATA LAYER ---
 // This would be replaced by an API call
