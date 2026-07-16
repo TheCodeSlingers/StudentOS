@@ -1,0 +1,986 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "StudentOS API",
+    "description": "Comprehensive production-grade API documentation for the StudentOS portal managing workspace coordination, student profiles, batch logistics, and automated session attendance.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api/v1",
+      "description": "API v1 Endpoint Base"
+    }
+  ],
+  "paths": {
+    "/auth/signup": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register New User",
+        "description": "Registers a new user (MENTOR or STUDENT), initializes their own default workspace and database setup.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password", "name"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "mentor@studentos.com" },
+                  "password": { "type": "string", "minLength": 8, "example": "SecurePassword123" },
+                  "name": { "type": "string", "example": "John Doe" },
+                  "workspaceName": { "type": "string", "example": "Doe Academy" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "workspace": { "$ref": "#/components/schemas/Workspace" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid input format or email already registered" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User Login",
+        "description": "Authenticates user credentials and sets secure session cookies.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "mentor@studentos.com" },
+                  "password": { "type": "string", "example": "SecurePassword123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Invalid credentials or unauthorized" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User Logout",
+        "description": "Destroys current active authentication session.",
+        "responses": {
+          "200": {
+            "description": "Successfully logged out"
+          }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get Profile details",
+        "description": "Retrieves the currently authenticated user profile and active workspace membership details.",
+        "responses": {
+          "200": {
+            "description": "Returns current user details and active membership info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" },
+                    "membership": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "workspaceId": { "type": "string" },
+                        "role": { "type": "string", "enum": ["MENTOR", "STUDENT"] }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated access" }
+        }
+      }
+    },
+    "/batches": {
+      "get": {
+        "tags": ["Batches"],
+        "summary": "List Batches",
+        "description": "Returns a list of all active batches in the workspace. (Requires MENTOR role)",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Batch" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Batches"],
+        "summary": "Create Batch",
+        "description": "Creates a new batch in the active workspace. (Requires MENTOR role)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "startDate"],
+                "properties": {
+                  "name": { "type": "string", "example": "Web Development - Batch 1" },
+                  "startDate": { "type": "string", "format": "date-time", "example": "2026-07-16T00:00:00Z" },
+                  "endDate": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-12-16T00:00:00Z" },
+                  "lateThresholdMinsOverride": { "type": "integer", "nullable": true, "example": 15 },
+                  "attendanceDurationMinsOverride": { "type": "integer", "nullable": true, "example": 30 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Batch successfully created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Batch" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batches/{batchId}": {
+      "get": {
+        "tags": ["Batches"],
+        "summary": "Get Batch",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Batch" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Batches"],
+        "summary": "Update Batch",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "startDate": { "type": "string", "format": "date-time" },
+                  "endDate": { "type": "string", "format": "date-time", "nullable": true },
+                  "lateThresholdMinsOverride": { "type": "integer", "nullable": true },
+                  "attendanceDurationMinsOverride": { "type": "integer", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch successfully updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Batch" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batches/{batchId}/archive": {
+      "post": {
+        "tags": ["Batches"],
+        "summary": "Archive Batch",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Toggled batch archive status" }
+        }
+      }
+    },
+    "/batches/{batchId}/students": {
+      "get": {
+        "tags": ["Students"],
+        "summary": "List Enrolled Students",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 10 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total": { "type": "integer" },
+                    "students": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "isCR": { "type": "boolean" },
+                          "membership": {
+                            "type": "object",
+                            "properties": {
+                              "id": { "type": "string" },
+                              "user": { "$ref": "#/components/schemas/User" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Students"],
+        "summary": "Enroll Student in Batch",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["membershipId"],
+                "properties": {
+                  "membershipId": { "type": "string" },
+                  "isCR": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Student successfully enrolled" }
+        }
+      }
+    },
+    "/batches/{batchId}/students/import": {
+      "post": {
+        "tags": ["Students"],
+        "summary": "Bulk Import Students via CSV",
+        "description": "Upload a CSV file to enroll students in bulk. Processed asynchronously in the background via BullMQ. (Requires MENTOR role)",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file"],
+                "properties": {
+                  "file": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Import job queued successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "jobId": { "type": "string" },
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batches/{batchId}/students/import/{jobId}": {
+      "get": {
+        "tags": ["Students"],
+        "summary": "Get Bulk Import Summary",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "jobId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves the status, total rows, success, and failure counts.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "status": { "type": "string" },
+                    "totalRows": { "type": "integer" },
+                    "successRows": { "type": "integer" },
+                    "failedRows": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batches/{batchId}/students/import/{jobId}/rows": {
+      "get": {
+        "tags": ["Students"],
+        "summary": "Get Bulk Import Row Details",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "jobId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieves details of imported rows, showing status and specific error messages per row."
+          }
+        }
+      }
+    },
+    "/students/{membershipId}/profile": {
+      "get": {
+        "tags": ["Students"],
+        "summary": "Get Student Profile",
+        "parameters": [
+          { "name": "membershipId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StudentProfile" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Students"],
+        "summary": "Update Student Profile",
+        "parameters": [
+          { "name": "membershipId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": { "type": "string", "nullable": true },
+                  "address": { "type": "string", "nullable": true },
+                  "avatarUrl": { "type": "string", "format": "uri", "nullable": true },
+                  "courseName": { "type": "string", "nullable": true },
+                  "specialization": { "type": "string", "nullable": true },
+                  "skills": { "type": "array", "items": { "type": "string" } },
+                  "hireStatus": { "type": "string", "enum": ["EMPLOYED", "JOB_SEEKING", "FREELANCING", "STUDENT_ONLY"] },
+                  "jobType": { "type": "string", "enum": ["FULL_TIME", "PART_TIME", "INTERNSHIP", "FREELANCE", "NOT_LOOKING"] },
+                  "workplacePreference": { "type": "string", "enum": ["REMOTE", "ONSITE", "HYBRID", "NO_PREFERENCE"] },
+                  "currentEmployer": { "type": "string", "nullable": true },
+                  "currentPosition": { "type": "string", "nullable": true },
+                  "portfolioUrl": { "type": "string", "format": "uri", "nullable": true },
+                  "linkedinUrl": { "type": "string", "format": "uri", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful profile update",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StudentProfile" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batches/{batchId}/sessions": {
+      "get": {
+        "tags": ["Sessions"],
+        "summary": "List Batch Sessions",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["SCHEDULED", "STARTED", "ENDED", "CANCELLED"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Session" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Sessions"],
+        "summary": "Create Session",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "scheduledStart", "scheduledEnd"],
+                "properties": {
+                  "title": { "type": "string", "example": "Typescript Architecture Deep Dive" },
+                  "scheduledStart": { "type": "string", "format": "date-time", "example": "2026-07-16T15:00:00Z" },
+                  "scheduledEnd": { "type": "string", "format": "date-time", "example": "2026-07-16T17:00:00Z" },
+                  "meetLink": { "type": "string", "format": "uri", "example": "https://meet.google.com/abc-defg-hij" },
+                  "description": { "type": "string", "example": "Discussion on modular architecture." },
+                  "type": { "type": "string", "enum": ["REGULAR", "MAKEUP", "EXAM"], "default": "REGULAR" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Session created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Session" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionId}": {
+      "get": {
+        "tags": ["Sessions"],
+        "summary": "Get Session Details",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Session" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Sessions"],
+        "summary": "Update Session Details",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "scheduledStart": { "type": "string", "format": "date-time" },
+                  "scheduledEnd": { "type": "string", "format": "date-time" },
+                  "meetLink": { "type": "string", "format": "uri", "nullable": true },
+                  "description": { "type": "string", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session updated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Session" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionId}/cancel": {
+      "post": {
+        "tags": ["Sessions"],
+        "summary": "Cancel Session",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session cancelled successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Session" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionId}/attendance/open": {
+      "post": {
+        "tags": ["Sessions", "Attendance"],
+        "summary": "Open Self-Attendance Window",
+        "description": "Opens the digital window allowing students to submit their attendance with a randomly generated 6-digit session validation code.",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attendance window opened",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "attendanceCode": { "type": "string", "example": "149258" },
+                    "attendanceWindowOpenedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionId}/attendance/close": {
+      "post": {
+        "tags": ["Sessions", "Attendance"],
+        "summary": "Close Attendance Window",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Attendance window closed successfully"
+          }
+        }
+      }
+    },
+    "/sessions/{sessionId}/attendance/submit": {
+      "post": {
+        "tags": ["Attendance"],
+        "summary": "Student Self-Submit Attendance",
+        "description": "Logs student attendance using the 6-character validation code. (Requires STUDENT role and active attendance window)",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["code"],
+                "properties": {
+                  "code": { "type": "string", "example": "149258" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Attendance successfully registered",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Attendance" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionId}/attendance/manual": {
+      "post": {
+        "tags": ["Attendance"],
+        "summary": "Manual Mark Attendance",
+        "description": "Enables mentors (or workspace managers) to override attendance logs. (Requires MENTOR role)",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["studentBatchMembershipId", "status", "manualReason"],
+                "properties": {
+                  "studentBatchMembershipId": { "type": "string" },
+                  "status": { "type": "string", "enum": ["PRESENT", "LATE", "ABSENT", "EXCUSED"] },
+                  "manualReason": { "type": "string", "example": "Student reported illness" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Manual override successful",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Attendance" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sessionId}/attendance": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "Get Session Attendance Roster",
+        "parameters": [
+          { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": " Roster of student attendance for the session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "studentBatchMembershipId": { "type": "string" },
+                      "userId": { "type": "string" },
+                      "name": { "type": "string" },
+                      "email": { "type": "string" },
+                      "isCR": { "type": "boolean" },
+                      "attendance": {
+                        "type": "object",
+                        "nullable": true,
+                        "properties": {
+                          "id": { "type": "string" },
+                          "status": { "type": "string" },
+                          "method": { "type": "string" },
+                          "submittedAt": { "type": "string", "format": "date-time" },
+                          "manualReason": { "type": "string", "nullable": true },
+                          "markedBy": {
+                            "type": "object",
+                            "nullable": true,
+                            "properties": {
+                              "id": { "type": "string" },
+                              "name": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/{batchMembershipId}/attendance": {
+      "get": {
+        "tags": ["Attendance"],
+        "summary": "Get Student Attendance History",
+        "parameters": [
+          { "name": "batchMembershipId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of student attendance records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "sessionId": { "type": "string" },
+                      "sessionTitle": { "type": "string" },
+                      "sessionDate": { "type": "string", "format": "date-time" },
+                      "status": { "type": "string" },
+                      "method": { "type": "string" },
+                      "submittedAt": { "type": "string", "format": "date-time" },
+                      "manualReason": { "type": "string", "nullable": true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspace": {
+      "get": {
+        "tags": ["Workspace"],
+        "summary": "Get Workspace Profile",
+        "responses": {
+          "200": {
+            "description": "Workspace details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Workspace" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspace/settings": {
+      "patch": {
+        "tags": ["Workspace"],
+        "summary": "Update Workspace Settings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "lateThresholdMins": { "type": "integer", "default": 10 },
+                  "attendanceDurationMins": { "type": "integer", "default": 15 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workspace successfully updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Workspace" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspace/members/invite": {
+      "post": {
+        "tags": ["Workspace"],
+        "summary": "Invite Member",
+        "description": "Sends a workspace invitation link to a new user email.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "role"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "invited-student@studentos.com" },
+                  "role": { "type": "string", "enum": ["MENTOR", "STUDENT"], "example": "STUDENT" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Invitation sent successfully" }
+        }
+      }
+    },
+    "/workspace/members": {
+      "get": {
+        "tags": ["Workspace"],
+        "summary": "List Workspace Members",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "role": { "type": "string" },
+                      "status": { "type": "string" },
+                      "user": { "$ref": "#/components/schemas/User" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspace/members/{membershipId}": {
+      "delete": {
+        "tags": ["Workspace"],
+        "summary": "Deactivate Member",
+        "parameters": [
+          { "name": "membershipId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Member successfully deactivated" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "name": { "type": "string" }
+        }
+      },
+      "Workspace": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "lateThresholdMins": { "type": "integer" },
+          "attendanceDurationMins": { "type": "integer" }
+        }
+      },
+      "Batch": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true },
+          "isArchived": { "type": "boolean" },
+          "lateThresholdMinsOverride": { "type": "integer", "nullable": true },
+          "attendanceDurationMinsOverride": { "type": "integer", "nullable": true }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "scheduledStart": { "type": "string", "format": "date-time" },
+          "scheduledEnd": { "type": "string", "format": "date-time" },
+          "meetLink": { "type": "string", "format": "uri", "nullable": true },
+          "description": { "type": "string", "nullable": true },
+          "type": { "type": "string", "enum": ["REGULAR", "MAKEUP", "EXAM"] },
+          "status": { "type": "string", "enum": ["SCHEDULED", "STARTED", "ENDED", "CANCELLED"] }
+        }
+      },
+      "Attendance": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "sessionId": { "type": "string" },
+          "studentBatchMembershipId": { "type": "string" },
+          "status": { "type": "string", "enum": ["PRESENT", "LATE", "ABSENT", "EXCUSED"] },
+          "method": { "type": "string", "enum": ["SELF", "MANUAL"] },
+          "submittedAt": { "type": "string", "format": "date-time" },
+          "manualReason": { "type": "string", "nullable": true },
+          "markedById": { "type": "string", "nullable": true }
+        }
+      },
+      "StudentProfile": {
+        "type": "object",
+        "properties": {
+          "membershipId": { "type": "string" },
+          "phone": { "type": "string", "nullable": true },
+          "address": { "type": "string", "nullable": true },
+          "avatarUrl": { "type": "string", "format": "uri", "nullable": true },
+          "courseName": { "type": "string", "nullable": true },
+          "specialization": { "type": "string", "nullable": true },
+          "skills": { "type": "array", "items": { "type": "string" } },
+          "hireStatus": { "type": "string", "enum": ["EMPLOYED", "JOB_SEEKING", "FREELANCING", "STUDENT_ONLY"] },
+          "jobType": { "type": "string", "enum": ["FULL_TIME", "PART_TIME", "INTERNSHIP", "FREELANCE", "NOT_LOOKING"] },
+          "workplacePreference": { "type": "string", "enum": ["REMOTE", "ONSITE", "HYBRID", "NO_PREFERENCE"] },
+          "currentEmployer": { "type": "string", "nullable": true },
+          "currentPosition": { "type": "string", "nullable": true },
+          "portfolioUrl": { "type": "string", "format": "uri", "nullable": true },
+          "linkedinUrl": { "type": "string", "format": "uri", "nullable": true }
+        }
+      }
+    }
+  }
+}

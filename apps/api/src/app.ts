@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
+import { setupSwagger } from "./config/swagger";
 import { logger } from "./lib/logger";
 import { compressionMiddleware } from "./middleware/compression";
 import { errorHandler } from "./middleware/error";
@@ -39,6 +40,8 @@ app.use(globalRateLimiter);
 
 app.use(express.json({ limit: "50kb" }));
 
+setupSwagger(app);
+
 app.use("/api/v1", authRouter);
 app.use("/api/v1", importRouter);
 app.use("/api/v1", studentRouter);
@@ -50,6 +53,7 @@ app.get("/", (_req, res) => {
   res.status(200).json({
     name: "StudentOS API",
     version: "1.0.0",
+    documentation: "/api-docs",
     status: "healthy",
     uptime: process.uptime(),
   });
@@ -62,3 +66,4 @@ app.get("/health", (_req, res) => {
 app.use(errorHandler);
 
 export { app };
+
