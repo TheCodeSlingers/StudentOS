@@ -13,6 +13,7 @@ enum MembershipRole {
 
 enum MembershipStatus {
   ACTIVE
+  INACTIVE
   INVITED
 }
 
