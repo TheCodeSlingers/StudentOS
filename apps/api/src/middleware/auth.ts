@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 import { auth } from "../lib/auth";
+import { redis } from "../lib/redis";
 
 export async function authMiddleware(
   req: any,
@@ -15,7 +16,18 @@ export async function authMiddleware(
         const mockRole = req.headers["x-mock-role"] || "MENTOR";
         const membership = await prisma.membership.findFirst({
           where: { role: mockRole as any, status: "ACTIVE" },
-          include: { user: true },
+          select: {
+            id: true,
+            workspaceId: true,
+            role: true,
+            user: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+              },
+            },
+          },
         });
 
         if (membership) {
@@ -41,10 +53,43 @@ export async function authMiddleware(
       });
     }
 
-    const membership = await prisma.membership.findFirst({
-      where: { userId: session.user.id, status: "ACTIVE" },
-      include: { user: true },
-    });
+    const cacheKey = `user:membership:${session.user.id}`;
+    let membership: any = null;
+
+    if (redis) {
+      try {
+        const cached = await redis.get<string>(cacheKey);
+        if (cached) {
+          membership = typeof cached === "string" ? JSON.parse(cached) : cached;
+        }
+      } catch (err) {
+      }
+    }
+
+    if (!membership) {
+      membership = await prisma.membership.findFirst({
+        where: { userId: session.user.id, status: "ACTIVE" },
+        select: {
+          id: true,
+          workspaceId: true,
+          role: true,
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (membership && redis) {
+        try {
+          await redis.set(cacheKey, JSON.stringify(membership), { ex: 60 });
+        } catch (err) {
+        }
+      }
+    }
 
     if (!membership) {
       return res.status(403).json({

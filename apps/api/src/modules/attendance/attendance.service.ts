@@ -209,6 +209,9 @@ export class AttendanceService {
         batchId: session.batchId,
         revokedAt: null,
       },
+      select: {
+        id: true,
+      },
     });
 
     if (!targetStudent) {
@@ -251,6 +254,7 @@ export class AttendanceService {
   ): Promise<AttendanceRosterItem[]> {
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
+      select: { batchId: true },
     });
 
     if (!session) {
@@ -265,10 +269,38 @@ export class AttendanceService {
         batchId: session.batchId,
         revokedAt: null,
       },
-      include: {
+      select: {
+        id: true,
+        isCR: true,
         membership: {
-          include: {
-            user: true,
+          select: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+        },
+        attendances: {
+          where: { sessionId },
+          select: {
+            id: true,
+            status: true,
+            method: true,
+            submittedAt: true,
+            manualReason: true,
+            markedBy: {
+              select: {
+                id: true,
+                user: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -281,23 +313,8 @@ export class AttendanceService {
       },
     });
 
-    const attendances = await prisma.attendance.findMany({
-      where: { sessionId },
-      include: {
-        markedBy: {
-          include: {
-            user: true,
-          },
-        },
-      },
-    });
-
-    const attendanceMap = new Map(
-      attendances.map((a) => [a.studentBatchMembershipId, a]),
-    );
-
-    return enrollments.map((enroll) => {
-      const att = attendanceMap.get(enroll.id) || null;
+    return enrollments.map((enroll: any) => {
+      const att = enroll.attendances?.[0] || null;
 
       return {
         studentBatchMembershipId: enroll.id,
@@ -331,6 +348,7 @@ export class AttendanceService {
   ): Promise<AttendanceHistoryItem[]> {
     const targetStudent = await prisma.batchMembership.findUnique({
       where: { id: batchMembershipId },
+      select: { membershipId: true },
     });
 
     if (!targetStudent) {
@@ -352,8 +370,19 @@ export class AttendanceService {
 
     const attendances = await prisma.attendance.findMany({
       where: { studentBatchMembershipId: batchMembershipId },
-      include: {
-        session: true,
+      select: {
+        id: true,
+        sessionId: true,
+        status: true,
+        method: true,
+        submittedAt: true,
+        manualReason: true,
+        session: {
+          select: {
+            title: true,
+            scheduledStart: true,
+          },
+        },
       },
       orderBy: {
         session: {
@@ -362,7 +391,7 @@ export class AttendanceService {
       },
     });
 
-    return attendances.map((a) => ({
+    return attendances.map((a: any) => ({
       id: a.id,
       sessionId: a.sessionId,
       sessionTitle: a.session.title,
