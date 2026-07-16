@@ -66,107 +66,204 @@ export function startImportWorker(): Worker | null {
 
       let successCount = 0;
       let failedCount = 0;
+      const importRowsToCreate: any[] = [];
 
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
+      const chunkSize = 50;
+      let lastProgress = 0;
+
+      for (let chunkIndex = 0; chunkIndex < rows.length; chunkIndex += chunkSize) {
+        const chunk = rows.slice(chunkIndex, chunkIndex + chunkSize);
+        const emails = chunk.map((r) => r.email).filter(Boolean);
 
         try {
-          await prisma.$transaction(async (tx) => {
-            let user = await tx.user.findUnique({
-              where: { email: row.email },
+          const existingUsers = await prisma.user.findMany({
+            where: { email: { in: emails } },
+            select: { id: true, email: true },
+          });
+          const existingUserEmails = new Set(existingUsers.map((u) => u.email));
+
+          const usersToCreate = chunk
+            .filter((r) => !existingUserEmails.has(r.email))
+            .map((r) => ({ email: r.email, name: r.name }));
+
+          if (usersToCreate.length > 0) {
+            await prisma.user.createMany({
+              data: usersToCreate,
+              skipDuplicates: true,
             });
+          }
 
-            if (!user) {
-              user = await tx.user.create({
-                data: { email: row.email, name: row.name },
-              });
-            }
+          const chunkUsers = await prisma.user.findMany({
+            where: { email: { in: emails } },
+            select: { id: true, email: true },
+          });
+          const userMap = new Map(chunkUsers.map((u) => [u.email, u.id]));
 
-            let membership = await tx.membership.findFirst({
-              where: { workspaceId, userId: user.id },
+          const userIds = Array.from(userMap.values());
+          const existingMemberships = await prisma.membership.findMany({
+            where: { workspaceId, userId: { in: userIds } },
+            select: { id: true, userId: true },
+          });
+          const existingMembershipUserIds = new Set(existingMemberships.map((m) => m.userId));
+
+          const membershipsToCreate = userIds
+            .filter((uid) => !existingMembershipUserIds.has(uid))
+            .map((uid) => ({
+              workspaceId,
+              userId: uid,
+              role: "STUDENT" as any,
+              status: "ACTIVE" as any,
+            }));
+
+          if (membershipsToCreate.length > 0) {
+            await prisma.membership.createMany({
+              data: membershipsToCreate,
+              skipDuplicates: true,
             });
+          }
 
-            if (!membership) {
-              membership = await tx.membership.create({
-                data: {
-                  workspaceId,
-                  userId: user.id,
-                  role: "STUDENT",
-                  status: "ACTIVE",
-                },
-              });
-            }
+          const chunkMemberships = await prisma.membership.findMany({
+            where: { workspaceId, userId: { in: userIds } },
+            select: { id: true, userId: true },
+          });
+          const membershipMap = new Map(chunkMemberships.map((m) => [m.userId, m.id]));
 
-            let batchMembership = await tx.batchMembership.findFirst({
-              where: { batchId, membershipId: membership.id },
+          const membershipIds = Array.from(membershipMap.values());
+          const existingBatchMembers = await prisma.batchMembership.findMany({
+            where: { batchId, membershipId: { in: membershipIds } },
+            select: { id: true, membershipId: true },
+          });
+          const existingBatchMemberIds = new Set(existingBatchMembers.map((bm) => bm.membershipId));
+
+          const batchMembersToCreate = membershipIds
+            .filter((mid) => !existingBatchMemberIds.has(mid))
+            .map((mid) => ({
+              batchId,
+              membershipId: mid,
+              isCR: false,
+            }));
+
+          if (batchMembersToCreate.length > 0) {
+            await prisma.batchMembership.createMany({
+              data: batchMembersToCreate,
+              skipDuplicates: true,
             });
+          }
 
-            if (!batchMembership) {
-              batchMembership = await tx.batchMembership.create({
-                data: { batchId, membershipId: membership.id, isCR: false },
-              });
-            }
+          const existingProfiles = await prisma.studentProfile.findMany({
+            where: { membershipId: { in: membershipIds } },
+            select: { id: true, membershipId: true, skills: true },
+          });
+          const existingProfileMap = new Map(existingProfiles.map((p) => [p.membershipId, p]));
 
-            const existingProfile = await tx.studentProfile.findUnique({
-              where: { membershipId: membership.id },
-            });
+          const profilesToCreate: any[] = [];
+          const profilesToUpdate: any[] = [];
+
+          for (const row of chunk) {
+            const userId = userMap.get(row.email);
+            if (!userId) continue;
+            const membershipId = membershipMap.get(userId);
+            if (!membershipId) continue;
+
+            const existingProfile = existingProfileMap.get(membershipId);
 
             if (!existingProfile) {
-              await tx.studentProfile.create({
-                data: {
-                  membershipId: membership.id,
-                  phone: row.phone || null,
-                  courseName: row.courseName || null,
-                  specialization: row.specialization || null,
-                  skills: row.skills || [],
-                },
+              profilesToCreate.push({
+                membershipId,
+                phone: row.phone || null,
+                courseName: row.courseName || null,
+                specialization: row.specialization || null,
+                skills: row.skills || [],
+                hireStatus: "STUDENT_ONLY" as any,
+                jobType: "NOT_LOOKING" as any,
+                workplacePreference: "NO_PREFERENCE" as any,
               });
             } else {
               const updateData: any = {};
-              if (row.phone) updateData.phone = row.phone;
-              if (row.courseName) updateData.courseName = row.courseName;
-              if (row.specialization)
+              let hasUpdates = false;
+              if (row.phone) {
+                updateData.phone = row.phone;
+                hasUpdates = true;
+              }
+              if (row.courseName) {
+                updateData.courseName = row.courseName;
+                hasUpdates = true;
+              }
+              if (row.specialization) {
                 updateData.specialization = row.specialization;
+                hasUpdates = true;
+              }
               if (row.skills && row.skills.length > 0) {
                 const combined = Array.from(
                   new Set([...(existingProfile.skills || []), ...row.skills]),
                 );
                 updateData.skills = combined;
+                hasUpdates = true;
               }
-              if (Object.keys(updateData).length > 0) {
-                await tx.studentProfile.update({
-                  where: { membershipId: membership.id },
-                  data: updateData,
+
+              if (hasUpdates) {
+                profilesToUpdate.push({
+                  membershipId,
+                  updateData,
                 });
               }
             }
-          });
+          }
 
-          await prisma.studentImportRow.create({
-            data: {
+          if (profilesToCreate.length > 0) {
+            await prisma.studentProfile.createMany({
+              data: profilesToCreate,
+              skipDuplicates: true,
+            });
+          }
+
+          if (profilesToUpdate.length > 0) {
+            await Promise.all(
+              profilesToUpdate.map((p) =>
+                prisma.studentProfile.update({
+                  where: { membershipId: p.membershipId },
+                  data: p.updateData,
+                }),
+              ),
+            );
+          }
+
+          for (const row of chunk) {
+            importRowsToCreate.push({
               jobId,
               rowNumber: row.rowNumber,
               email: row.email,
-              status: "SUCCESS",
-            },
-          });
-          successCount++;
+              status: "SUCCESS" as any,
+            });
+            successCount++;
+          }
         } catch (err: any) {
-          await prisma.studentImportRow.create({
-            data: {
+          for (const row of chunk) {
+            importRowsToCreate.push({
               jobId,
               rowNumber: row.rowNumber,
               email: row.email,
-              status: "FAILED",
-              errorMessage:
-                err.message || "Error during transaction processing",
-            },
-          });
-          failedCount++;
-          logger.warn({ jobId, row: row.rowNumber, err }, "Import row failed");
+              status: "FAILED" as any,
+              errorMessage: err.message || "Bulk transaction failure",
+            });
+            failedCount++;
+          }
+          logger.warn({ jobId, chunkIndex, err }, "Import chunk processing failed");
         }
 
-        await job.updateProgress(Math.round(((i + 1) / rows.length) * 100));
+        const currentProgress = Math.round(
+          (Math.min(chunkIndex + chunkSize, rows.length) / rows.length) * 100,
+        );
+        if (currentProgress > lastProgress) {
+          lastProgress = currentProgress;
+          await job.updateProgress(currentProgress);
+        }
+      }
+
+      if (importRowsToCreate.length > 0) {
+        await prisma.studentImportRow.createMany({
+          data: importRowsToCreate,
+        });
       }
 
       const finalStatus =

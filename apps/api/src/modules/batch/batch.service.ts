@@ -131,6 +131,7 @@ export class BatchService {
   ): Promise<any> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
+      select: { id: true },
     });
 
     if (!batch) {
@@ -164,6 +165,7 @@ export class BatchService {
   ): Promise<any> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
+      select: { id: true, isArchived: true },
     });
 
     if (!batch) {

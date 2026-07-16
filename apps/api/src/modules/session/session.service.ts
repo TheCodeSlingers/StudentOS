@@ -6,30 +6,6 @@ import {
   ForbiddenError,
 } from "../../common/errors";
 
-// Simple in-memory rate limiter for attendance endpoints
-const attendanceRateLimiter = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per user
-
-function checkRateLimit(userId: string): void {
-  const now = Date.now();
-  const record = attendanceRateLimiter.get(userId);
-
-  if (!record || now > record.resetAt) {
-    attendanceRateLimiter.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return;
-  }
-
-  if (record.count >= RATE_LIMIT_MAX_REQUESTS) {
-    throw new BadRequestError(
-      "Too many requests. Please try again later.",
-      "RATE_LIMIT_EXCEEDED"
-    );
-  }
-
-  record.count++;
-}
-
 export class SessionService {
   // Route 1: Create Session
   static async createSession(
@@ -47,6 +23,13 @@ export class SessionService {
     // 1. Validate batch exists and belongs to workspace
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
+      select: {
+        id: true,
+        workspaceId: true,
+        isArchived: true,
+        startDate: true,
+        endDate: true,
+      },
     });
 
     if (!batch) {
@@ -127,6 +110,10 @@ export class SessionService {
     // 1. Validate batch exists and belongs to workspace
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
+      select: {
+        id: true,
+        workspaceId: true,
+      },
     });
 
     if (!batch) {
@@ -200,7 +187,25 @@ export class SessionService {
     // 1. Find session
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      include: { batch: true },
+      select: {
+        id: true,
+        batchId: true,
+        title: true,
+        description: true,
+        status: true,
+        scheduledStart: true,
+        scheduledEnd: true,
+        meetLink: true,
+        type: true,
+        attendanceOpenedAt: true,
+        attendanceClosedAt: true,
+        currentCode: true,
+        batch: {
+          select: {
+            workspaceId: true,
+          },
+        },
+      },
     });
 
     if (!session) {
@@ -266,7 +271,24 @@ export class SessionService {
     // 1. Find session with batch info
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      include: { batch: true },
+      select: {
+        id: true,
+        batchId: true,
+        title: true,
+        description: true,
+        status: true,
+        scheduledStart: true,
+        scheduledEnd: true,
+        meetLink: true,
+        type: true,
+        batch: {
+          select: {
+            workspaceId: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+      },
     });
 
     if (!session) {
@@ -401,7 +423,15 @@ export class SessionService {
     // 1. Find session
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      include: { batch: true },
+      select: {
+        id: true,
+        status: true,
+        batch: {
+          select: {
+            workspaceId: true,
+          },
+        },
+      },
     });
 
     if (!session) {
@@ -450,13 +480,22 @@ export class SessionService {
     role: "MENTOR" | "STUDENT",
     userId: string
   ): Promise<any> {
-    // 0. Rate limit check
-    checkRateLimit(userId);
-
     // 1. Find session with batch info
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      include: { batch: true },
+      select: {
+        id: true,
+        batchId: true,
+        status: true,
+        attendanceOpenedAt: true,
+        createdAt: true,
+        batch: {
+          select: {
+            workspaceId: true,
+            isArchived: true,
+          },
+        },
+      },
     });
 
     if (!session) {
@@ -537,13 +576,20 @@ export class SessionService {
     role: "MENTOR" | "STUDENT",
     userId: string
   ): Promise<any> {
-    // 0. Rate limit check
-    checkRateLimit(userId);
-
     // 1. Find session with batch info
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
-      include: { batch: true },
+      select: {
+        id: true,
+        batchId: true,
+        status: true,
+        batch: {
+          select: {
+            workspaceId: true,
+            isArchived: true,
+          },
+        },
+      },
     });
 
     if (!session) {

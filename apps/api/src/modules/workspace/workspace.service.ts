@@ -99,54 +99,48 @@ export class WorkspaceService {
       settingsData.lateThresholdMins = lateThresholdMins;
     }
 
-    const shouldUpdateWorkspace = Object.keys(data).length > 0;
-
-    const workspaceResult = shouldUpdateWorkspace
-      ? await prisma.workspace.update({
-          where: { id: workspaceId },
-          data,
-          select: {
-            id: true,
-            name: true,
-            timezone: true,
+    const result = await prisma.workspace.update({
+      where: { id: workspaceId },
+      data: {
+        ...(timezone !== undefined ? { timezone } : {}),
+        settings: {
+          upsert: {
+            create: {
+              defaultAttendanceDurationMins: defaultAttendanceDurationMins ?? 15,
+              lateThresholdMins: lateThresholdMins ?? 10,
+            },
+            update: {
+              ...(defaultAttendanceDurationMins !== undefined ? { defaultAttendanceDurationMins } : {}),
+              ...(lateThresholdMins !== undefined ? { lateThresholdMins } : {}),
+            },
           },
-        })
-      : await prisma.workspace.findUnique({
-          where: { id: workspaceId },
-          select: {
-            id: true,
-            name: true,
-            timezone: true,
-          },
-        });
-
-    const settingsResult = await prisma.workspaceSettings.upsert({
-      where: { workspaceId: workspaceId },
-      create: {
-        workspaceId: workspaceId,
-        defaultAttendanceDurationMins:
-          settingsData.defaultAttendanceDurationMins ?? 15,
-        lateThresholdMins: settingsData.lateThresholdMins ?? 10,
+        },
       },
-      update: settingsData,
       select: {
-        defaultAttendanceDurationMins: true,
-        lateThresholdMins: true,
+        id: true,
+        name: true,
+        timezone: true,
+        settings: {
+          select: {
+            defaultAttendanceDurationMins: true,
+            lateThresholdMins: true,
+          },
+        },
       },
     });
 
-    if (!workspaceResult) {
+    if (!result) {
       throw new Error("Active workspace not found");
     }
 
     return {
-      id: workspaceResult.id,
-      name: workspaceResult.name,
-      timezone: workspaceResult.timezone,
+      id: result.id,
+      name: result.name,
+      timezone: result.timezone,
       settings: {
         defaultAttendanceDurationMins:
-          settingsResult.defaultAttendanceDurationMins,
-        lateThresholdMins: settingsResult.lateThresholdMins,
+          result.settings!.defaultAttendanceDurationMins,
+        lateThresholdMins: result.settings!.lateThresholdMins,
       },
     };
   }
@@ -164,6 +158,7 @@ export class WorkspaceService {
     const existingMembership = await prisma.membership.findFirst({
       where: {
         userId: user.id,
+        workspaceId,
         role: payload.role,
       },
       select: {

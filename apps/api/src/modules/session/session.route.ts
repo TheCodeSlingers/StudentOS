@@ -1,23 +1,23 @@
 import { Router } from "express";
-import { SessionController } from "./session.controller";
+import { validateRequest } from "../../common/validation";
 import { authMiddleware } from "../../middleware/auth";
 import { requireRole } from "../../middleware/permission";
-import { validateRequest } from "../../common/validation";
+import { attendanceRateLimiter } from "../../middleware/rate-limit";
+import { SessionController } from "./session.controller";
 import {
-  createSessionSchema,
-  listSessionsSchema,
-  getSessionSchema,
-  updateSessionSchema,
   cancelSessionSchema,
-  openAttendanceSchema,
   closeAttendanceSchema,
+  createSessionSchema,
+  getSessionSchema,
+  listSessionsSchema,
+  openAttendanceSchema,
+  updateSessionSchema,
 } from "./session.schema";
 
 const router = Router();
 
 router.use(authMiddleware);
 
-// Route 1: Create Session (MENTOR only)
 router.post(
   "/batches/:batchId/sessions",
   requireRole(["MENTOR"]),
@@ -25,7 +25,6 @@ router.post(
   SessionController.createSession
 );
 
-// Route 2: List Sessions (MENTOR and STUDENT)
 router.get(
   "/batches/:batchId/sessions",
   requireRole(["MENTOR", "STUDENT"]),
@@ -33,7 +32,6 @@ router.get(
   SessionController.listSessions
 );
 
-// Route 3: Get Session Details (MENTOR and STUDENT)
 router.get(
   "/sessions/:sessionId",
   requireRole(["MENTOR", "STUDENT"]),
@@ -41,7 +39,6 @@ router.get(
   SessionController.getSession
 );
 
-// Route 4: Update Session (MENTOR only)
 router.patch(
   "/sessions/:sessionId",
   requireRole(["MENTOR"]),
@@ -49,7 +46,6 @@ router.patch(
   SessionController.updateSession
 );
 
-// Route 5: Cancel Session (MENTOR only)
 router.post(
   "/sessions/:sessionId/cancel",
   requireRole(["MENTOR"]),
@@ -57,19 +53,19 @@ router.post(
   SessionController.cancelSession
 );
 
-// Route 6: Open Attendance Window (MENTOR and CR)
 router.post(
   "/sessions/:sessionId/attendance/open",
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(openAttendanceSchema),
+  attendanceRateLimiter,
   SessionController.openAttendance
 );
 
-// Route 7: Close Attendance Window (MENTOR and CR)
 router.post(
   "/sessions/:sessionId/attendance/close",
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(closeAttendanceSchema),
+  attendanceRateLimiter,
   SessionController.closeAttendance
 );
 
