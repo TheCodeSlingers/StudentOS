@@ -51,8 +51,10 @@ export class WorkspaceController {
 
   static listMembers = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
+      const workspaceId = req.membership.workspaceId;
       const { page, limit } = parsePagination(req.query);
       const { total, memberships } = await WorkspaceService.listMembers({
+        workspaceId,
         page,
         limit,
       });

@@ -1,10 +1,5 @@
 import { MembershipRole, MembershipStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import type {
-  InviteMemberInput,
-  ListMembersInput,
-  UpdateMembershipStatusInput,
-} from "./workspace.schema";
 
 export interface WorkspaceResult {
   id: string;
@@ -32,6 +27,18 @@ export interface MemberResult {
 export interface ListMembersResult {
   total: number;
   memberships: MemberResult[];
+}
+
+export interface InviteMemberPayload {
+  email: string;
+  name: string;
+  role: MembershipRole;
+}
+
+export interface ListMembersParams {
+  workspaceId: string;
+  page: number;
+  limit: number;
 }
 
 export class WorkspaceService {
@@ -146,7 +153,7 @@ export class WorkspaceService {
 
   static async inviteMember(
     workspaceId: string,
-    payload: InviteMemberInput["body"],
+    payload: InviteMemberPayload,
   ): Promise<MemberResult> {
     const user = await prisma.user.upsert({
       where: { email: payload.email },
@@ -159,7 +166,12 @@ export class WorkspaceService {
         userId: user.id,
         role: payload.role,
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        workspaceId: true,
+        role: true,
+        status: true,
         user: {
           select: {
             id: true,
@@ -181,7 +193,12 @@ export class WorkspaceService {
         role: payload.role,
         status: MembershipStatus.ACTIVE,
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        workspaceId: true,
+        role: true,
+        status: true,
         user: {
           select: {
             id: true,
@@ -196,24 +213,31 @@ export class WorkspaceService {
   }
 
   static async listMembers(
-    params: ListMembersInput["query"],
+    params: ListMembersParams,
   ): Promise<ListMembersResult> {
     const skip = (params.page - 1) * params.limit;
 
     const [total, memberships] = await Promise.all([
       prisma.membership.count({
         where: {
+          workspaceId: params.workspaceId,
           status: MembershipStatus.ACTIVE,
         },
       }),
       prisma.membership.findMany({
         where: {
+          workspaceId: params.workspaceId,
           status: MembershipStatus.ACTIVE,
         },
         orderBy: { createdAt: "desc" },
         skip,
         take: params.limit,
-        include: {
+        select: {
+          id: true,
+          userId: true,
+          workspaceId: true,
+          role: true,
+          status: true,
           user: {
             select: {
               id: true,
@@ -236,7 +260,12 @@ export class WorkspaceService {
       data: {
         status: MembershipStatus.INACTIVE,
       },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        workspaceId: true,
+        role: true,
+        status: true,
         user: {
           select: {
             id: true,

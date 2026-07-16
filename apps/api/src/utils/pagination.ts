@@ -5,7 +5,13 @@ export interface PaginationMeta {
   totalPages: number;
 }
 
-export const parsePagination = (query: any) => {
+export interface PaginationQuery {
+  workspaceId?: string;
+  page?: string | number;
+  limit?: string | number;
+}
+
+export const parsePagination = (query: PaginationQuery) => {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 20;
 

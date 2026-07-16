@@ -5,7 +5,7 @@ import { WorkspaceController } from "./workspace.controller";
 import {
   inviteMemberSchema,
   membershipIdParamSchema,
-  updateMembershipStatusSchema,
+  updateWorkspaceSettingsSchema,
 } from "./workspace.schema";
 
 const router = Router();
@@ -13,7 +13,7 @@ const router = Router();
 router.get("/workspace", WorkspaceController.getWorkspace);
 router.patch(
   "/workspace/settings",
-  validateRequest(updateMembershipStatusSchema),
+  validateRequest(updateWorkspaceSettingsSchema),
   WorkspaceController.updateWorkspaceSettings,
 );
 router.post(

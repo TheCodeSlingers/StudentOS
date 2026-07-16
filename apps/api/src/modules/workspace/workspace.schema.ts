@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const updateMembershipStatusSchema = z.object({
+export const updateWorkspaceSettingsSchema = z.object({
   body: z.object({
     timezone: z.string().trim().min(1).optional(),
     defaultAttendanceDurationMins: z.number().int().positive().optional(),
@@ -35,8 +35,8 @@ export const listMembersSchema = z.object({
   }),
 });
 
-export type UpdateMembershipStatusInput = z.infer<
-  typeof updateMembershipStatusSchema
+export type UpdateWorkspaceSettingsInput = z.infer<
+  typeof updateWorkspaceSettingsSchema
 >;
 export type MembershipIdParamInput = z.infer<typeof membershipIdParamSchema>;
 export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;

@@ -29,3 +29,4 @@ coverage/
 .vercel
 apps/api/prisma/seed.js
 apps/api/prisma/seed.d.ts
+apps/api/prisma/migrations/
