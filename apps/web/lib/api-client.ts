@@ -44,11 +44,18 @@ export interface SignupPayload {
   workspaceName: string;
 }
 
+export interface CRBatchSummary {
+  batchId: string;
+  batchName: string;
+}
+
 export interface MembershipSummary {
   membershipId: string;
   workspaceId: string;
   workspaceName: string;
   role: "MENTOR" | "STUDENT";
+  isCR: boolean;
+  crBatches: CRBatchSummary[];
 }
 
 export interface CurrentUserResult {

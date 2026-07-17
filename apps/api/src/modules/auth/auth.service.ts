@@ -137,6 +137,21 @@ export class AuthService {
       orderBy: { createdAt: "asc" },
     });
 
+    const crBatchMemberships = await prisma.batchMembership.findMany({
+      where: {
+        membershipId: { in: memberships.map((m) => m.id) },
+        isCR: true,
+        revokedAt: null,
+      },
+      select: { membershipId: true, batchId: true, batch: { select: { name: true } } },
+    });
+    const crBatchesByMembership = new Map<string, { batchId: string; batchName: string }[]>();
+    for (const entry of crBatchMemberships) {
+      const list = crBatchesByMembership.get(entry.membershipId) ?? [];
+      list.push({ batchId: entry.batchId, batchName: entry.batch.name });
+      crBatchesByMembership.set(entry.membershipId, list);
+    }
+
     return {
       user: {
         id: session.user.id,
@@ -144,12 +159,17 @@ export class AuthService {
         name: session.user.name,
       },
       activeWorkspaceId: memberships[0]?.workspaceId ?? null,
-      memberships: memberships.map((m) => ({
-        membershipId: m.id,
-        workspaceId: m.workspaceId,
-        workspaceName: m.workspace.name,
-        role: m.role,
-      })),
+      memberships: memberships.map((m) => {
+        const crBatches = crBatchesByMembership.get(m.id) ?? [];
+        return {
+          membershipId: m.id,
+          workspaceId: m.workspaceId,
+          workspaceName: m.workspace.name,
+          role: m.role,
+          isCR: crBatches.length > 0,
+          crBatches,
+        };
+      }),
     };
   }
 }
