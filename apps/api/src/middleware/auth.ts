@@ -12,39 +12,6 @@ export async function authMiddleware(
     const session = await auth.api.getSession({ headers: req.headers });
 
     if (!session) {
-      if (process.env.NODE_ENV !== "production") {
-        const mockRole = req.headers["x-mock-role"] || "MENTOR";
-        const membership = await prisma.membership.findFirst({
-          where: { role: mockRole as any, status: "ACTIVE" },
-          select: {
-            id: true,
-            workspaceId: true,
-            role: true,
-            user: {
-              select: {
-                id: true,
-                email: true,
-                name: true,
-              },
-            },
-          },
-        });
-
-        if (membership) {
-          req.user = {
-            id: membership.user.id,
-            email: membership.user.email,
-            name: membership.user.name,
-          };
-          req.membership = {
-            id: membership.id,
-            workspaceId: membership.workspaceId,
-            role: membership.role,
-          };
-          return next();
-        }
-      }
-
       return res.status(401).json({
         error: {
           code: "UNAUTHENTICATED",
@@ -62,8 +29,7 @@ export async function authMiddleware(
         if (cached) {
           membership = typeof cached === "string" ? JSON.parse(cached) : cached;
         }
-      } catch (err) {
-      }
+      } catch (err) {}
     }
 
     if (!membership) {
@@ -86,8 +52,7 @@ export async function authMiddleware(
       if (membership && redis) {
         try {
           await redis.set(cacheKey, JSON.stringify(membership), { ex: 60 });
-        } catch (err) {
-        }
+        } catch (err) {}
       }
     }
 

@@ -14,6 +14,7 @@ import batchRouter from "./modules/batch/batch.routes";
 import importRouter from "./modules/student-import/import.routes";
 import studentRouter from "./modules/student/student.routes";
 import { WorkspaceRouter } from "./modules/workspace/workspace.route";
+import sessionRouter from "./modules/session/session.route";
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/v1", studentRouter);
 app.use("/api/v1", attendanceRouter);
 app.use("/api/v1", batchRouter);
 app.use("/api/v1", WorkspaceRouter);
+app.use("/api/v1/sessions", sessionRouter);
 
 app.get("/", (_req, res) => {
   res.status(200).json({
@@ -66,4 +68,3 @@ app.get("/health", (_req, res) => {
 app.use(errorHandler);
 
 export { app };
-
