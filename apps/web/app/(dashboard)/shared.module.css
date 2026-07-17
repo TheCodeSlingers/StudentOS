@@ -76,8 +76,14 @@
   color: var(--color-success);
 }
 
+.tableScroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
 .table {
   width: 100%;
+  min-width: 32rem;
   border-collapse: collapse;
 }
 

@@ -1,4 +1,4 @@
-import { getStoredToken } from "./session";
+import { clearStoredToken, getStoredToken } from "./session";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
@@ -64,14 +64,29 @@ export interface CurrentUserResult {
   memberships: MembershipSummary[];
 }
 
+/**
+ * A 401 only means "your session is no longer valid" when we actually sent a token —
+ * a fresh login attempt with the wrong password also 401s, and that's a normal, local
+ * form error, not a session expiry. This is the shared trigger for both cases below.
+ */
+function handleSessionExpired(hadToken: boolean) {
+  if (!hadToken || typeof window === "undefined") {
+    return;
+  }
+  clearStoredToken();
+  if (!window.location.pathname.startsWith("/login")) {
+    window.location.href = "/login?reason=session-expired";
+  }
+}
+
 async function request<T>(
   method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
   body?: unknown
 ): Promise<T> {
+  const token = getStoredToken();
   let response: Response;
   try {
-    const token = getStoredToken();
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (token) {
       headers.Authorization = `Bearer ${token}`;
@@ -89,6 +104,9 @@ async function request<T>(
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      handleSessionExpired(Boolean(token));
+    }
     throw new ApiError(
       payload?.error?.message ?? "Something went wrong. Please try again.",
       response.status,
@@ -109,6 +127,41 @@ function postJson<T>(path: string, body?: unknown): Promise<T> {
 
 function patchJson<T>(path: string, body: unknown): Promise<T> {
   return request<T>("PATCH", path, body);
+}
+
+/** Like request(), but for multipart/form-data uploads — fetch must set its own boundary header. */
+async function postForm<T>(path: string, formData: FormData): Promise<T> {
+  const token = getStoredToken();
+  let response: Response;
+  try {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+  } catch {
+    throw new ApiError("Could not reach the server. Check your connection and try again.", 0);
+  }
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      handleSessionExpired(Boolean(token));
+    }
+    throw new ApiError(
+      payload?.error?.message ?? "Something went wrong. Please try again.",
+      response.status,
+      payload?.error?.code
+    );
+  }
+
+  return payload?.data as T;
 }
 
 function deleteJson<T>(path: string): Promise<T> {
@@ -188,8 +241,77 @@ export function listBatches(): Promise<Batch[]> {
   return getJson<Batch[]>("/batches");
 }
 
+export interface BatchPayload {
+  name: string;
+  startDate: string;
+  endDate?: string | null;
+  lateThresholdMinsOverride?: number | null;
+  attendanceDurationMinsOverride?: number | null;
+}
+
+export function createBatch(payload: BatchPayload): Promise<Batch> {
+  return postJson<Batch>("/batches", payload);
+}
+
+export function updateBatch(batchId: string, payload: Partial<BatchPayload>): Promise<Batch> {
+  return patchJson<Batch>(`/batches/${batchId}`, payload);
+}
+
 export function listSessions(batchId: string): Promise<SessionSummary[]> {
   return getJson<SessionSummary[]>(`/batches/${batchId}/sessions`);
+}
+
+export type SessionType = "REGULAR" | "MAKEUP" | "EXAM";
+
+export interface CreateSessionPayload {
+  title: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  meetLink?: string;
+  description?: string;
+  type?: SessionType;
+}
+
+export interface UpdateSessionPayload {
+  title?: string;
+  scheduledStart?: string;
+  scheduledEnd?: string;
+  meetLink?: string | null;
+  description?: string | null;
+  type?: SessionType;
+}
+
+// These two endpoints only return the fields they touched, not a full SessionSummary —
+// callers should re-fetch listSessions() afterwards rather than trust this as complete.
+export interface CreateSessionResult {
+  id: string;
+  batchId: string;
+  title: string;
+  status: SessionStatus;
+  scheduledStart: string;
+  scheduledEnd: string;
+}
+
+export interface UpdateSessionResult {
+  id: string;
+  title: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  meetLink: string | null;
+  description: string | null;
+  type: SessionType;
+}
+
+export function createSession(batchId: string, payload: CreateSessionPayload): Promise<CreateSessionResult> {
+  return postJson<CreateSessionResult>(`/batches/${batchId}/sessions`, payload);
+}
+
+export function updateSession(sessionId: string, payload: UpdateSessionPayload): Promise<UpdateSessionResult> {
+  return patchJson<UpdateSessionResult>(`/sessions/${sessionId}`, payload);
+}
+
+export function cancelSession(sessionId: string): Promise<{ id: string; status: SessionStatus }> {
+  return postJson<{ id: string; status: SessionStatus }>(`/sessions/${sessionId}/cancel`, {});
 }
 
 export function openAttendanceWindow(sessionId: string): Promise<SessionSummary> {
@@ -319,6 +441,44 @@ export function enrollStudent(batchId: string, membershipId: string, isCR = fals
 
 export function removeStudent(batchId: string, batchMembershipId: string): Promise<null> {
   return deleteJson<null>(`/batches/${batchId}/students/${batchMembershipId}`);
+}
+
+export type ImportJobStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "COMPLETED_WITH_ERRORS";
+
+export interface ImportJobSummary {
+  id: string;
+  batchId: string;
+  status: ImportJobStatus;
+  totalRows: number;
+  successRows: number;
+  failedRows: number;
+  createdAt: string;
+  updatedAt: string;
+  queueProgress: number | null;
+}
+
+export type ImportRowStatus = "SUCCESS" | "FAILED" | "SKIPPED";
+
+export interface ImportJobRow {
+  id: string;
+  rowNumber: number;
+  email: string;
+  status: ImportRowStatus;
+  errorMessage: string | null;
+}
+
+export function importStudentRoster(batchId: string, file: File): Promise<ImportJobSummary> {
+  const formData = new FormData();
+  formData.append("file", file);
+  return postForm<ImportJobSummary>(`/batches/${batchId}/students/import`, formData);
+}
+
+export function getImportJobSummary(batchId: string, jobId: string): Promise<ImportJobSummary> {
+  return getJson<ImportJobSummary>(`/batches/${batchId}/students/import/${jobId}`);
+}
+
+export function getImportJobRows(batchId: string, jobId: string): Promise<ImportJobRow[]> {
+  return getJson<ImportJobRow[]>(`/batches/${batchId}/students/import/${jobId}/rows`);
 }
 
 export interface AttendanceHistoryItem {

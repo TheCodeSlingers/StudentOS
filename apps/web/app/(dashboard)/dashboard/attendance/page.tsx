@@ -158,32 +158,34 @@ export default function AttendanceOverviewPage() {
         ) : history.length === 0 ? (
           <p className={styles.emptyState}>No attendance recorded for this student yet.</p>
         ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Session</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Method</th>
-                <th>Reason</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.map((item) => (
-                <tr key={item.id}>
-                  <td className={styles.primaryCell}>{item.sessionTitle}</td>
-                  <td>{formatDateTime(item.sessionDate)}</td>
-                  <td>
-                    <span className={styles.badge} data-tone={statusTone(item.status)}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td>{item.method === "SELF_SUBMITTED" ? "Self check-in" : "Manual"}</td>
-                  <td>{item.manualReason ?? "—"}</td>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Session</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Method</th>
+                  <th>Reason</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {history.map((item) => (
+                  <tr key={item.id}>
+                    <td className={styles.primaryCell}>{item.sessionTitle}</td>
+                    <td>{formatDateTime(item.sessionDate)}</td>
+                    <td>
+                      <span className={styles.badge} data-tone={statusTone(item.status)}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td>{item.method === "SELF_SUBMITTED" ? "Self check-in" : "Manual"}</td>
+                    <td>{item.manualReason ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

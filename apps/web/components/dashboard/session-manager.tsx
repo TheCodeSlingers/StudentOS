@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AttendanceGrid } from "@/components/attendance-grid";
 import { Button } from "@/components/ui/Button";
-import { ApiError, SessionSummary, closeAttendanceWindow, listSessions, openAttendanceWindow } from "@/lib/api-client";
+import { SessionFormModal } from "@/components/modals/session-form-modal";
+import {
+  ApiError,
+  SessionSummary,
+  cancelSession as cancelSessionApi,
+  closeAttendanceWindow,
+  listSessions,
+  openAttendanceWindow,
+} from "@/lib/api-client";
 import styles from "./session-manager.module.css";
 
 const DEFAULT_ATTENDANCE_DURATION_MINS = 15;
@@ -100,20 +108,28 @@ function CalendarView({ sessions, selectedSessionId, onSelect }: CalendarViewPro
 interface CodeDisplayCardProps {
   session: SessionSummary | null;
   durationMins: number;
+  canManage: boolean;
   onOpenAttendance: () => void;
   onCloseAttendance: () => void;
   onManageRoster: () => void;
+  onEdit: () => void;
+  onCancel: () => void;
   isActionLoading: boolean;
+  isCancelling: boolean;
   actionError: string | null;
 }
 
 function CodeDisplayCard({
   session,
   durationMins,
+  canManage,
   onOpenAttendance,
   onCloseAttendance,
   onManageRoster,
+  onEdit,
+  onCancel,
   isActionLoading,
+  isCancelling,
   actionError,
 }: CodeDisplayCardProps) {
   const [now, setNow] = useState(() => Date.now());
@@ -139,6 +155,7 @@ function CodeDisplayCard({
   const remainingMs = openedAt ? Math.max(0, openedAt + durationMins * 60_000 - now) : 0;
   const remainingMinutes = Math.floor(remainingMs / 60_000);
   const remainingSeconds = Math.floor((remainingMs % 60_000) / 1000);
+  const canCancel = session.status === "SCHEDULED" || session.status === "STARTED";
 
   return (
     <div className={styles.card}>
@@ -170,7 +187,9 @@ function CodeDisplayCard({
           <p className={styles.emptyState}>
             {session.status === "SCHEDULED"
               ? "Attendance hasn't been opened yet."
-              : "The attendance window for this session is closed."}
+              : session.status === "CANCELLED"
+                ? "This session was cancelled."
+                : "The attendance window for this session is closed."}
           </p>
         )}
 
@@ -190,6 +209,24 @@ function CodeDisplayCard({
           <Button type="button" variant="secondary" onClick={onManageRoster}>
             Manual marking
           </Button>
+
+          {canManage && session.status !== "CANCELLED" && session.status !== "ENDED" ? (
+            <Button type="button" variant="secondary" onClick={onEdit}>
+              Edit
+            </Button>
+          ) : null}
+
+          {canManage && canCancel ? (
+            <Button
+              type="button"
+              variant="secondary"
+              style={{ color: "var(--color-danger)" }}
+              onClick={onCancel}
+              isLoading={isCancelling}
+            >
+              Cancel session
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -201,6 +238,8 @@ interface SessionManagerProps {
   batches: SessionManagerBatch[];
   batchesError?: string | null;
   emptyBatchesMessage?: string;
+  /** Only mentors can create, edit, or cancel sessions — CRs can only run attendance for existing ones. */
+  canManage?: boolean;
 }
 
 /**
@@ -214,6 +253,7 @@ export function SessionManager({
   batches,
   batchesError = null,
   emptyBatchesMessage = "No active batches yet.",
+  canManage = false,
 }: SessionManagerProps) {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
@@ -224,7 +264,10 @@ export function SessionManager({
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [isRosterOpen, setIsRosterOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingSession, setEditingSession] = useState<SessionSummary | null>(null);
 
   useEffect(() => {
     setSelectedBatchId((current) => {
@@ -235,39 +278,38 @@ export function SessionManager({
     });
   }, [batches]);
 
-  useEffect(() => {
-    if (!selectedBatchId) {
-      return;
-    }
+  const refetchSessions = useCallback(() => {
+    if (!selectedBatchId) return;
 
-    let cancelled = false;
     setIsLoadingSessions(true);
     setSessionsError(null);
 
     listSessions(selectedBatchId)
       .then((result) => {
-        if (cancelled) return;
         setSessions(result);
-        setSelectedSessionId((current) => current ?? result[0]?.id ?? null);
+        setSelectedSessionId((current) =>
+          current && result.some((session) => session.id === current) ? current : (result[0]?.id ?? null)
+        );
       })
       .catch((error) => {
-        if (cancelled) return;
         setSessionsError(error instanceof ApiError ? error.message : "Could not load sessions.");
       })
       .finally(() => {
-        if (!cancelled) setIsLoadingSessions(false);
+        setIsLoadingSessions(false);
       });
-
-    return () => {
-      cancelled = true;
-    };
   }, [selectedBatchId]);
+
+  useEffect(() => {
+    setSessions(null);
+    setSelectedSessionId(null);
+    refetchSessions();
+  }, [selectedBatchId, refetchSessions]);
 
   const selectedBatch = batches.find((batch) => batch.id === selectedBatchId) ?? null;
   const selectedSession = sessions?.find((session) => session.id === selectedSessionId) ?? null;
   const durationMins = selectedBatch?.attendanceDurationMinsOverride ?? DEFAULT_ATTENDANCE_DURATION_MINS;
 
-  function updateSession(updated: SessionSummary) {
+  function mergeSession(updated: SessionSummary) {
     setSessions((current) => current?.map((session) => (session.id === updated.id ? updated : session)) ?? current);
   }
 
@@ -277,7 +319,7 @@ export function SessionManager({
     setIsActionLoading(true);
     try {
       const updated = await openAttendanceWindow(selectedSessionId);
-      updateSession(updated);
+      mergeSession(updated);
     } catch (error) {
       setActionError(error instanceof ApiError ? error.message : "Could not open attendance.");
     } finally {
@@ -291,7 +333,7 @@ export function SessionManager({
     setIsActionLoading(true);
     try {
       const updated = await closeAttendanceWindow(selectedSessionId);
-      updateSession(updated);
+      mergeSession(updated);
     } catch (error) {
       setActionError(error instanceof ApiError ? error.message : "Could not close attendance.");
     } finally {
@@ -299,27 +341,59 @@ export function SessionManager({
     }
   }
 
+  async function handleCancelSession() {
+    if (!selectedSessionId) return;
+    setActionError(null);
+    setIsCancelling(true);
+    try {
+      const result = await cancelSessionApi(selectedSessionId);
+      setSessions((current) =>
+        current?.map((session) => (session.id === result.id ? { ...session, status: result.status } : session)) ??
+        current
+      );
+    } catch (error) {
+      setActionError(error instanceof ApiError ? error.message : "Could not cancel this session.");
+    } finally {
+      setIsCancelling(false);
+    }
+  }
+
+  function openCreateForm() {
+    setEditingSession(null);
+    setIsFormOpen(true);
+  }
+
+  function openEditForm(session: SessionSummary) {
+    setEditingSession(session);
+    setIsFormOpen(true);
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>{title}</h1>
 
-        {batches.length > 0 ? (
-          <select
-            className={styles.batchSelect}
-            value={selectedBatchId ?? ""}
-            onChange={(event) => {
-              setSelectedBatchId(event.target.value);
-              setSelectedSessionId(null);
-            }}
-          >
-            {batches.map((batch) => (
-              <option key={batch.id} value={batch.id}>
-                {batch.name}
-              </option>
-            ))}
-          </select>
-        ) : null}
+        <div className={styles.headerActions}>
+          {batches.length > 0 ? (
+            <select
+              className={styles.batchSelect}
+              value={selectedBatchId ?? ""}
+              onChange={(event) => setSelectedBatchId(event.target.value)}
+            >
+              {batches.map((batch) => (
+                <option key={batch.id} value={batch.id}>
+                  {batch.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+
+          {canManage && selectedBatchId ? (
+            <Button type="button" style={{ width: "auto" }} onClick={openCreateForm}>
+              New session
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {batchesError ? (
@@ -356,10 +430,14 @@ export function SessionManager({
           <CodeDisplayCard
             session={selectedSession}
             durationMins={durationMins}
+            canManage={canManage}
             onOpenAttendance={handleOpenAttendance}
             onCloseAttendance={handleCloseAttendance}
             onManageRoster={() => setIsRosterOpen(true)}
+            onEdit={() => selectedSession && openEditForm(selectedSession)}
+            onCancel={handleCancelSession}
             isActionLoading={isActionLoading}
+            isCancelling={isCancelling}
             actionError={actionError}
           />
         </div>
@@ -367,6 +445,16 @@ export function SessionManager({
 
       {selectedSessionId ? (
         <AttendanceGrid sessionId={selectedSessionId} isOpen={isRosterOpen} onClose={() => setIsRosterOpen(false)} />
+      ) : null}
+
+      {canManage && selectedBatchId ? (
+        <SessionFormModal
+          isOpen={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          batchId={selectedBatchId}
+          session={editingSession}
+          onSaved={refetchSessions}
+        />
       ) : null}
     </div>
   );

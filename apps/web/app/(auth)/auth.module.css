@@ -59,6 +59,30 @@
   color: var(--color-danger);
 }
 
+.infoBanner {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
 .footer {
   margin-top: var(--space-6);
   text-align: center;

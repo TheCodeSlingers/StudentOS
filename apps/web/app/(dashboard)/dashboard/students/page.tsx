@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { ImportModal } from "@/components/modals/import-modal";
 import {
   ApiError,
   Batch,
@@ -30,6 +31,7 @@ export default function StudentsPage() {
   const [enrollError, setEnrollError] = useState<string | null>(null);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -49,21 +51,19 @@ export default function StudentsPage() {
     };
   }, [isAuthorized]);
 
-  useEffect(() => {
+  const refetchStudents = useCallback(() => {
     if (!selectedBatchId) return;
-    let cancelled = false;
     setStudentsError(null);
     listBatchStudents(selectedBatchId)
-      .then((result) => {
-        if (!cancelled) setStudents(result);
-      })
+      .then(setStudents)
       .catch((error) => {
-        if (!cancelled) setStudentsError(error instanceof ApiError ? error.message : "Could not load students.");
+        setStudentsError(error instanceof ApiError ? error.message : "Could not load students.");
       });
-    return () => {
-      cancelled = true;
-    };
   }, [selectedBatchId]);
+
+  useEffect(() => {
+    refetchStudents();
+  }, [refetchStudents]);
 
   const availableMembers = (members ?? []).filter(
     (member) => member.role === "STUDENT" && !students?.some((student) => student.membershipId === member.id)
@@ -112,19 +112,27 @@ export default function StudentsPage() {
           <p className={styles.subtitle}>Roster for the selected batch.</p>
         </div>
 
-        {batches && batches.length > 0 ? (
-          <select
-            className={styles.select}
-            value={selectedBatchId ?? ""}
-            onChange={(event) => setSelectedBatchId(event.target.value)}
-          >
-            {batches.map((batch) => (
-              <option key={batch.id} value={batch.id}>
-                {batch.name}
-              </option>
-            ))}
-          </select>
-        ) : null}
+        <div className={styles.selectGroup}>
+          {batches && batches.length > 0 ? (
+            <select
+              className={styles.select}
+              value={selectedBatchId ?? ""}
+              onChange={(event) => setSelectedBatchId(event.target.value)}
+            >
+              {batches.map((batch) => (
+                <option key={batch.id} value={batch.id}>
+                  {batch.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+
+          {selectedBatchId ? (
+            <Button type="button" variant="secondary" style={{ width: "auto" }} onClick={() => setIsImportOpen(true)}>
+              Import CSV
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       {batchesError ? (
@@ -174,51 +182,62 @@ export default function StudentsPage() {
           ) : students && students.length === 0 ? (
             <p className={styles.emptyState}>No students enrolled in this batch yet.</p>
           ) : students ? (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Role</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((student) => (
-                  <tr key={student.batchMembershipId}>
-                    <td>
-                      <div className={styles.primaryCell}>{student.name}</div>
-                      <div className={styles.secondaryCell}>{student.email}</div>
-                    </td>
-                    <td>
-                      {student.isCR ? (
-                        <span className={styles.badge} data-tone="success">
-                          CR
-                        </span>
-                      ) : (
-                        <span className={styles.badge} data-tone="neutral">
-                          Student
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <div className={styles.rowActions}>
-                        <button
-                          type="button"
-                          className={styles.textButton}
-                          data-tone="danger"
-                          disabled={removingId === student.batchMembershipId}
-                          onClick={() => handleRemove(student.batchMembershipId)}
-                        >
-                          {removingId === student.batchMembershipId ? "Removing…" : "Remove"}
-                        </button>
-                      </div>
-                    </td>
+            <div className={styles.tableScroll}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Student</th>
+                    <th>Role</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {students.map((student) => (
+                    <tr key={student.batchMembershipId}>
+                      <td>
+                        <div className={styles.primaryCell}>{student.name}</div>
+                        <div className={styles.secondaryCell}>{student.email}</div>
+                      </td>
+                      <td>
+                        {student.isCR ? (
+                          <span className={styles.badge} data-tone="success">
+                            CR
+                          </span>
+                        ) : (
+                          <span className={styles.badge} data-tone="neutral">
+                            Student
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <div className={styles.rowActions}>
+                          <button
+                            type="button"
+                            className={styles.textButton}
+                            data-tone="danger"
+                            disabled={removingId === student.batchMembershipId}
+                            onClick={() => handleRemove(student.batchMembershipId)}
+                          >
+                            {removingId === student.batchMembershipId ? "Removing…" : "Remove"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : null}
         </div>
+      ) : null}
+
+      {selectedBatchId ? (
+        <ImportModal
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          batchId={selectedBatchId}
+          onImported={refetchStudents}
+        />
       ) : null}
     </div>
   );

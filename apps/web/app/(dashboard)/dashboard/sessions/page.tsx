@@ -46,6 +46,7 @@ export default function MentorSessionsPage() {
       batches={sessionManagerBatches}
       batchesError={batchesError}
       emptyBatchesMessage="No active batches yet. Create a batch to start scheduling sessions."
+      canManage
     />
   );
 }

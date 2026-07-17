@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ApiError } from "@/lib/api-client";
@@ -134,6 +135,10 @@ export default function SignupPage() {
 
       {step === 1 ? (
         <form className={styles.form} onSubmit={handleContinue} noValidate>
+          <GoogleAuthButton />
+
+          <div className={styles.divider}>or continue with email</div>
+
           <TextField
             label="Full name"
             autoComplete="name"
