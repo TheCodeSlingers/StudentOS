@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
+import { env } from "./config/env";
 import { setupSwagger } from "./config/swagger";
 import { logger } from "./lib/logger";
 import { compressionMiddleware } from "./middleware/compression";
@@ -38,7 +39,7 @@ app.use(
 );
 app.use(globalRateLimiter);
 
-app.use(express.json({ limit: "50kb" }));
+app.use(express.json({ limit: env.JSON_BODY_LIMIT }));
 
 setupSwagger(app);
 
@@ -66,4 +67,3 @@ app.get("/health", (_req, res) => {
 app.use(errorHandler);
 
 export { app };
-

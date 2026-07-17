@@ -1,6 +1,7 @@
-import { Response, NextFunction } from "express";
-import { prisma } from "../lib/prisma";
+import { NextFunction, Response } from "express";
+import { env } from "../config/env";
 import { auth } from "../lib/auth";
+import { prisma } from "../lib/prisma";
 import { redis } from "../lib/redis";
 
 export async function authMiddleware(
@@ -62,8 +63,7 @@ export async function authMiddleware(
         if (cached) {
           membership = typeof cached === "string" ? JSON.parse(cached) : cached;
         }
-      } catch (err) {
-      }
+      } catch (err) {}
     }
 
     if (!membership) {
@@ -85,9 +85,10 @@ export async function authMiddleware(
 
       if (membership && redis) {
         try {
-          await redis.set(cacheKey, JSON.stringify(membership), { ex: 60 });
-        } catch (err) {
-        }
+          await redis.set(cacheKey, JSON.stringify(membership), {
+            ex: env.MEMBERSHIP_CACHE_TTL_SECONDS,
+          });
+        } catch (err) {}
       }
     }
 
