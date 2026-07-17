@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ReactElement } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/lib/auth-context";
 import styles from "./sidebar.module.css";
 
 interface NavItem {
@@ -102,24 +103,41 @@ function LogoutIcon({ className }: { className?: string }) {
   );
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/mentor", icon: DashboardIcon },
-  { label: "Batches", href: "/mentor/batches", icon: BatchesIcon },
-  { label: "Students", href: "/mentor/students", icon: StudentsIcon },
-  { label: "Sessions", href: "/mentor/sessions", icon: SessionsIcon },
-  { label: "Attendance", href: "/mentor/attendance", icon: AttendanceIcon },
-  { label: "Members", href: "/mentor/members", icon: MembersIcon },
-  { label: "Settings", href: "/mentor/settings", icon: SettingsIcon },
+const DASHBOARD_HOME_HREF = "/dashboard";
+
+const MENTOR_NAV_ITEMS: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard", icon: DashboardIcon },
+  { label: "Batches", href: "/dashboard/batches", icon: BatchesIcon },
+  { label: "Students", href: "/dashboard/students", icon: StudentsIcon },
+  { label: "Sessions", href: "/dashboard/sessions", icon: SessionsIcon },
+  { label: "Attendance", href: "/dashboard/attendance", icon: AttendanceIcon },
+  { label: "Members", href: "/dashboard/members", icon: MembersIcon },
+  { label: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
+];
+
+const STUDENT_NAV_ITEMS: NavItem[] = [
+  { label: "Overview", href: "/dashboard", icon: DashboardIcon },
+  { label: "Check-in", href: "/dashboard/checkin", icon: AttendanceIcon },
+  { label: "Profile", href: "/dashboard/profile", icon: MembersIcon },
 ];
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onInviteMember: () => void;
+  role: "MENTOR" | "STUDENT" | null;
 }
 
-export function Sidebar({ isOpen, onClose, onInviteMember }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, onInviteMember, role }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
+  const navItems = role === "STUDENT" ? STUDENT_NAV_ITEMS : MENTOR_NAV_ITEMS;
+
+  async function handleLogout() {
+    await logout();
+    router.push("/login");
+  }
 
   return (
     <>
@@ -135,8 +153,11 @@ export function Sidebar({ isOpen, onClose, onInviteMember }: SidebarProps) {
         </div>
 
         <ul className={styles.nav}>
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+          {navItems.map((item) => {
+            const isActive =
+              item.href === DASHBOARD_HOME_HREF
+                ? pathname === item.href
+                : pathname === item.href || pathname?.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
               <li key={item.href}>
@@ -150,13 +171,15 @@ export function Sidebar({ isOpen, onClose, onInviteMember }: SidebarProps) {
         </ul>
 
         <div className={styles.footer}>
-          <Button type="button" onClick={onInviteMember}>
-            Invite member
-          </Button>
-          <Link href="/login" className={styles.logoutLink}>
+          {role === "MENTOR" ? (
+            <Button type="button" onClick={onInviteMember}>
+              Invite member
+            </Button>
+          ) : null}
+          <button type="button" className={styles.logoutLink} onClick={handleLogout}>
             <LogoutIcon className={styles.linkIcon} />
             Log out
-          </Link>
+          </button>
         </div>
       </nav>
     </>

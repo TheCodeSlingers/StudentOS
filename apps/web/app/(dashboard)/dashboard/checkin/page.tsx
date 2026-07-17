@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, ClipboardEvent, KeyboardEvent, Suspense, useRef, useState } from "react";
 import { ApiError, AttendanceStatus, submitAttendance } from "@/lib/api-client";
+import { useRequireRole } from "@/lib/use-require-role";
 import styles from "./checkin.module.css";
 
 const CODE_LENGTH = 6;
@@ -161,6 +162,12 @@ function CheckInContent() {
 }
 
 export default function StudentCheckInPage() {
+  const isAuthorized = useRequireRole("STUDENT");
+
+  if (!isAuthorized) {
+    return null;
+  }
+
   return (
     <div className={styles.page}>
       <Suspense fallback={null}>

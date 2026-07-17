@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { ApiError, MembershipRole, inviteMember } from "@/lib/api-client";
+import { ApiError, InviteMemberResult, MembershipRole, inviteMember } from "@/lib/api-client";
 import { isValidEmail } from "@/lib/validation";
 import styles from "./invite-modal.module.css";
 
@@ -15,6 +15,7 @@ interface FormErrors {
 interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onInvited?: (result: InviteMemberResult) => void;
 }
 
 function CloseIcon() {
@@ -25,7 +26,7 @@ function CloseIcon() {
   );
 }
 
-export function InviteModal({ isOpen, onClose }: InviteModalProps) {
+export function InviteModal({ isOpen, onClose, onInvited }: InviteModalProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MembershipRole>("STUDENT");
@@ -93,11 +94,12 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
     setIsSubmitting(true);
     try {
-      await inviteMember({ name: name.trim(), email: email.trim(), role });
+      const result = await inviteMember({ name: name.trim(), email: email.trim(), role });
       setSuccessMessage(`Invitation sent to ${email.trim()}.`);
       setName("");
       setEmail("");
       setRole("STUDENT");
+      onInvited?.(result);
     } catch (error) {
       setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
     } finally {
