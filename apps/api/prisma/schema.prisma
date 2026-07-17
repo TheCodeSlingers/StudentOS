@@ -236,12 +236,13 @@ model BatchMembership {
   @@unique([membershipId, batchId])
   @@index([batchId])
   @@index([membershipId])
+  @@index([batchId, membershipId, isCR, revokedAt])
 }
 
 model Session {
   id                   String        @id @default(cuid())
   batchId              String
-  title                String
+  title                String        @db.VarChar(200)
   description          String?
   scheduledStart       DateTime
   scheduledEnd         DateTime
@@ -287,6 +288,7 @@ model Attendance {
   @@index([sessionId])
   @@index([studentBatchMembershipId])
   @@index([status])
+  @@index([sessionId, status])
 }
 
 enum ImportJobStatus {

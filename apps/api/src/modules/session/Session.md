@@ -32,6 +32,7 @@ model Session {
   @@index([batchId])
   @@index([scheduledStart])
   @@index([status])
+  @@index([batchId, status, scheduledStart]) // covers listSessions with status filter
 }
 ```
 
@@ -129,6 +130,11 @@ model BatchMembership {
   membership  Membership   @relation(fields: [membershipId], references: [id], onDelete: Cascade)
   batch       Batch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
   attendances Attendance[]
+
+  @@unique([membershipId, batchId])
+  @@index([batchId])
+  @@index([membershipId])
+  @@index([batchId, membershipId, isCR, revokedAt]) // covers CR check + enrollment check
 }
 ```
 
@@ -654,15 +660,16 @@ if (batch.workspaceId !== req.membership.workspaceId) {
 
 ## 10. Student Enrollment Check
 
-To verify a student is enrolled in a batch:
+To verify a student is enrolled in a batch (optimized — direct lookup, no JOIN through Membership):
 
 ```typescript
 const batchMembership = await prisma.batchMembership.findFirst({
   where: {
     batchId,
-    membership: { userId: req.user.id },
+    membershipId: req.membership.id, // Use membershipId directly from auth middleware
     revokedAt: null,
   },
+  select: { id: true },
 });
 
 if (!batchMembership) {

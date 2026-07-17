@@ -13,6 +13,7 @@ enum MembershipRole {
 
 enum MembershipStatus {
   ACTIVE
+  INACTIVE
   INVITED
 }
 
@@ -64,17 +65,65 @@ enum HireStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String?
-  authProvider String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String
+  passwordHash  String?
+  authProvider  String?
+  emailVerified Boolean       @default(false)
+  image         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  memberships Membership[]
+  memberships   Membership[]
+  accounts      Account[]
+  authSessions  AuthSession[]
 
   @@index([email])
+}
+
+model Account {
+  id           String    @id @default(cuid())
+  userId       String
+  accountId    String
+  providerId   String
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  password     String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([providerId, accountId])
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }
 
 model Workspace {
@@ -169,6 +218,7 @@ model Batch {
 
   @@index([workspaceId])
   @@index([isArchived])
+  @@index([workspaceId, isArchived])
 }
 
 model BatchMembership {
@@ -186,12 +236,13 @@ model BatchMembership {
   @@unique([membershipId, batchId])
   @@index([batchId])
   @@index([membershipId])
+  @@index([batchId, membershipId, isCR, revokedAt])
 }
 
 model Session {
   id                   String        @id @default(cuid())
   batchId              String
-  title                String
+  title                String        @db.VarChar(200)
   description          String?
   scheduledStart       DateTime
   scheduledEnd         DateTime
@@ -213,6 +264,8 @@ model Session {
   @@index([batchId])
   @@index([scheduledStart])
   @@index([status])
+  @@index([batchId, status])
+  @@index([batchId, scheduledStart])
 }
 
 model Attendance {
@@ -235,6 +288,7 @@ model Attendance {
   @@index([sessionId])
   @@index([studentBatchMembershipId])
   @@index([status])
+  @@index([sessionId, status])
 }
 
 enum ImportJobStatus {

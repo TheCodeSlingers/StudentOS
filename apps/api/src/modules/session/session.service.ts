@@ -5,6 +5,30 @@ import {
   NotFoundError,
   ForbiddenError,
 } from "../../common/errors";
+import { buildPaginationMeta } from "../../utils/pagination";
+
+// Shared select fragment — avoids duplication, keeps queries consistent
+const SESSION_SELECT = {
+  id: true,
+  batchId: true,
+  title: true,
+  description: true,
+  status: true,
+  scheduledStart: true,
+  scheduledEnd: true,
+  meetLink: true,
+  type: true,
+  attendanceOpenedAt: true,
+  attendanceClosedAt: true,
+  currentCode: true,
+} as const;
+
+const BATCH_SELECT = {
+  workspaceId: true,
+  isArchived: true,
+  startDate: true,
+  endDate: true,
+} as const;
 
 export class SessionService {
   // Route 1: Create Session
@@ -20,16 +44,10 @@ export class SessionService {
       type?: "REGULAR" | "MAKEUP" | "EXAM";
     }
   ): Promise<any> {
-    // 1. Validate batch exists and belongs to workspace
+    // 1. Validate batch exists and belongs to workspace (select only needed fields)
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
-      select: {
-        id: true,
-        workspaceId: true,
-        isArchived: true,
-        startDate: true,
-        endDate: true,
-      },
+      select: BATCH_SELECT,
     });
 
     if (!batch) {
@@ -40,7 +58,6 @@ export class SessionService {
       throw new ForbiddenError("This batch does not belong to your workspace.");
     }
 
-    // 2. Check batch is not archived
     if (batch.isArchived) {
       throw new BadRequestError(
         "Cannot create session in archived batch.",
@@ -48,7 +65,7 @@ export class SessionService {
       );
     }
 
-    // 3. Validate scheduledEnd is after scheduledStart
+    // 2. Validate times
     const start = new Date(data.scheduledStart);
     const end = new Date(data.scheduledEnd);
 
@@ -59,7 +76,6 @@ export class SessionService {
       );
     }
 
-    // 4. Validate session times are within batch date range
     if (start < batch.startDate) {
       throw new BadRequestError(
         "Session cannot start before batch start date.",
@@ -74,7 +90,7 @@ export class SessionService {
       );
     }
 
-    // 5. Create session record
+    // 3. Create session
     return prisma.session.create({
       data: {
         batchId,
@@ -97,23 +113,21 @@ export class SessionService {
     });
   }
 
-  // Route 2: List Sessions (with pagination)
+  // Route 2: List Sessions (cursor-based pagination for scale)
   static async listSessions(
     batchId: string,
     workspaceId: string,
-    userId: string,
+    membershipId: string,
     role: "MENTOR" | "STUDENT",
     page: number = 1,
     limit: number = 20,
-    status?: "SCHEDULED" | "STARTED" | "ENDED" | "CANCELLED"
-  ): Promise<{ data: any[]; meta: { total: number; page: number; limit: number; totalPages: number } }> {
+    status?: "SCHEDULED" | "STARTED" | "ENDED" | "CANCELLED",
+    cursor?: string
+  ): Promise<{ data: any[]; meta: { total?: number; page: number; limit: number; totalPages?: number; nextCursor: string | null } }> {
     // 1. Validate batch exists and belongs to workspace
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
-      select: {
-        id: true,
-        workspaceId: true,
-      },
+      select: { workspaceId: true },
     });
 
     if (!batch) {
@@ -124,14 +138,15 @@ export class SessionService {
       throw new ForbiddenError("This batch does not belong to your workspace.");
     }
 
-    // 2. For students, verify enrollment
+    // 2. For students, verify enrollment (direct lookup — no JOIN through Membership)
     if (role === "STUDENT") {
       const batchMembership = await prisma.batchMembership.findFirst({
         where: {
           batchId,
-          membership: { userId },
+          membershipId,
           revokedAt: null,
         },
+        select: { id: true },
       });
 
       if (!batchMembership) {
@@ -145,66 +160,64 @@ export class SessionService {
       whereClause.status = status;
     }
 
-    // 4. Get total count and paginated results
-    const skip = (page - 1) * limit;
+    // 4. Cursor-based pagination (constant time regardless of depth)
+    if (cursor) {
+      whereClause.scheduledStart = { lt: new Date(cursor) };
+    }
 
-    const [sessions, total] = await Promise.all([
-      prisma.session.findMany({
-        where: whereClause,
-        select: {
-          id: true,
-          batchId: true,
-          title: true,
-          status: true,
-          scheduledStart: true,
-          scheduledEnd: true,
-        },
-        orderBy: { scheduledStart: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.session.count({ where: whereClause }),
-    ]);
-
-    return {
-      data: sessions,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
-  }
-
-  // Route 3: Get Session Details
-  static async getSession(
-    sessionId: string,
-    workspaceId: string,
-    userId: string,
-    role: "MENTOR" | "STUDENT"
-  ): Promise<any> {
-    // 1. Find session
-    const session = await prisma.session.findUnique({
-      where: { id: sessionId },
+    const sessions = await prisma.session.findMany({
+      where: whereClause,
       select: {
         id: true,
         batchId: true,
         title: true,
-        description: true,
         status: true,
         scheduledStart: true,
         scheduledEnd: true,
-        meetLink: true,
-        type: true,
-        attendanceOpenedAt: true,
-        attendanceClosedAt: true,
-        currentCode: true,
-        batch: {
-          select: {
-            workspaceId: true,
-          },
+      },
+      orderBy: { scheduledStart: "desc" },
+      take: limit + 1, // +1 to detect hasMore
+    });
+
+    const hasMore = sessions.length > limit;
+    const data = hasMore ? sessions.slice(0, limit) : sessions;
+    const nextCursor = hasMore ? data[data.length - 1].scheduledStart.toISOString() : null;
+
+    // Only run count for offset pagination (cursor pagination doesn't need it)
+    if (!cursor) {
+      const total = await prisma.session.count({ where: whereClause });
+      return {
+        data,
+        meta: {
+          ...buildPaginationMeta(page, limit, total),
+          nextCursor,
         },
+      };
+    }
+
+    return {
+      data,
+      meta: {
+        page,
+        limit,
+        nextCursor,
+      },
+    };
+  }
+
+  // Route 3: Get Session Details (single query with select, no full batch fetch)
+  static async getSession(
+    sessionId: string,
+    workspaceId: string,
+    membershipId: string,
+    role: "MENTOR" | "STUDENT"
+  ): Promise<any> {
+    // 1. Find session with batch workspace check (1 query for both)
+    const session = await prisma.session.findUnique({
+      where: { id: sessionId },
+      select: {
+        ...SESSION_SELECT,
+        batch: { select: { workspaceId: true } },
       },
     });
 
@@ -212,19 +225,19 @@ export class SessionService {
       throw new NotFoundError("Session not found.", "SESSION_NOT_FOUND");
     }
 
-    // 2. Validate batch belongs to workspace
     if (session.batch.workspaceId !== workspaceId) {
       throw new ForbiddenError("This session does not belong to your workspace.");
     }
 
-    // 3. For students, verify enrollment
+    // 2. For students, verify enrollment (1 indexed query)
     if (role === "STUDENT") {
       const batchMembership = await prisma.batchMembership.findFirst({
         where: {
           batchId: session.batchId,
-          membership: { userId },
+          membershipId,
           revokedAt: null,
         },
+        select: { id: true },
       });
 
       if (!batchMembership) {
@@ -232,7 +245,7 @@ export class SessionService {
       }
     }
 
-    // 4. Return session details (exclude currentCode for students)
+    // 3. Return (exclude currentCode for students)
     const result: any = {
       id: session.id,
       batchId: session.batchId,
@@ -247,7 +260,6 @@ export class SessionService {
       attendanceClosedAt: session.attendanceClosedAt,
     };
 
-    // Only include currentCode for MENTOR
     if (role === "MENTOR") {
       result.currentCode = session.currentCode;
     }
@@ -255,7 +267,7 @@ export class SessionService {
     return result;
   }
 
-  // Route 4: Update Session
+  // Route 4: Update Session (select only needed batch fields)
   static async updateSession(
     sessionId: string,
     workspaceId: string,
@@ -268,26 +280,20 @@ export class SessionService {
       type?: "REGULAR" | "MAKEUP" | "EXAM";
     }
   ): Promise<any> {
-    // 1. Find session with batch info
+    // 1. Find session with only needed batch fields
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       select: {
         id: true,
         batchId: true,
         title: true,
-        description: true,
         status: true,
         scheduledStart: true,
         scheduledEnd: true,
         meetLink: true,
+        description: true,
         type: true,
-        batch: {
-          select: {
-            workspaceId: true,
-            startDate: true,
-            endDate: true,
-          },
-        },
+        batch: { select: BATCH_SELECT },
       },
     });
 
@@ -295,12 +301,11 @@ export class SessionService {
       throw new NotFoundError("Session not found.", "SESSION_NOT_FOUND");
     }
 
-    // 2. Validate batch belongs to workspace
     if (session.batch.workspaceId !== workspaceId) {
       throw new ForbiddenError("This session does not belong to your workspace.");
     }
 
-    // 3. Cannot update CANCELLED or ENDED sessions
+    // 2. Status checks
     if (session.status === "CANCELLED") {
       throw new BadRequestError(
         "Cannot update a cancelled session.",
@@ -315,7 +320,6 @@ export class SessionService {
       );
     }
 
-    // 4. Cannot update time fields after attendance has been opened
     if (session.status === "STARTED") {
       if (data.scheduledStart !== undefined || data.scheduledEnd !== undefined) {
         throw new BadRequestError(
@@ -325,7 +329,7 @@ export class SessionService {
       }
     }
 
-    // 5. Build update data
+    // 3. Build update data
     const updateData: any = {};
 
     if (data.title !== undefined) updateData.title = data.title;
@@ -341,7 +345,7 @@ export class SessionService {
       updateData.scheduledEnd = new Date(data.scheduledEnd);
     }
 
-    // 6. Validate times if both provided
+    // 4. Validate times
     if (data.scheduledStart && data.scheduledEnd) {
       const start = new Date(data.scheduledStart);
       const end = new Date(data.scheduledEnd);
@@ -353,7 +357,6 @@ export class SessionService {
         );
       }
     } else if (data.scheduledStart || data.scheduledEnd) {
-      // Only one time provided, validate against existing
       const start = data.scheduledStart
         ? new Date(data.scheduledStart)
         : session.scheduledStart;
@@ -369,7 +372,7 @@ export class SessionService {
       }
     }
 
-    // 7. Validate session times are within batch date range
+    // 5. Validate against batch date range
     const finalStart = updateData.scheduledStart || session.scheduledStart;
     const finalEnd = updateData.scheduledEnd || session.scheduledEnd;
 
@@ -387,7 +390,7 @@ export class SessionService {
       );
     }
 
-    // 8. Update session (only if there are changes)
+    // 6. No changes — return existing
     if (Object.keys(updateData).length === 0) {
       return {
         id: session.id,
@@ -415,22 +418,18 @@ export class SessionService {
     });
   }
 
-  // Route 5: Cancel Session
+  // Route 5: Cancel Session (select only needed batch fields)
   static async cancelSession(
     sessionId: string,
     workspaceId: string
   ): Promise<any> {
-    // 1. Find session
+    // 1. Find session with only workspaceId check
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       select: {
         id: true,
         status: true,
-        batch: {
-          select: {
-            workspaceId: true,
-          },
-        },
+        batch: { select: { workspaceId: true } },
       },
     });
 
@@ -438,12 +437,11 @@ export class SessionService {
       throw new NotFoundError("Session not found.", "SESSION_NOT_FOUND");
     }
 
-    // 2. Validate batch belongs to workspace
     if (session.batch.workspaceId !== workspaceId) {
       throw new ForbiddenError("This session does not belong to your workspace.");
     }
 
-    // 3. Cannot cancel ENDED or CANCELLED sessions
+    // 2. Status checks
     if (session.status === "ENDED") {
       throw new BadRequestError(
         "Cannot cancel an ended session.",
@@ -458,12 +456,12 @@ export class SessionService {
       );
     }
 
-    // 4. Cancel session AND clear currentCode
+    // 3. Cancel and clear code
     return prisma.session.update({
       where: { id: sessionId },
       data: {
         status: "CANCELLED",
-        currentCode: null, // Clear code to prevent submission after cancel
+        currentCode: null,
       },
       select: {
         id: true,
@@ -472,29 +470,21 @@ export class SessionService {
     });
   }
 
-  // Route 6: Open Attendance Window (with atomic update and rate limiting)
+  // Route 6: Open Attendance Window (select only needed batch fields)
   static async openAttendanceWindow(
     sessionId: string,
     workspaceId: string,
     membershipId: string,
-    role: "MENTOR" | "STUDENT",
-    userId: string
+    role: "MENTOR" | "STUDENT"
   ): Promise<any> {
-    // 1. Find session with batch info
+    // 1. Find session with only needed fields
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       select: {
         id: true,
         batchId: true,
         status: true,
-        attendanceOpenedAt: true,
-        createdAt: true,
-        batch: {
-          select: {
-            workspaceId: true,
-            isArchived: true,
-          },
-        },
+        batch: { select: { workspaceId: true, isArchived: true } },
       },
     });
 
@@ -502,12 +492,10 @@ export class SessionService {
       throw new NotFoundError("Session not found.", "SESSION_NOT_FOUND");
     }
 
-    // 2. Validate batch belongs to workspace
     if (session.batch.workspaceId !== workspaceId) {
       throw new ForbiddenError("This session does not belong to your workspace.");
     }
 
-    // 3. Check batch is not archived
     if (session.batch.isArchived) {
       throw new BadRequestError(
         "Cannot open attendance for a session in an archived batch.",
@@ -515,7 +503,7 @@ export class SessionService {
       );
     }
 
-    // 4. Verify user is MENTOR or CR
+    // 2. Verify MENTOR or CR (direct lookup — no JOIN)
     if (role === "STUDENT") {
       const batchMembership = await prisma.batchMembership.findFirst({
         where: {
@@ -524,6 +512,7 @@ export class SessionService {
           isCR: true,
           revokedAt: null,
         },
+        select: { id: true },
       });
 
       if (!batchMembership) {
@@ -533,14 +522,13 @@ export class SessionService {
       }
     }
 
-    // 5. Generate cryptographically secure 6-digit code
+    // 3. Generate code and atomic update
     const code = randomInt(100000, 999999).toString();
 
-    // 6. Atomic conditional update (prevents race condition)
     const updateResult = await prisma.session.updateMany({
       where: {
         id: sessionId,
-        status: "SCHEDULED", // Only update if still SCHEDULED
+        status: "SCHEDULED",
       },
       data: {
         status: "STARTED",
@@ -551,7 +539,6 @@ export class SessionService {
       },
     });
 
-    // 7. If update failed, someone else already opened it
     if (updateResult.count === 0) {
       throw new BadRequestError(
         "Attendance window is already open or session status has changed.",
@@ -559,7 +546,6 @@ export class SessionService {
       );
     }
 
-    // 8. Return the session with the code
     return {
       sessionId,
       status: "STARTED",
@@ -568,27 +554,21 @@ export class SessionService {
     };
   }
 
-  // Route 7: Close Attendance Window (with atomic update and rate limiting)
+  // Route 7: Close Attendance Window (select only needed batch fields)
   static async closeAttendanceWindow(
     sessionId: string,
     workspaceId: string,
     membershipId: string,
-    role: "MENTOR" | "STUDENT",
-    userId: string
+    role: "MENTOR" | "STUDENT"
   ): Promise<any> {
-    // 1. Find session with batch info
+    // 1. Find session with only needed fields
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       select: {
         id: true,
         batchId: true,
         status: true,
-        batch: {
-          select: {
-            workspaceId: true,
-            isArchived: true,
-          },
-        },
+        batch: { select: { workspaceId: true, isArchived: true } },
       },
     });
 
@@ -596,12 +576,10 @@ export class SessionService {
       throw new NotFoundError("Session not found.", "SESSION_NOT_FOUND");
     }
 
-    // 2. Validate batch belongs to workspace
     if (session.batch.workspaceId !== workspaceId) {
       throw new ForbiddenError("This session does not belong to your workspace.");
     }
 
-    // 3. Check batch is not archived
     if (session.batch.isArchived) {
       throw new BadRequestError(
         "Cannot close attendance for a session in an archived batch.",
@@ -609,7 +587,7 @@ export class SessionService {
       );
     }
 
-    // 4. Verify user is MENTOR or CR
+    // 2. Verify MENTOR or CR (direct lookup — no JOIN)
     if (role === "STUDENT") {
       const batchMembership = await prisma.batchMembership.findFirst({
         where: {
@@ -618,6 +596,7 @@ export class SessionService {
           isCR: true,
           revokedAt: null,
         },
+        select: { id: true },
       });
 
       if (!batchMembership) {
@@ -627,21 +606,20 @@ export class SessionService {
       }
     }
 
-    // 5. Atomic conditional update (prevents race condition)
+    // 3. Atomic update
     const updateResult = await prisma.session.updateMany({
       where: {
         id: sessionId,
-        status: "STARTED", // Only update if still STARTED
+        status: "STARTED",
       },
       data: {
         status: "ENDED",
         attendanceClosedAt: new Date(),
         attendanceClosedById: membershipId,
-        currentCode: null, // Clear code
+        currentCode: null,
       },
     });
 
-    // 6. If update failed, someone else already closed it
     if (updateResult.count === 0) {
       throw new BadRequestError(
         "Attendance window is already closed or session status has changed.",
@@ -649,7 +627,6 @@ export class SessionService {
       );
     }
 
-    // 7. Return the updated session
     return {
       sessionId,
       status: "ENDED",

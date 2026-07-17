@@ -2,6 +2,7 @@ import { Response } from "express";
 import { SessionService } from "./session.service";
 import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
+import { parsePagination } from "../../utils/pagination";
 
 export class SessionController {
   // Route 1: Create Session
@@ -23,18 +24,20 @@ export class SessionController {
     async (req: any, res: Response): Promise<void> => {
       const { batchId } = req.params;
       const workspaceId = req.membership.workspaceId;
-      const userId = req.user.id;
+      const membershipId = req.membership.id;
       const role = req.membership.role;
-      const { page, limit, status } = req.query;
+      const { page, limit } = parsePagination(req.query);
+      const { status, cursor } = req.query;
 
       const result = await SessionService.listSessions(
         batchId,
         workspaceId,
-        userId,
+        membershipId,
         role,
         page,
         limit,
-        status
+        status,
+        cursor
       );
 
       ApiResponse.success(res, result.data, 200, result.meta);
@@ -46,12 +49,12 @@ export class SessionController {
     async (req: any, res: Response): Promise<void> => {
       const { sessionId } = req.params;
       const workspaceId = req.membership.workspaceId;
-      const userId = req.user.id;
+      const membershipId = req.membership.id;
       const role = req.membership.role;
       const session = await SessionService.getSession(
         sessionId,
         workspaceId,
-        userId,
+        membershipId,
         role
       );
       ApiResponse.success(res, session);
@@ -92,13 +95,11 @@ export class SessionController {
       const workspaceId = req.membership.workspaceId;
       const membershipId = req.membership.id;
       const role = req.membership.role;
-      const userId = req.user.id; // For rate limiting
       const session = await SessionService.openAttendanceWindow(
         sessionId,
         workspaceId,
         membershipId,
-        role,
-        userId
+        role
       );
       ApiResponse.success(res, session);
     }
@@ -111,13 +112,11 @@ export class SessionController {
       const workspaceId = req.membership.workspaceId;
       const membershipId = req.membership.id;
       const role = req.membership.role;
-      const userId = req.user.id; // For rate limiting
       const session = await SessionService.closeAttendanceWindow(
         sessionId,
         workspaceId,
         membershipId,
-        role,
-        userId
+        role
       );
       ApiResponse.success(res, session);
     }

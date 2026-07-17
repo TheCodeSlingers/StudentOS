@@ -24,6 +24,7 @@ export const listSessionsSchema = z.object({
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().max(100).default(20),
     status: z.enum(["SCHEDULED", "STARTED", "ENDED", "CANCELLED"]).optional(),
+    cursor: z.string().datetime("Invalid cursor").optional(),
   }),
 });
 
