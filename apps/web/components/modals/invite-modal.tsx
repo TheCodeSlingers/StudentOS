@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { notify } from "@/lib/toast";
 import { ApiError, MembershipRole, inviteMember } from "@/lib/api-client";
 import { isValidEmail } from "@/lib/validation";
 import styles from "./invite-modal.module.css";
@@ -30,8 +31,6 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MembershipRole>("STUDENT");
   const [errors, setErrors] = useState<FormErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -55,8 +54,6 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
       setEmail("");
       setRole("STUDENT");
       setErrors({});
-      setApiError(null);
-      setSuccessMessage(null);
       setIsSubmitting(false);
     }
   }, [isOpen]);
@@ -84,8 +81,6 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setApiError(null);
-    setSuccessMessage(null);
 
     if (!validate()) {
       return;
@@ -94,12 +89,12 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
     setIsSubmitting(true);
     try {
       await inviteMember({ name: name.trim(), email: email.trim(), role });
-      setSuccessMessage(`Invitation sent to ${email.trim()}.`);
+      notify.success(`Invitation sent to ${email.trim()}.`);
       setName("");
       setEmail("");
       setRole("STUDENT");
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+      notify.error(error, "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -125,18 +120,6 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
             <CloseIcon />
           </button>
         </div>
-
-        {apiError ? (
-          <div className={styles.banner} role="alert">
-            {apiError}
-          </div>
-        ) : null}
-
-        {successMessage ? (
-          <div className={styles.successBanner} role="status">
-            {successMessage}
-          </div>
-        ) : null}
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
           <TextField

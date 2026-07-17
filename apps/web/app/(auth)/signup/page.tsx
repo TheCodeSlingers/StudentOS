@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { notify } from "@/lib/toast";
 import { ApiError, signup } from "@/lib/api-client";
 import { getPasswordError, isValidEmail } from "@/lib/validation";
 import styles from "../auth.module.css";
@@ -32,7 +33,6 @@ export default function SignupPage() {
 
   const [accountErrors, setAccountErrors] = useState<AccountErrors>({});
   const [organizationErrors, setOrganizationErrors] = useState<OrganizationErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function validateAccountStep(): boolean {
@@ -81,7 +81,6 @@ export default function SignupPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setApiError(null);
 
     if (!validateOrganizationStep()) {
       return;
@@ -95,9 +94,10 @@ export default function SignupPage() {
         password,
         organizationName: organizationName.trim(),
       });
+      notify.success("Account created successfully!");
       router.push("/");
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+      notify.error(error, "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -123,12 +123,6 @@ export default function SignupPage() {
           </>
         )}
       </div>
-
-      {apiError ? (
-        <div className={styles.banner} role="alert">
-          {apiError}
-        </div>
-      ) : null}
 
       {step === 1 ? (
         <form className={styles.form} onSubmit={handleContinue} noValidate>

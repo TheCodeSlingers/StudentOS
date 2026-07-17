@@ -12,6 +12,7 @@ import {
   listSessions,
   openAttendanceWindow,
 } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import styles from "./sessions.module.css";
 
 const DEFAULT_ATTENDANCE_DURATION_MINS = 15;
@@ -106,7 +107,6 @@ interface CodeDisplayCardProps {
   onCloseAttendance: () => void;
   onManageRoster: () => void;
   isActionLoading: boolean;
-  actionError: string | null;
 }
 
 function CodeDisplayCard({
@@ -116,7 +116,6 @@ function CodeDisplayCard({
   onCloseAttendance,
   onManageRoster,
   isActionLoading,
-  actionError,
 }: CodeDisplayCardProps) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -151,12 +150,6 @@ function CodeDisplayCard({
             {formatTime(session.scheduledStart)} – {formatTime(session.scheduledEnd)}
           </p>
         </div>
-
-        {actionError ? (
-          <div className={styles.banner} role="alert">
-            {actionError}
-          </div>
-        ) : null}
 
         {session.status === "STARTED" && session.currentCode ? (
           <>
@@ -200,15 +193,12 @@ function CodeDisplayCard({
 
 export default function MentorSessionsPage() {
   const [batches, setBatches] = useState<Batch[] | null>(null);
-  const [batchesError, setBatchesError] = useState<string | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
-  const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isRosterOpen, setIsRosterOpen] = useState(false);
 
@@ -225,7 +215,7 @@ export default function MentorSessionsPage() {
       })
       .catch((error) => {
         if (cancelled) return;
-        setBatchesError(error instanceof ApiError ? error.message : "Could not load batches.");
+        notify.error(error, "Could not load batches.");
       });
 
     return () => {
@@ -240,7 +230,6 @@ export default function MentorSessionsPage() {
 
     let cancelled = false;
     setIsLoadingSessions(true);
-    setSessionsError(null);
 
     listSessions(selectedBatchId)
       .then((result) => {
@@ -250,7 +239,7 @@ export default function MentorSessionsPage() {
       })
       .catch((error) => {
         if (cancelled) return;
-        setSessionsError(error instanceof ApiError ? error.message : "Could not load sessions.");
+        notify.error(error, "Could not load sessions.");
       })
       .finally(() => {
         if (!cancelled) setIsLoadingSessions(false);
@@ -271,13 +260,13 @@ export default function MentorSessionsPage() {
 
   async function handleOpenAttendance() {
     if (!selectedSessionId) return;
-    setActionError(null);
     setIsActionLoading(true);
     try {
       const updated = await openAttendanceWindow(selectedSessionId);
       updateSession(updated);
+      notify.success("Attendance window opened.");
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : "Could not open attendance.");
+      notify.error(error, "Could not open attendance.");
     } finally {
       setIsActionLoading(false);
     }
@@ -285,13 +274,13 @@ export default function MentorSessionsPage() {
 
   async function handleCloseAttendance() {
     if (!selectedSessionId) return;
-    setActionError(null);
     setIsActionLoading(true);
     try {
       const updated = await closeAttendanceWindow(selectedSessionId);
       updateSession(updated);
+      notify.success("Attendance window closed.");
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : "Could not close attendance.");
+      notify.error(error, "Could not close attendance.");
     } finally {
       setIsActionLoading(false);
     }
@@ -320,13 +309,7 @@ export default function MentorSessionsPage() {
         ) : null}
       </div>
 
-      {batchesError ? (
-        <div className={styles.banner} role="alert">
-          {batchesError}
-        </div>
-      ) : null}
-
-      {!batchesError && batches && batches.length === 0 ? (
+      {batches && batches.length === 0 ? (
         <div className={styles.card}>
           <p className={styles.emptyState}>No active batches yet. Create a batch to start scheduling sessions.</p>
         </div>
@@ -336,11 +319,7 @@ export default function MentorSessionsPage() {
         <div className={styles.layout}>
           <div className={styles.card}>
             <p className={styles.sectionTitle}>Calendar</p>
-            {sessionsError ? (
-              <div className={styles.banner} role="alert">
-                {sessionsError}
-              </div>
-            ) : isLoadingSessions && !sessions ? (
+            {isLoadingSessions && !sessions ? (
               <p className={styles.emptyState}>Loading sessions…</p>
             ) : (
               <CalendarView
@@ -358,7 +337,6 @@ export default function MentorSessionsPage() {
             onCloseAttendance={handleCloseAttendance}
             onManageRoster={() => setIsRosterOpen(true)}
             isActionLoading={isActionLoading}
-            actionError={actionError}
           />
         </div>
       ) : null}

@@ -11,6 +11,7 @@ import {
   JobType,
   WorkplacePreference,
 } from "./profile.interface";
+import { notify } from "@/lib/toast";
 
 // 1. Mock Data mapped to the new schema
 const mockInitialData: IStudentProfile = {
@@ -61,16 +62,24 @@ export default function StudentProfilePage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    setSaveMessage(null);
 
-    // Simulate Network Request
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // 1. Your actual or simulated network request
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      console.log("Saving payload:", profile);
 
-    console.log("Saving payload:", profile);
-
-    setIsSaving(false);
-    setSaveMessage("Profile updated successfully.");
-    setTimeout(() => setSaveMessage(null), 3000);
+      // 2. Trigger the global success toast
+      notify.success(
+        "Profile updated",
+        "Your changes have been saved successfully.",
+      );
+    } catch (error) {
+      // 3. If the backend rejects the payload, the utility parses the error
+      notify.error(error, "Could not update profile");
+    } finally {
+      // 4. Always turn off the loading state, whether it succeeded or failed
+      setIsSaving(false);
+    }
   };
 
   const InputField = ({
@@ -246,18 +255,9 @@ export default function StudentProfilePage() {
 
         {/* --- Action Footer --- */}
         <motion.div className={styles.actions} variants={itemVariants}>
-          {saveMessage && (
-            <motion.span
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-green-600 text-sm flex items-center mr-4 font-medium"
-            >
-              {saveMessage}
-            </motion.span>
-          )}
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? "Syncing..." : "Save Preferences"}
+            <Button type="submit" isLoading={isSaving}>
+              Save Preferences
             </Button>
           </motion.div>
         </motion.div>

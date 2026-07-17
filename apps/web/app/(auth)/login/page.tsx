@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { notify } from "@/lib/toast";
 import { ApiError, login } from "@/lib/api-client";
 import { isValidEmail } from "@/lib/validation";
 import styles from "../auth.module.css";
@@ -19,7 +20,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function validate(): boolean {
@@ -41,7 +41,6 @@ export default function LoginPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setApiError(null);
 
     if (!validate()) {
       return;
@@ -50,9 +49,10 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login({ email: email.trim(), password });
+      notify.success("Login successful!");
       router.push("/");
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+      notify.error(error, "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -64,12 +64,6 @@ export default function LoginPage() {
         <h1>Welcome back</h1>
         <p>Log in to your StudentOS workspace.</p>
       </div>
-
-      {apiError ? (
-        <div className={styles.banner} role="alert">
-          {apiError}
-        </div>
-      ) : null}
 
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <TextField

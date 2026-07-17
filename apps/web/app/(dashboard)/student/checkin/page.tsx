@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, ClipboardEvent, KeyboardEvent, Suspense, useRef, useState } from "react";
 import { ApiError, AttendanceStatus, submitAttendance } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import styles from "./checkin.module.css";
 
 const CODE_LENGTH = 6;
@@ -18,7 +19,6 @@ function SuccessIcon() {
 function StudentCheckInCard({ sessionId }: { sessionId: string }) {
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(""));
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AttendanceStatus | null>(null);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -29,14 +29,14 @@ function StudentCheckInCard({ sessionId }: { sessionId: string }) {
 
   function submitCode(code: string) {
     setIsSubmitting(true);
-    setError(null);
 
     submitAttendance(sessionId, code)
       .then((record) => {
         setResult(record.status);
+        notify.success("Attendance submitted successfully!");
       })
       .catch((submitError) => {
-        setError(submitError instanceof ApiError ? submitError.message : "Something went wrong. Please try again.");
+        notify.error(submitError, "Something went wrong. Please try again.");
         setDigits(Array(CODE_LENGTH).fill(""));
         focusInput(0);
       })
@@ -108,12 +108,6 @@ function StudentCheckInCard({ sessionId }: { sessionId: string }) {
       <h1 className={styles.title}>Session check-in</h1>
       <p className={styles.subtitle}>Enter the 6-digit code your mentor shared to mark your attendance.</p>
 
-      {error ? (
-        <div className={styles.banner} role="alert">
-          {error}
-        </div>
-      ) : null}
-
       <div className={styles.digits}>
         {digits.map((digit, index) => (
           <input
@@ -126,7 +120,6 @@ function StudentCheckInCard({ sessionId }: { sessionId: string }) {
             autoComplete="one-time-code"
             maxLength={1}
             className={styles.digitInput}
-            data-invalid={Boolean(error)}
             value={digit}
             disabled={isSubmitting}
             onChange={(event) => handleChange(index, event)}
