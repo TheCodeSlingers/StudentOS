@@ -52,7 +52,9 @@ export default function LoginPage() {
       await login({ email: email.trim(), password });
       router.push("/");
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+      setApiError(
+        error instanceof ApiError ? error.message : "Something went wrong. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }

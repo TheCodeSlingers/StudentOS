@@ -5,81 +5,70 @@ import { buildPaginationMeta, parsePagination } from "../../utils/pagination";
 import { WorkspaceService } from "./workspace.service";
 
 export class WorkspaceController {
-  static getWorkspace = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const workspaceId = req.membership.workspaceId;
-      const workspace = await WorkspaceService.getWorkspace({ workspaceId });
-      ApiResponse.success(res, workspace, 200);
-    },
-  );
+  static getWorkspace = asyncHandler(async (req: any, res: Response): Promise<void> => {
+    const workspaceId = req.membership.workspaceId;
+    const workspace = await WorkspaceService.getWorkspace({ workspaceId });
+    ApiResponse.success(res, workspace, 200);
+  });
 
-  static updateWorkspaceSettings = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { timezone, defaultAttendanceDurationMins, lateThresholdMins } =
-        req.body;
+  static updateWorkspaceSettings = asyncHandler(async (req: any, res: Response): Promise<void> => {
+    const { timezone, defaultAttendanceDurationMins, lateThresholdMins } = req.body;
 
-      const workspaceId = req.membership.workspaceId;
+    const workspaceId = req.membership.workspaceId;
 
-      const workspace = await WorkspaceService.updateWorkspaceSettings(
-        workspaceId,
-        timezone,
-        defaultAttendanceDurationMins,
-        lateThresholdMins,
-      );
+    const workspace = await WorkspaceService.updateWorkspaceSettings(
+      workspaceId,
+      timezone,
+      defaultAttendanceDurationMins,
+      lateThresholdMins
+    );
 
-      ApiResponse.success(res, workspace, 200);
-    },
-  );
+    ApiResponse.success(res, workspace, 200);
+  });
 
-  static inviteMember = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { email, name, role } = req.body;
-      const workspaceId = req.membership.workspaceId;
-      const membership = await WorkspaceService.inviteMember(workspaceId, {
-        email,
-        name,
-        role,
-      });
+  static inviteMember = asyncHandler(async (req: any, res: Response): Promise<void> => {
+    const { email, name, role } = req.body;
+    const workspaceId = req.membership.workspaceId;
+    const membership = await WorkspaceService.inviteMember(workspaceId, {
+      email,
+      name,
+      role,
+    });
 
-      ApiResponse.created(res, {
+    ApiResponse.created(res, {
+      id: membership.id,
+      role: membership.role,
+      user: membership.user,
+    });
+  });
+
+  static listMembers = asyncHandler(async (req: any, res: Response): Promise<void> => {
+    const workspaceId = req.membership.workspaceId;
+    const { page, limit } = parsePagination(req.query);
+    const { total, memberships } = await WorkspaceService.listMembers({
+      workspaceId,
+      page,
+      limit,
+    });
+
+    ApiResponse.success(
+      res,
+      memberships.map((membership) => ({
         id: membership.id,
         role: membership.role,
+        status: membership.status,
         user: membership.user,
-      });
-    },
-  );
+      })),
+      200,
+      buildPaginationMeta(page, limit, total)
+    );
+  });
 
-  static listMembers = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const workspaceId = req.membership.workspaceId;
-      const { page, limit } = parsePagination(req.query);
-      const { total, memberships } = await WorkspaceService.listMembers({
-        workspaceId,
-        page,
-        limit,
-      });
+  static deactivateMember = asyncHandler(async (req: any, res: Response): Promise<void> => {
+    const membershipId = req.params.membershipId;
 
-      ApiResponse.success(
-        res,
-        memberships.map((membership) => ({
-          id: membership.id,
-          role: membership.role,
-          status: membership.status,
-          user: membership.user,
-        })),
-        200,
-        buildPaginationMeta(page, limit, total),
-      );
-    },
-  );
+    await WorkspaceService.deactivateMember(membershipId as string);
 
-  static deactivateMember = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const membershipId = req.params.membershipId;
-
-      await WorkspaceService.deactivateMember(membershipId as string);
-
-      ApiResponse.success(res, null, 200);
-    },
-  );
+    ApiResponse.success(res, null, 200);
+  });
 }

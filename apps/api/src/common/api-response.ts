@@ -1,12 +1,7 @@
 import { Response } from "express";
 
 export class ApiResponse {
-  static success<T>(
-    res: Response,
-    data: T,
-    statusCode = 200,
-    meta?: any,
-  ): Response {
+  static success<T>(res: Response, data: T, statusCode = 200, meta?: any): Response {
     return res.status(statusCode).json({
       data,
       ...(meta && { meta }),

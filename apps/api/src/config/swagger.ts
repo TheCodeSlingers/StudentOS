@@ -6,7 +6,7 @@ export const setupSwagger = (app: Express): void => {
   const CSS_URL = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui.min.css";
   const JS_URLS = [
     "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-bundle.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.js"
+    "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.15.5/swagger-ui-standalone-preset.js",
   ];
 
   app.use(
@@ -16,7 +16,7 @@ export const setupSwagger = (app: Express): void => {
       customCss: ".swagger-ui .topbar { display: none }",
       customCssUrl: CSS_URL,
       customJs: JS_URLS,
-      customSiteTitle: "StudentOS API Documentation"
+      customSiteTitle: "StudentOS API Documentation",
     })
   );
 };

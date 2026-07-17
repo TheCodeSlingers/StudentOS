@@ -2,12 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { ApiError } from "../common/errors";
 import { logger } from "../lib/logger";
 
-export function errorHandler(
-  err: any,
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
+export function errorHandler(err: any, req: Request, res: Response, _next: NextFunction): void {
   const requestId = (req as any).id;
 
   if (err instanceof ApiError) {

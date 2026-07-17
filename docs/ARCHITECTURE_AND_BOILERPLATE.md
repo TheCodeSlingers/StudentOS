@@ -42,10 +42,13 @@ src/
 ## Core Layers
 
 ### 1. Environment Config (`src/config/env.ts`)
+
 Validates environment variables on startup using Zod. If critical variables like `DATABASE_URL` are missing or malformed, the app exits immediately with an error log instead of running in a half-configured state.
 
 ### 2. Common Exceptions (`src/common/errors.ts`)
+
 Extends the native JavaScript `Error` with HTTP metadata:
+
 - `ApiError`: Base custom error.
 - `BadRequestError`: Status 400.
 - `UnauthorizedError`: Status 401.
@@ -54,16 +57,21 @@ Extends the native JavaScript `Error` with HTTP metadata:
 - `InternalServerError`: Status 500.
 
 ### 3. Route Error Wrapper (`src/common/async-handler.ts`)
+
 Wraps Express async route handlers to catch rejected promises and forward them to the global error middleware automatically:
+
 ```typescript
 export const asyncHandler = (fn: Function) => (req: any, res: any, next: any) => {
   Promise.resolve(fn(req, res, next)).catch(next);
 };
 ```
+
 This eliminates the need for redundant `try-catch` blocks inside controllers.
 
 ### 4. Global Error Middleware (`src/middleware/error.ts`)
+
 Handles formatting for all thrown errors. It intercepts `ApiError` instances and structures the response payload exactly to match the error envelope:
+
 ```json
 {
   "error": {
@@ -75,4 +83,5 @@ Handles formatting for all thrown errors. It intercepts `ApiError` instances and
 ```
 
 ### 5. Input Validation (`src/common/validation.ts`)
+
 Provides a `validateRequest(schema)` middleware that intercepts incoming requests and runs validation against Zod schemas for parameters, query string parameters, or request bodies.

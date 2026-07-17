@@ -161,7 +161,10 @@ export interface AttendanceRecord {
   submittedAt?: string;
 }
 
-export function manualMarkAttendance(sessionId: string, payload: ManualMarkPayload): Promise<AttendanceRecord> {
+export function manualMarkAttendance(
+  sessionId: string,
+  payload: ManualMarkPayload
+): Promise<AttendanceRecord> {
   return postJson<AttendanceRecord>(`/sessions/${sessionId}/attendance/manual`, payload);
 }
 

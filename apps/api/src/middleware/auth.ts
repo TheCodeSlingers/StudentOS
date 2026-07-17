@@ -3,11 +3,7 @@ import { prisma } from "../lib/prisma";
 import { auth } from "../lib/auth";
 import { redis } from "../lib/redis";
 
-export async function authMiddleware(
-  req: any,
-  res: Response,
-  next: NextFunction,
-) {
+export async function authMiddleware(req: any, res: Response, next: NextFunction) {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
 
@@ -62,7 +58,8 @@ export async function authMiddleware(
         if (cached) {
           membership = typeof cached === "string" ? JSON.parse(cached) : cached;
         }
-      } catch (err) {
+      } catch {
+        // Redis cache read failed, continue without cache
       }
     }
 
@@ -86,7 +83,8 @@ export async function authMiddleware(
       if (membership && redis) {
         try {
           await redis.set(cacheKey, JSON.stringify(membership), { ex: 60 });
-        } catch (err) {
+        } catch {
+          // Redis cache write failed, continue without caching
         }
       }
     }
@@ -95,8 +93,7 @@ export async function authMiddleware(
       return res.status(403).json({
         error: {
           code: "FORBIDDEN",
-          message:
-            "You do not have a valid active membership in this workspace.",
+          message: "You do not have a valid active membership in this workspace.",
         },
       });
     }
@@ -113,7 +110,7 @@ export async function authMiddleware(
     };
 
     return next();
-  } catch (error) {
+  } catch {
     return res.status(500).json({
       error: {
         code: "INTERNAL_SERVER_ERROR",

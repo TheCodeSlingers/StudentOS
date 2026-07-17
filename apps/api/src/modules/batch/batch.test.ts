@@ -117,9 +117,9 @@ describe("BatchService", () => {
     });
 
     it("should throw NotFoundError if batch does not exist", async () => {
-      await expect(
-        BatchService.getBatch(workspaceId, "non-existent-batch"),
-      ).rejects.toThrow(NotFoundError);
+      await expect(BatchService.getBatch(workspaceId, "non-existent-batch")).rejects.toThrow(
+        NotFoundError
+      );
     });
   });
 
@@ -137,14 +137,10 @@ describe("BatchService", () => {
 
   describe("allocateMember", () => {
     it("should successfully allocate a workspace member to the batch", async () => {
-      const allocation = await BatchService.allocateMember(
-        workspaceId,
-        batchId,
-        {
-          membershipId: studentMembershipId,
-          isCR: false,
-        },
-      );
+      const allocation = await BatchService.allocateMember(workspaceId, batchId, {
+        membershipId: studentMembershipId,
+        isCR: false,
+      });
 
       expect(allocation).toBeDefined();
       expect(allocation.batchId).toBe(batchId);
@@ -156,7 +152,7 @@ describe("BatchService", () => {
       await expect(
         BatchService.allocateMember(workspaceId, batchId, {
           membershipId: studentMembershipId,
-        }),
+        })
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -164,7 +160,7 @@ describe("BatchService", () => {
       await expect(
         BatchService.allocateMember(workspaceId, batchId, {
           membershipId: "non-existent-mem",
-        }),
+        })
       ).rejects.toThrow(NotFoundError);
     });
   });
@@ -178,18 +174,10 @@ describe("BatchService", () => {
     });
 
     it("should filter batch members roster by role", async () => {
-      const students = await BatchService.listBatchMembers(
-        workspaceId,
-        batchId,
-        "STUDENT",
-      );
+      const students = await BatchService.listBatchMembers(workspaceId, batchId, "STUDENT");
       expect(students.length).toBe(1);
 
-      const mentors = await BatchService.listBatchMembers(
-        workspaceId,
-        batchId,
-        "MENTOR",
-      );
+      const mentors = await BatchService.listBatchMembers(workspaceId, batchId, "MENTOR");
       expect(mentors.length).toBe(0);
     });
   });
@@ -202,7 +190,7 @@ describe("BatchService", () => {
         batchMembershipId,
         {
           isCR: true,
-        },
+        }
       );
       expect(updated.isCR).toBe(true);
     });
@@ -215,7 +203,7 @@ describe("BatchService", () => {
         batchMembershipId,
         {
           revokedAt: revokedAtDate,
-        },
+        }
       );
       expect(updated.revokedAt).not.toBeNull();
 

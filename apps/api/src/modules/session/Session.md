@@ -211,14 +211,14 @@ Authorization: Bearer <token>
 }
 ```
 
-| Field | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `title` | Yes | — | Session title |
-| `scheduledStart` | Yes | — | ISO 8601 datetime string |
-| `scheduledEnd` | Yes | — | ISO 8601 datetime string, must be after `scheduledStart` |
-| `meetLink` | No | null | Valid URL for the video meeting |
-| `description` | No | null | Optional session description |
-| `type` | No | `REGULAR` | One of `REGULAR`, `MAKEUP`, `EXAM` |
+| Field            | Required | Default   | Description                                              |
+| ---------------- | -------- | --------- | -------------------------------------------------------- |
+| `title`          | Yes      | —         | Session title                                            |
+| `scheduledStart` | Yes      | —         | ISO 8601 datetime string                                 |
+| `scheduledEnd`   | Yes      | —         | ISO 8601 datetime string, must be after `scheduledStart` |
+| `meetLink`       | No       | null      | Valid URL for the video meeting                          |
+| `description`    | No       | null      | Optional session description                             |
+| `type`           | No       | `REGULAR` | One of `REGULAR`, `MAKEUP`, `EXAM`                       |
 
 **Response 201:**
 
@@ -502,7 +502,7 @@ router.post(
   authMiddleware,
   requireRole(["MENTOR"]),
   validateRequest(createSessionSchema),
-  SessionController.createSession,
+  SessionController.createSession
 );
 
 export default router;
@@ -517,13 +517,11 @@ import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
 
 export class SessionController {
-  static createSession = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { batchId } = req.params;
-      const session = await SessionService.createSession(batchId, req.body);
-      ApiResponse.created(res, session);
-    },
-  );
+  static createSession = asyncHandler(async (req: any, res: Response): Promise<void> => {
+    const { batchId } = req.params;
+    const session = await SessionService.createSession(batchId, req.body);
+    ApiResponse.created(res, session);
+  });
 }
 ```
 

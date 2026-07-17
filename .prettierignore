@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+out/
+.next/
+coverage/
+.nyc_output/
+*.lock
+prisma/schema.prisma
+package-lock.json

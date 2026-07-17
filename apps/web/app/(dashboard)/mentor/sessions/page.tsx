@@ -48,7 +48,11 @@ function groupSessionsByDate(sessions: SessionSummary[]): SessionGroup[] {
         (a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime()
       ),
     }))
-    .sort((a, b) => new Date(a.sessions[0].scheduledStart).getTime() - new Date(b.sessions[0].scheduledStart).getTime());
+    .sort(
+      (a, b) =>
+        new Date(a.sessions[0].scheduledStart).getTime() -
+        new Date(b.sessions[0].scheduledStart).getTime()
+    );
 }
 
 function formatTime(iso: string): string {
@@ -137,7 +141,9 @@ function CodeDisplayCard({
     );
   }
 
-  const openedAt = session.attendanceOpenedAt ? new Date(session.attendanceOpenedAt).getTime() : null;
+  const openedAt = session.attendanceOpenedAt
+    ? new Date(session.attendanceOpenedAt).getTime()
+    : null;
   const remainingMs = openedAt ? Math.max(0, openedAt + durationMins * 60_000 - now) : 0;
   const remainingMinutes = Math.floor(remainingMs / 60_000);
   const remainingSeconds = Math.floor((remainingMs % 60_000) / 1000);
@@ -164,7 +170,8 @@ function CodeDisplayCard({
             <p className={styles.timeLeft}>
               Time left:{" "}
               <strong>
-                {String(remainingMinutes).padStart(2, "0")}:{String(remainingSeconds).padStart(2, "0")}
+                {String(remainingMinutes).padStart(2, "0")}:
+                {String(remainingSeconds).padStart(2, "0")}
               </strong>
             </p>
           </>
@@ -184,7 +191,12 @@ function CodeDisplayCard({
           ) : null}
 
           {session.status === "STARTED" ? (
-            <Button type="button" variant="secondary" onClick={onCloseAttendance} isLoading={isActionLoading}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onCloseAttendance}
+              isLoading={isActionLoading}
+            >
               Close attendance
             </Button>
           ) : null}
@@ -263,10 +275,14 @@ export default function MentorSessionsPage() {
 
   const selectedBatch = batches?.find((batch) => batch.id === selectedBatchId) ?? null;
   const selectedSession = sessions?.find((session) => session.id === selectedSessionId) ?? null;
-  const durationMins = selectedBatch?.attendanceDurationMinsOverride ?? DEFAULT_ATTENDANCE_DURATION_MINS;
+  const durationMins =
+    selectedBatch?.attendanceDurationMinsOverride ?? DEFAULT_ATTENDANCE_DURATION_MINS;
 
   function updateSession(updated: SessionSummary) {
-    setSessions((current) => current?.map((session) => (session.id === updated.id ? updated : session)) ?? current);
+    setSessions(
+      (current) =>
+        current?.map((session) => (session.id === updated.id ? updated : session)) ?? current
+    );
   }
 
   async function handleOpenAttendance() {
@@ -328,7 +344,9 @@ export default function MentorSessionsPage() {
 
       {!batchesError && batches && batches.length === 0 ? (
         <div className={styles.card}>
-          <p className={styles.emptyState}>No active batches yet. Create a batch to start scheduling sessions.</p>
+          <p className={styles.emptyState}>
+            No active batches yet. Create a batch to start scheduling sessions.
+          </p>
         </div>
       ) : null}
 
@@ -364,7 +382,11 @@ export default function MentorSessionsPage() {
       ) : null}
 
       {selectedSessionId ? (
-        <AttendanceGrid sessionId={selectedSessionId} isOpen={isRosterOpen} onClose={() => setIsRosterOpen(false)} />
+        <AttendanceGrid
+          sessionId={selectedSessionId}
+          isOpen={isRosterOpen}
+          onClose={() => setIsRosterOpen(false)}
+        />
       ) : null}
     </div>
   );

@@ -1,15 +1,10 @@
 import { Router } from "express";
-import { z } from "zod";
 import { StudentController } from "./student.controller";
 import { authMiddleware } from "../../middleware/auth";
 import { requireRole } from "../../middleware/permission";
 import { validateRequest } from "../../common/validation";
 
-import {
-  enrollStudentSchema,
-  getStudentsQuerySchema,
-  updateProfileSchema,
-} from "./student.schema";
+import { enrollStudentSchema, getStudentsQuerySchema, updateProfileSchema } from "./student.schema";
 
 const router = Router();
 
@@ -19,7 +14,7 @@ router.post(
   authMiddleware,
   requireRole(["MENTOR"]),
   validateRequest(enrollStudentSchema),
-  StudentController.enrollStudent,
+  StudentController.enrollStudent
 );
 
 router.get(
@@ -27,14 +22,14 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(getStudentsQuerySchema),
-  StudentController.getEnrolledStudents,
+  StudentController.getEnrolledStudents
 );
 
 router.delete(
   "/batches/:batchId/students/:batchMembershipId",
   authMiddleware,
   requireRole(["MENTOR"]),
-  StudentController.revokeEnrollment,
+  StudentController.revokeEnrollment
 );
 
 // Profile Endpoints
@@ -42,7 +37,7 @@ router.get(
   "/students/:membershipId/profile",
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
-  StudentController.getStudentProfile,
+  StudentController.getStudentProfile
 );
 
 router.patch(
@@ -50,7 +45,7 @@ router.patch(
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(updateProfileSchema),
-  StudentController.updateStudentProfile,
+  StudentController.updateStudentProfile
 );
 
 export default router;

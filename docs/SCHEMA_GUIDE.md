@@ -7,19 +7,24 @@ This document explains the design principles, relations, and detailed field refe
 ## 1. Core Principles
 
 ### Identity & Workspace Scoping
+
 Every resource (User, Membership, Batch, Session, Attendance) resides under a `Workspace` model scope.
+
 - **`User`**: Repesents a single human account. Holds name, email, credentials, and `authProvider` (email vs. Google OAuth).
 - **`Workspace`**: Represents the tenant workspace. Contains global settings (`WorkspaceSettings`) like late thresholds and timezone.
-- **`Membership`**: Represents user enrollment in the workspace with a role (`MENTOR` or `STUDENT`). 
+- **`Membership`**: Represents user enrollment in the workspace with a role (`MENTOR` or `STUDENT`).
 
 ### Extension Pattern: `StudentProfile`
+
 To prevent bloating the main `Membership` and `User` models, student-specific demographics and career tracking parameters are moved into a separate 1:1 `StudentProfile` model.
+
 - Contains contact details (`phone`, `address`).
 - Contains educational info (`institution`, `department`, `graduationYear`).
 - Contains career analytics fields (`skills`, `hireStatus`, `jobType`, `workplacePreference`, `linkedinUrl`).
 - Extends the `Membership` model with `onDelete: Cascade`.
 
 ### Batch Enrolments & CR Flags
+
 - **`Batch`**: Represents a class cohort with custom duration or late threshold overrides.
 - **`BatchMembership`**: Connects a `Membership` to a `Batch`. The CR flag (`isCR: Boolean`) lives here since a student is only a CR within a specific batch, not across the entire workspace.
 
@@ -27,19 +32,20 @@ To prevent bloating the main `Membership` and `User` models, student-specific de
 
 ## 2. Cascade & Restrict Rules
 
-| Relation | Type | Description |
-|---|---|---|
-| `Membership` → `User` / `Workspace` | `Cascade` | Deleting a workspace or user deletes their membership. |
-| `StudentProfile` → `Membership` | `Cascade` | Deleting a membership cleans up the student profile. |
-| `BatchMembership` → `Membership` / `Batch` | `Cascade` | Deleting a batch or workspace member removes batch enrollment indices. |
-| **`Attendance` → `BatchMembership`** | **`Restrict`** | Postgres prevents deleting any batch enrollment if attendance records exist for it. Student enrollment should be marked using the `revokedAt` column instead of deletion. |
-| `Attendance` → `Session` | `Cascade` | Deleting a session cascades to clean up its attendance sheets. |
+| Relation                                   | Type           | Description                                                                                                                                                               |
+| ------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Membership` → `User` / `Workspace`        | `Cascade`      | Deleting a workspace or user deletes their membership.                                                                                                                    |
+| `StudentProfile` → `Membership`            | `Cascade`      | Deleting a membership cleans up the student profile.                                                                                                                      |
+| `BatchMembership` → `Membership` / `Batch` | `Cascade`      | Deleting a batch or workspace member removes batch enrollment indices.                                                                                                    |
+| **`Attendance` → `BatchMembership`**       | **`Restrict`** | Postgres prevents deleting any batch enrollment if attendance records exist for it. Student enrollment should be marked using the `revokedAt` column instead of deletion. |
+| `Attendance` → `Session`                   | `Cascade`      | Deleting a session cascades to clean up its attendance sheets.                                                                                                            |
 
 ---
 
 ## 3. Model Field References
 
 ### `User`
+
 - `id` (String, Primary Key)
 - `email` (String, Unique Index)
 - `name` (String)
@@ -48,11 +54,13 @@ To prevent bloating the main `Membership` and `User` models, student-specific de
 - `createdAt` / `updatedAt` (DateTime)
 
 ### `Workspace`
+
 - `id` (String, Primary key)
 - `name` (String)
 - `timezone` (String, default "UTC")
 
 ### `Membership`
+
 - `id` (String, Primary Key)
 - `userId` (String)
 - `workspaceId` (String)
@@ -60,6 +68,7 @@ To prevent bloating the main `Membership` and `User` models, student-specific de
 - `status` (MembershipStatus enum: `ACTIVE`, `INVITED`)
 
 ### `StudentProfile`
+
 - `id` (String, Primary Key)
 - `membershipId` (String, Unique Index)
 - `phone` / `address` / `avatarUrl` (String, Nullable)
@@ -72,6 +81,7 @@ To prevent bloating the main `Membership` and `User` models, student-specific de
 - `linkedinUrl` / `portfolioUrl` (String, Nullable)
 
 ### `Batch`
+
 - `id` (String, Primary Key)
 - `workspaceId` (String)
 - `name` (String)
@@ -80,6 +90,7 @@ To prevent bloating the main `Membership` and `User` models, student-specific de
 - `lateThresholdMinsOverride` / `attendanceDurationMinsOverride` (Int, Nullable)
 
 ### `Session`
+
 - `id` (String, Primary Key)
 - `batchId` (String)
 - `title` / `description` (String)
@@ -89,6 +100,7 @@ To prevent bloating the main `Membership` and `User` models, student-specific de
 - `attendanceOpenedAt` / `attendanceClosedAt` (DateTime, Nullable)
 
 ### `Attendance`
+
 - `id` (String, Primary Key)
 - `sessionId` (String)
 - `studentBatchMembershipId` (String)

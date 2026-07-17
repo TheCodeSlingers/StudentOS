@@ -42,11 +42,7 @@ export interface ListMembersParams {
 }
 
 export class WorkspaceService {
-  static async getWorkspace({
-    workspaceId,
-  }: {
-    workspaceId: string;
-  }): Promise<WorkspaceResult> {
+  static async getWorkspace({ workspaceId }: { workspaceId: string }): Promise<WorkspaceResult> {
     const workspace = await prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: {
@@ -81,7 +77,7 @@ export class WorkspaceService {
     workspaceId: string,
     timezone?: string,
     defaultAttendanceDurationMins?: number,
-    lateThresholdMins?: number,
+    lateThresholdMins?: number
   ): Promise<WorkspaceResult> {
     const data: any = {};
     const settingsData: any = {};
@@ -91,8 +87,7 @@ export class WorkspaceService {
     }
 
     if (defaultAttendanceDurationMins !== undefined) {
-      settingsData.defaultAttendanceDurationMins =
-        defaultAttendanceDurationMins;
+      settingsData.defaultAttendanceDurationMins = defaultAttendanceDurationMins;
     }
 
     if (lateThresholdMins !== undefined) {
@@ -110,7 +105,9 @@ export class WorkspaceService {
               lateThresholdMins: lateThresholdMins ?? 10,
             },
             update: {
-              ...(defaultAttendanceDurationMins !== undefined ? { defaultAttendanceDurationMins } : {}),
+              ...(defaultAttendanceDurationMins !== undefined
+                ? { defaultAttendanceDurationMins }
+                : {}),
               ...(lateThresholdMins !== undefined ? { lateThresholdMins } : {}),
             },
           },
@@ -138,8 +135,7 @@ export class WorkspaceService {
       name: result.name,
       timezone: result.timezone,
       settings: {
-        defaultAttendanceDurationMins:
-          result.settings!.defaultAttendanceDurationMins,
+        defaultAttendanceDurationMins: result.settings!.defaultAttendanceDurationMins,
         lateThresholdMins: result.settings!.lateThresholdMins,
       },
     };
@@ -147,7 +143,7 @@ export class WorkspaceService {
 
   static async inviteMember(
     workspaceId: string,
-    payload: InviteMemberPayload,
+    payload: InviteMemberPayload
   ): Promise<MemberResult> {
     const user = await prisma.user.upsert({
       where: { email: payload.email },
@@ -207,9 +203,7 @@ export class WorkspaceService {
     return membership;
   }
 
-  static async listMembers(
-    params: ListMembersParams,
-  ): Promise<ListMembersResult> {
+  static async listMembers(params: ListMembersParams): Promise<ListMembersResult> {
     const skip = (params.page - 1) * params.limit;
 
     const [total, memberships] = await Promise.all([

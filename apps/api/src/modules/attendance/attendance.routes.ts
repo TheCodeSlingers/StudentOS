@@ -19,7 +19,7 @@ router.post(
   requireRole(["STUDENT"]),
   attendanceRateLimiter,
   validateRequest(submitAttendanceSchema),
-  AttendanceController.submit,
+  AttendanceController.submit
 );
 
 router.post(
@@ -27,7 +27,7 @@ router.post(
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(manualAttendanceSchema),
-  AttendanceController.manualMark,
+  AttendanceController.manualMark
 );
 
 router.get(
@@ -35,7 +35,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(sessionAttendanceSchema),
-  AttendanceController.getRoster,
+  AttendanceController.getRoster
 );
 
 router.get(
@@ -43,7 +43,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(studentAttendanceSchema),
-  AttendanceController.getHistory,
+  AttendanceController.getHistory
 );
 
 export default router;

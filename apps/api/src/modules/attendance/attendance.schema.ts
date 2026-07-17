@@ -14,9 +14,7 @@ export const manualAttendanceSchema = z.object({
     sessionId: z.string().min(1, "Session ID is required"),
   }),
   body: z.object({
-    studentBatchMembershipId: z
-      .string()
-      .min(1, "Student Batch Membership ID is required"),
+    studentBatchMembershipId: z.string().min(1, "Student Batch Membership ID is required"),
     status: z.enum(["PRESENT", "LATE", "ABSENT", "EXCUSED"]),
     manualReason: z.string().min(1, "Manual reason is required"),
   }),

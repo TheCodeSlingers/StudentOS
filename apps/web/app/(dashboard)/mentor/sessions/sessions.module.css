@@ -95,7 +95,9 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
-  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
 }
 
 .sessionRow:hover {

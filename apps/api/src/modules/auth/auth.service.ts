@@ -74,10 +74,7 @@ export class AuthService {
     const session = await auth.api.getSession({ headers });
 
     if (!session) {
-      throw new UnauthorizedError(
-        "Session expired or invalid.",
-        "UNAUTHENTICATED",
-      );
+      throw new UnauthorizedError("Session expired or invalid.", "UNAUTHENTICATED");
     }
 
     return {
@@ -107,10 +104,7 @@ export class AuthService {
     const session = await auth.api.getSession({ headers });
 
     if (!session) {
-      throw new UnauthorizedError(
-        "Authentication required.",
-        "UNAUTHENTICATED",
-      );
+      throw new UnauthorizedError("Authentication required.", "UNAUTHENTICATED");
     }
 
     const memberships = await prisma.membership.findMany({

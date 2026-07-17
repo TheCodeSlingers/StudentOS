@@ -58,9 +58,7 @@ export function parseCSV(buffer: Buffer): CSVRow[] {
     rows.push(currentRow);
   }
 
-  const cleanRows = rows.filter((r) =>
-    r.some((cell) => cell.trim().length > 0),
-  );
+  const cleanRows = rows.filter((r) => r.some((cell) => cell.trim().length > 0));
   if (cleanRows.length === 0) {
     throw new BadRequestError("CSV file is empty", "EMPTY_FILE");
   }
@@ -70,10 +68,7 @@ export function parseCSV(buffer: Buffer): CSVRow[] {
   const nameIdx = headers.indexOf("name");
 
   if (emailIdx === -1 || nameIdx === -1) {
-    throw new BadRequestError(
-      "CSV is missing required headers: email, name",
-      "MISSING_HEADERS",
-    );
+    throw new BadRequestError("CSV is missing required headers: email, name", "MISSING_HEADERS");
   }
 
   const phoneIdx = headers.indexOf("phone");

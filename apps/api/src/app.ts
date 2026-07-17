@@ -35,7 +35,7 @@ app.use(
       req: (req) => ({ method: req.method, url: req.url, id: req.id }),
       res: (res) => ({ statusCode: res.statusCode }),
     },
-  }),
+  })
 );
 app.use(globalRateLimiter);
 
@@ -68,4 +68,3 @@ app.get("/health", (_req, res) => {
 app.use(errorHandler);
 
 export { app };
-

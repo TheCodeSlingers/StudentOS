@@ -1,7 +1,5 @@
 jest.mock("better-auth/node", () => ({
-  toNodeHandler: jest
-    .fn()
-    .mockImplementation(() => (req: any, res: any) => res.status(200).send()),
+  toNodeHandler: jest.fn().mockImplementation(() => (req: any, res: any) => res.status(200).send()),
 }));
 jest.mock("../../lib/auth", () => ({
   auth: {
@@ -56,9 +54,7 @@ jest.mock("./auth.service", () => ({
     getMe: jest.fn().mockResolvedValue({
       user: { id: "usr_123", email: "mentor@studentos.com", name: "John Doe" },
       activeWorkspaceId: "wsp_456",
-      memberships: [
-        { workspaceId: "wsp_456", workspaceName: "My Academy", role: "MENTOR" },
-      ],
+      memberships: [{ workspaceId: "wsp_456", workspaceName: "My Academy", role: "MENTOR" }],
     }),
   },
 }));

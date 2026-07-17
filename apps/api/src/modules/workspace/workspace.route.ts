@@ -14,18 +14,18 @@ router.get("/workspace", WorkspaceController.getWorkspace);
 router.patch(
   "/workspace/settings",
   validateRequest(updateWorkspaceSettingsSchema),
-  WorkspaceController.updateWorkspaceSettings,
+  WorkspaceController.updateWorkspaceSettings
 );
 router.post(
   "/workspace/members/invite",
   validateRequest(inviteMemberSchema),
-  WorkspaceController.inviteMember,
+  WorkspaceController.inviteMember
 );
 router.get("/workspace/members", WorkspaceController.listMembers);
 router.delete(
   "/workspace/members/:membershipId",
   validateRequest(membershipIdParamSchema),
-  WorkspaceController.deactivateMember,
+  WorkspaceController.deactivateMember
 );
 
 export const WorkspaceRouter = router;

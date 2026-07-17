@@ -1,18 +1,14 @@
 import { AttendanceService } from "./attendance.service";
 import { prisma } from "../../lib/prisma";
-import {
-  BadRequestError,
-  ForbiddenError,
-  NotFoundError,
-} from "../../common/errors";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../../common/errors";
 
 describe("AttendanceService", () => {
   let workspaceId: string;
   let batchId: string;
-  let studentUserId: string;
+  let _studentUserId: string;
   let studentMembershipId: string;
   let studentBatchMembershipId: string;
-  let crUserId: string;
+  let _crUserId: string;
   let crMembershipId: string;
   let crBatchMembershipId: string;
   let mentorMembershipId: string;
@@ -56,7 +52,7 @@ describe("AttendanceService", () => {
     const student = await prisma.user.create({
       data: { email: "test-student@example.com", name: "Test Student" },
     });
-    studentUserId = student.id;
+    _studentUserId = student.id;
 
     const sMem = await prisma.membership.create({
       data: {
@@ -79,7 +75,7 @@ describe("AttendanceService", () => {
     const cr = await prisma.user.create({
       data: { email: "test-cr@example.com", name: "Test CR" },
     });
-    crUserId = cr.id;
+    _crUserId = cr.id;
 
     const cMem = await prisma.membership.create({
       data: {
@@ -101,14 +97,8 @@ describe("AttendanceService", () => {
   });
 
   afterAll(async () => {
-    const idsToDelete = [studentBatchMembershipId, crBatchMembershipId].filter(
-      Boolean,
-    );
-    const mIdsToDelete = [
-      studentMembershipId,
-      crMembershipId,
-      mentorMembershipId,
-    ].filter(Boolean);
+    const idsToDelete = [studentBatchMembershipId, crBatchMembershipId].filter(Boolean);
+    const mIdsToDelete = [studentMembershipId, crMembershipId, mentorMembershipId].filter(Boolean);
 
     await prisma.$transaction([
       prisma.attendance.deleteMany({
@@ -134,11 +124,7 @@ describe("AttendanceService", () => {
       prisma.user.deleteMany({
         where: {
           email: {
-            in: [
-              "test-mentor@example.com",
-              "test-student@example.com",
-              "test-cr@example.com",
-            ],
+            in: ["test-mentor@example.com", "test-student@example.com", "test-cr@example.com"],
           },
         },
       }),
@@ -179,7 +165,7 @@ describe("AttendanceService", () => {
       const result = await AttendanceService.submitAttendance(
         sessionId,
         studentMembershipId,
-        "123456",
+        "123456"
       );
       expect(result).toBeDefined();
       expect(result.status).toBe("PRESENT");
@@ -197,18 +183,14 @@ describe("AttendanceService", () => {
       const result = await AttendanceService.submitAttendance(
         sessionId,
         studentMembershipId,
-        "123456",
+        "123456"
       );
       expect(result.status).toBe("LATE");
     });
 
     it("should throw NotFoundError if session does not exist", async () => {
       await expect(
-        AttendanceService.submitAttendance(
-          "non-existent-session-id",
-          studentMembershipId,
-          "123456",
-        ),
+        AttendanceService.submitAttendance("non-existent-session-id", studentMembershipId, "123456")
       ).rejects.toThrow(NotFoundError);
     });
 
@@ -219,21 +201,13 @@ describe("AttendanceService", () => {
       });
 
       await expect(
-        AttendanceService.submitAttendance(
-          sessionId,
-          studentMembershipId,
-          "123456",
-        ),
+        AttendanceService.submitAttendance(sessionId, studentMembershipId, "123456")
       ).rejects.toThrow(BadRequestError);
     });
 
     it("should throw BadRequestError if check-in code does not match", async () => {
       await expect(
-        AttendanceService.submitAttendance(
-          sessionId,
-          studentMembershipId,
-          "wrong-code",
-        ),
+        AttendanceService.submitAttendance(sessionId, studentMembershipId, "wrong-code")
       ).rejects.toThrow(BadRequestError);
     });
 
@@ -246,7 +220,7 @@ describe("AttendanceService", () => {
       });
 
       await expect(
-        AttendanceService.submitAttendance(sessionId, anotherMem.id, "123456"),
+        AttendanceService.submitAttendance(sessionId, anotherMem.id, "123456")
       ).rejects.toThrow(ForbiddenError);
 
       await prisma.membership.delete({ where: { id: anotherMem.id } });
@@ -254,17 +228,9 @@ describe("AttendanceService", () => {
     });
 
     it("should throw BadRequestError if student checks in twice", async () => {
-      await AttendanceService.submitAttendance(
-        sessionId,
-        studentMembershipId,
-        "123456",
-      );
+      await AttendanceService.submitAttendance(sessionId, studentMembershipId, "123456");
       await expect(
-        AttendanceService.submitAttendance(
-          sessionId,
-          studentMembershipId,
-          "123456",
-        ),
+        AttendanceService.submitAttendance(sessionId, studentMembershipId, "123456")
       ).rejects.toThrow(BadRequestError);
     });
   });
@@ -279,16 +245,14 @@ describe("AttendanceService", () => {
           studentBatchMembershipId,
           status: "PRESENT",
           manualReason: "Student was present but phone was dead",
-        },
+        }
       );
 
       expect(record).toBeDefined();
       expect(record.status).toBe("PRESENT");
       expect(record.method).toBe("MANUAL");
       expect(record.markedById).toBe(mentorMembershipId);
-      expect(record.manualReason).toBe(
-        "Student was present but phone was dead",
-      );
+      expect(record.manualReason).toBe("Student was present but phone was dead");
     });
 
     it("should allow a STUDENT who is a CR to manually mark attendance", async () => {
@@ -300,7 +264,7 @@ describe("AttendanceService", () => {
           studentBatchMembershipId,
           status: "EXCUSED",
           manualReason: "CR approved student leave",
-        },
+        }
       );
 
       expect(record).toBeDefined();
@@ -310,41 +274,29 @@ describe("AttendanceService", () => {
 
     it("should throw ForbiddenError if a normal student attempts to manually mark attendance", async () => {
       await expect(
-        AttendanceService.manualMarkAttendance(
-          sessionId,
-          studentMembershipId,
-          "STUDENT",
-          {
-            studentBatchMembershipId: crBatchMembershipId,
-            status: "PRESENT",
-            manualReason: "Hacker student trying to mark someone present",
-          },
-        ),
+        AttendanceService.manualMarkAttendance(sessionId, studentMembershipId, "STUDENT", {
+          studentBatchMembershipId: crBatchMembershipId,
+          status: "PRESENT",
+          manualReason: "Hacker student trying to mark someone present",
+        })
       ).rejects.toThrow(ForbiddenError);
     });
   });
 
   describe("getSessionAttendanceRoster", () => {
     it("should return the full batch roster with attendance mappings", async () => {
-      await AttendanceService.submitAttendance(
-        sessionId,
-        studentMembershipId,
-        "123456",
-      );
-      const roster =
-        await AttendanceService.getSessionAttendanceRoster(sessionId);
+      await AttendanceService.submitAttendance(sessionId, studentMembershipId, "123456");
+      const roster = await AttendanceService.getSessionAttendanceRoster(sessionId);
 
       expect(roster.length).toBe(2);
       const studentItem = roster.find(
-        (r) => r.studentBatchMembershipId === studentBatchMembershipId,
+        (r) => r.studentBatchMembershipId === studentBatchMembershipId
       );
       expect(studentItem).toBeDefined();
       expect(studentItem?.attendance).not.toBeNull();
       expect(studentItem?.attendance?.status).toBe("PRESENT");
 
-      const crItem = roster.find(
-        (r) => r.studentBatchMembershipId === crBatchMembershipId,
-      );
+      const crItem = roster.find((r) => r.studentBatchMembershipId === crBatchMembershipId);
       expect(crItem).toBeDefined();
       expect(crItem?.attendance).toBeNull();
     });
@@ -352,15 +304,11 @@ describe("AttendanceService", () => {
 
   describe("getStudentAttendanceHistory", () => {
     it("should return logs for the student's historical attendance", async () => {
-      await AttendanceService.submitAttendance(
-        sessionId,
-        studentMembershipId,
-        "123456",
-      );
+      await AttendanceService.submitAttendance(sessionId, studentMembershipId, "123456");
       const history = await AttendanceService.getStudentAttendanceHistory(
         studentBatchMembershipId,
         studentMembershipId,
-        "STUDENT",
+        "STUDENT"
       );
 
       expect(history.length).toBe(1);
@@ -368,15 +316,11 @@ describe("AttendanceService", () => {
     });
 
     it("should allow a mentor to view student history", async () => {
-      await AttendanceService.submitAttendance(
-        sessionId,
-        studentMembershipId,
-        "123456",
-      );
+      await AttendanceService.submitAttendance(sessionId, studentMembershipId, "123456");
       const history = await AttendanceService.getStudentAttendanceHistory(
         studentBatchMembershipId,
         mentorMembershipId,
-        "MENTOR",
+        "MENTOR"
       );
 
       expect(history.length).toBe(1);
@@ -387,8 +331,8 @@ describe("AttendanceService", () => {
         AttendanceService.getStudentAttendanceHistory(
           studentBatchMembershipId,
           crMembershipId,
-          "STUDENT",
-        ),
+          "STUDENT"
+        )
       ).rejects.toThrow(ForbiddenError);
     });
   });

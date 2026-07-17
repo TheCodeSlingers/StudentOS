@@ -11,13 +11,7 @@ interface StatCardProps {
   variants: Variants;
 }
 
-export function StatCard({
-  title,
-  value,
-  change,
-  icon,
-  variants,
-}: StatCardProps) {
+export function StatCard({ title, value, change, icon, variants }: StatCardProps) {
   return (
     <motion.div className={styles.statCard} variants={variants}>
       <div className={styles.statCardHeader}>

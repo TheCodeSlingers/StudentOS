@@ -3,11 +3,7 @@ import { z } from "zod";
 import { BadRequestError } from "./errors";
 
 export class Validator {
-  static assertRequired(
-    value: any,
-    message: string,
-    code = "VALIDATION_ERROR",
-  ): void {
+  static assertRequired(value: any, message: string, code = "VALIDATION_ERROR"): void {
     if (value === undefined || value === null || value === "") {
       throw new BadRequestError(message, code);
     }
@@ -17,7 +13,7 @@ export class Validator {
     value: string,
     pattern: RegExp,
     message: string,
-    code = "VALIDATION_ERROR",
+    code = "VALIDATION_ERROR"
   ): void {
     if (value && !pattern.test(value)) {
       throw new BadRequestError(message, code);
@@ -37,7 +33,7 @@ export function validateRequest(schema: z.ZodObject<any>) {
       throw new BadRequestError(
         "Request validation failed",
         "VALIDATION_FAILED",
-        result.error.format(),
+        result.error.format()
       );
     }
 

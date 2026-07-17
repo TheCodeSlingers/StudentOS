@@ -23,20 +23,14 @@ export interface ImportJobRowReport {
 }
 
 export class ImportService {
-  static async startImport(
-    batchId: string,
-    fileBuffer: Buffer,
-  ): Promise<string> {
+  static async startImport(batchId: string, fileBuffer: Buffer): Promise<string> {
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
       select: { id: true, workspaceId: true },
     });
 
     if (!batch) {
-      throw new NotFoundError(
-        "The target batch does not exist.",
-        "BATCH_NOT_FOUND",
-      );
+      throw new NotFoundError("The target batch does not exist.", "BATCH_NOT_FOUND");
     }
 
     const job = await prisma.studentImportJob.create({
@@ -71,8 +65,7 @@ export class ImportService {
       return null;
     }
 
-    const progress =
-      typeof bullJob?.progress === "number" ? bullJob.progress : null;
+    const progress = typeof bullJob?.progress === "number" ? bullJob.progress : null;
 
     return {
       id: job.id,

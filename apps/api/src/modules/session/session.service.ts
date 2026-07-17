@@ -1,10 +1,6 @@
 import { randomInt } from "crypto";
 import { prisma } from "../../lib/prisma";
-import {
-  BadRequestError,
-  NotFoundError,
-  ForbiddenError,
-} from "../../common/errors";
+import { BadRequestError, NotFoundError, ForbiddenError } from "../../common/errors";
 import { buildPaginationMeta } from "../../utils/pagination";
 
 // Shared select fragment — avoids duplication, keeps queries consistent
@@ -59,10 +55,7 @@ export class SessionService {
     }
 
     if (batch.isArchived) {
-      throw new BadRequestError(
-        "Cannot create session in archived batch.",
-        "BATCH_ARCHIVED"
-      );
+      throw new BadRequestError("Cannot create session in archived batch.", "BATCH_ARCHIVED");
     }
 
     // 2. Validate times
@@ -84,10 +77,7 @@ export class SessionService {
     }
 
     if (batch.endDate && end > batch.endDate) {
-      throw new BadRequestError(
-        "Session cannot end after batch end date.",
-        "VALIDATION_FAILED"
-      );
+      throw new BadRequestError("Session cannot end after batch end date.", "VALIDATION_FAILED");
     }
 
     // 3. Create session
@@ -123,7 +113,16 @@ export class SessionService {
     limit: number = 20,
     status?: "SCHEDULED" | "STARTED" | "ENDED" | "CANCELLED",
     cursor?: string
-  ): Promise<{ data: any[]; meta: { total?: number; page: number; limit: number; totalPages?: number; nextCursor: string | null } }> {
+  ): Promise<{
+    data: any[];
+    meta: {
+      total?: number;
+      page: number;
+      limit: number;
+      totalPages?: number;
+      nextCursor: string | null;
+    };
+  }> {
     // 1. Validate batch exists and belongs to workspace
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
@@ -307,17 +306,11 @@ export class SessionService {
 
     // 2. Status checks
     if (session.status === "CANCELLED") {
-      throw new BadRequestError(
-        "Cannot update a cancelled session.",
-        "SESSION_NOT_CANCELLABLE"
-      );
+      throw new BadRequestError("Cannot update a cancelled session.", "SESSION_NOT_CANCELLABLE");
     }
 
     if (session.status === "ENDED") {
-      throw new BadRequestError(
-        "Cannot update an ended session.",
-        "SESSION_ENDED"
-      );
+      throw new BadRequestError("Cannot update an ended session.", "SESSION_ENDED");
     }
 
     if (session.status === "STARTED") {
@@ -357,12 +350,8 @@ export class SessionService {
         );
       }
     } else if (data.scheduledStart || data.scheduledEnd) {
-      const start = data.scheduledStart
-        ? new Date(data.scheduledStart)
-        : session.scheduledStart;
-      const end = data.scheduledEnd
-        ? new Date(data.scheduledEnd)
-        : session.scheduledEnd;
+      const start = data.scheduledStart ? new Date(data.scheduledStart) : session.scheduledStart;
+      const end = data.scheduledEnd ? new Date(data.scheduledEnd) : session.scheduledEnd;
 
       if (end <= start) {
         throw new BadRequestError(
@@ -384,10 +373,7 @@ export class SessionService {
     }
 
     if (session.batch.endDate && finalEnd > session.batch.endDate) {
-      throw new BadRequestError(
-        "Session cannot end after batch end date.",
-        "VALIDATION_FAILED"
-      );
+      throw new BadRequestError("Session cannot end after batch end date.", "VALIDATION_FAILED");
     }
 
     // 6. No changes — return existing
@@ -419,10 +405,7 @@ export class SessionService {
   }
 
   // Route 5: Cancel Session (select only needed batch fields)
-  static async cancelSession(
-    sessionId: string,
-    workspaceId: string
-  ): Promise<any> {
+  static async cancelSession(sessionId: string, workspaceId: string): Promise<any> {
     // 1. Find session with only workspaceId check
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -443,17 +426,11 @@ export class SessionService {
 
     // 2. Status checks
     if (session.status === "ENDED") {
-      throw new BadRequestError(
-        "Cannot cancel an ended session.",
-        "SESSION_NOT_CANCELLABLE"
-      );
+      throw new BadRequestError("Cannot cancel an ended session.", "SESSION_NOT_CANCELLABLE");
     }
 
     if (session.status === "CANCELLED") {
-      throw new BadRequestError(
-        "Session is already cancelled.",
-        "SESSION_NOT_CANCELLABLE"
-      );
+      throw new BadRequestError("Session is already cancelled.", "SESSION_NOT_CANCELLABLE");
     }
 
     // 3. Cancel and clear code
@@ -516,9 +493,7 @@ export class SessionService {
       });
 
       if (!batchMembership) {
-        throw new ForbiddenError(
-          "Only MENTOR or CR can open attendance window."
-        );
+        throw new ForbiddenError("Only MENTOR or CR can open attendance window.");
       }
     }
 
@@ -600,9 +575,7 @@ export class SessionService {
       });
 
       if (!batchMembership) {
-        throw new ForbiddenError(
-          "Only MENTOR or CR can close attendance window."
-        );
+        throw new ForbiddenError("Only MENTOR or CR can close attendance window.");
       }
     }
 

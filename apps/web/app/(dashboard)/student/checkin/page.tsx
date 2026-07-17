@@ -10,7 +10,13 @@ const CODE_LENGTH = 6;
 function SuccessIcon() {
   return (
     <svg width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M4.5 10.5l3.5 3.5 7.5-8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M4.5 10.5l3.5 3.5 7.5-8"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -36,7 +42,11 @@ function StudentCheckInCard({ sessionId }: { sessionId: string }) {
         setResult(record.status);
       })
       .catch((submitError) => {
-        setError(submitError instanceof ApiError ? submitError.message : "Something went wrong. Please try again.");
+        setError(
+          submitError instanceof ApiError
+            ? submitError.message
+            : "Something went wrong. Please try again."
+        );
         setDigits(Array(CODE_LENGTH).fill(""));
         focusInput(0);
       })
@@ -97,7 +107,9 @@ function StudentCheckInCard({ sessionId }: { sessionId: string }) {
             <SuccessIcon />
           </span>
           <p className={styles.successStatus}>You&apos;re marked {result.toLowerCase()}</p>
-          <p className={styles.successMessage}>Your attendance has been recorded for this session.</p>
+          <p className={styles.successMessage}>
+            Your attendance has been recorded for this session.
+          </p>
         </div>
       </div>
     );
@@ -106,7 +118,9 @@ function StudentCheckInCard({ sessionId }: { sessionId: string }) {
   return (
     <div className={styles.card}>
       <h1 className={styles.title}>Session check-in</h1>
-      <p className={styles.subtitle}>Enter the 6-digit code your mentor shared to mark your attendance.</p>
+      <p className={styles.subtitle}>
+        Enter the 6-digit code your mentor shared to mark your attendance.
+      </p>
 
       {error ? (
         <div className={styles.banner} role="alert">
@@ -137,7 +151,9 @@ function StudentCheckInCard({ sessionId }: { sessionId: string }) {
         ))}
       </div>
 
-      <p className={styles.subtitle}>{isSubmitting ? "Verifying…" : "The code auto-submits once all 6 digits are entered."}</p>
+      <p className={styles.subtitle}>
+        {isSubmitting ? "Verifying…" : "The code auto-submits once all 6 digits are entered."}
+      </p>
     </div>
   );
 }
@@ -151,7 +167,8 @@ function CheckInContent() {
       <div className={styles.card}>
         <h1 className={styles.title}>Session check-in</h1>
         <p className={styles.subtitle}>
-          No active session was selected. Ask your mentor or class representative for the check-in link.
+          No active session was selected. Ask your mentor or class representative for the check-in
+          link.
         </p>
       </div>
     );

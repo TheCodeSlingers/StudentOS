@@ -11,6 +11,7 @@ StudentOS is a multi-tenant SaaS attendance and student management system.
 ## Repository Structure
 
 The project is managed as an npm monorepos workspace:
+
 - `apps/api`: Express.js backend with TypeScript and Prisma.
 - `apps/web`: Next.js web application with TypeScript.
 - `packages/shared-types`: Common TypeScript definitions shared between the api and web workspaces.
@@ -87,16 +88,19 @@ Always run package installation commands from the root directory.
 ### Installing a package to a specific workspace
 
 To install a package for the API backend only:
+
 ```bash
 npm install <package-name> --workspace=api
 ```
 
 To install a package for the Web frontend only:
+
 ```bash
 npm install <package-name> --workspace=web
 ```
 
 To install a package as a development dependency in a specific workspace:
+
 ```bash
 npm install <package-name> -D --workspace=api
 ```
@@ -104,6 +108,7 @@ npm install <package-name> -D --workspace=api
 ### Installing a package globally in the monorepo
 
 To install a development package (like a linter) used across all workspaces:
+
 ```bash
 npm install <package-name> -D
 ```

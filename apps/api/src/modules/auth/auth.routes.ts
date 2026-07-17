@@ -13,19 +13,9 @@ import {
 
 const router = Router();
 
-router.post(
-  "/auth/signup",
-  authRateLimiter,
-  validateRequest(signupSchema),
-  AuthController.signUp,
-);
+router.post("/auth/signup", authRateLimiter, validateRequest(signupSchema), AuthController.signUp);
 
-router.post(
-  "/auth/login",
-  authRateLimiter,
-  validateRequest(loginSchema),
-  AuthController.signIn,
-);
+router.post("/auth/login", authRateLimiter, validateRequest(loginSchema), AuthController.signIn);
 
 router.post("/auth/logout", AuthController.signOut);
 
@@ -35,14 +25,14 @@ router.post(
   "/auth/forgot-password",
   authRateLimiter,
   validateRequest(forgotPasswordSchema),
-  AuthController.forgotPassword,
+  AuthController.forgotPassword
 );
 
 router.post(
   "/auth/reset-password",
   authRateLimiter,
   validateRequest(resetPasswordSchema),
-  AuthController.resetPassword,
+  AuthController.resetPassword
 );
 
 router.get("/auth/me", AuthController.me);

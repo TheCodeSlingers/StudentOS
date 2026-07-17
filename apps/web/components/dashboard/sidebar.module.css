@@ -41,7 +41,9 @@
   font-weight: var(--font-weight-medium);
   color: rgb(255 255 255 / 0.65);
   text-decoration: none;
-  transition: background-color var(--transition-fast), color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
 }
 
 .link:hover {

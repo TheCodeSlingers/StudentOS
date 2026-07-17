@@ -12,7 +12,13 @@ function FeatureIcon() {
   return (
     <svg className={styles.featureIcon} viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <circle cx="10" cy="10" r="10" fill="rgb(34 197 94 / 0.25)" />
-      <path d="M6 10.2l2.5 2.5L14 7.5" stroke="var(--color-brand-400)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M6 10.2l2.5 2.5L14 7.5"
+        stroke="var(--color-brand-400)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -25,7 +31,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
         <div className={styles.headline}>
           <h1>Run attendance, batches, and student records from one place.</h1>
-          <p>StudentOS gives coaching centers and student organizations a single workspace for daily operations.</p>
+          <p>
+            StudentOS gives coaching centers and student organizations a single workspace for daily
+            operations.
+          </p>
         </div>
 
         <ul className={styles.features}>
@@ -37,7 +46,9 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           ))}
         </ul>
 
-        <p className={styles.footnote}>© {new Date().getFullYear()} StudentOS. All rights reserved.</p>
+        <p className={styles.footnote}>
+          © {new Date().getFullYear()} StudentOS. All rights reserved.
+        </p>
       </aside>
 
       <div className={styles.formPanel}>

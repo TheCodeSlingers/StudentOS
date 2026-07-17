@@ -24,7 +24,7 @@ export const parsePagination = (query: PaginationQuery) => {
 export const buildPaginationMeta = (
   page: number,
   limit: number,
-  total: number,
+  total: number
 ): PaginationMeta => ({
   page,
   limit,

@@ -13,9 +13,7 @@ export interface ImportJobData {
 
 export function startImportWorker(): Worker | null {
   if (!env.UPSTASH_REDIS_URL) {
-    logger.warn(
-      "BullMQ Redis connection not configured — import worker disabled.",
-    );
+    logger.warn("BullMQ Redis connection not configured — import worker disabled.");
     return null;
   }
 
@@ -37,7 +35,7 @@ export function startImportWorker(): Worker | null {
         data: { status: "PROCESSING" },
       });
 
-      let rows: CSVRow[] = [];
+      let rows: CSVRow[];
 
       try {
         rows = parseCSV(fileBuffer);
@@ -195,7 +193,7 @@ export function startImportWorker(): Worker | null {
               }
               if (row.skills && row.skills.length > 0) {
                 const combined = Array.from(
-                  new Set([...(existingProfile.skills || []), ...row.skills]),
+                  new Set([...(existingProfile.skills || []), ...row.skills])
                 );
                 updateData.skills = combined;
                 hasUpdates = true;
@@ -223,8 +221,8 @@ export function startImportWorker(): Worker | null {
                 prisma.studentProfile.update({
                   where: { membershipId: p.membershipId },
                   data: p.updateData,
-                }),
-              ),
+                })
+              )
             );
           }
 
@@ -252,7 +250,7 @@ export function startImportWorker(): Worker | null {
         }
 
         const currentProgress = Math.round(
-          (Math.min(chunkIndex + chunkSize, rows.length) / rows.length) * 100,
+          (Math.min(chunkIndex + chunkSize, rows.length) / rows.length) * 100
         );
         if (currentProgress > lastProgress) {
           lastProgress = currentProgress;
@@ -266,8 +264,7 @@ export function startImportWorker(): Worker | null {
         });
       }
 
-      const finalStatus =
-        failedCount > 0 ? "COMPLETED_WITH_ERRORS" : "COMPLETED";
+      const finalStatus = failedCount > 0 ? "COMPLETED_WITH_ERRORS" : "COMPLETED";
       await prisma.studentImportJob.update({
         where: { id: jobId },
         data: {
@@ -277,22 +274,16 @@ export function startImportWorker(): Worker | null {
         },
       });
 
-      logger.info(
-        { jobId, successCount, failedCount, finalStatus },
-        "Import job completed",
-      );
+      logger.info({ jobId, successCount, failedCount, finalStatus }, "Import job completed");
     },
     {
       connection: connectionOpts as any,
       concurrency: 2,
-    },
+    }
   );
 
   worker.on("failed", (job, err) => {
-    logger.error(
-      { jobId: job?.data?.jobId, err },
-      "Import job failed after all retries",
-    );
+    logger.error({ jobId: job?.data?.jobId, err }, "Import job failed after all retries");
   });
 
   logger.info("Import worker started");

@@ -5,12 +5,7 @@ import { motion, Variants } from "framer-motion";
 import styles from "./profile.module.css";
 import { TextField } from "@/components/ui/TextField";
 import { Button } from "@/components/ui/Button";
-import {
-  IStudentProfile,
-  HireStatus,
-  JobType,
-  WorkplacePreference,
-} from "./profile.interface";
+import { IStudentProfile, HireStatus, JobType, WorkplacePreference } from "./profile.interface";
 
 // 1. Mock Data mapped to the new schema
 const mockInitialData: IStudentProfile = {
@@ -51,9 +46,7 @@ export default function StudentProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setProfile((prev) => ({ ...prev, [name]: value }));
   };
@@ -73,13 +66,7 @@ export default function StudentProfilePage() {
     setTimeout(() => setSaveMessage(null), 3000);
   };
 
-  const InputField = ({
-    label,
-    children,
-  }: {
-    label: string;
-    children: React.ReactNode;
-  }) => (
+  const InputField = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-medium text-slate-700">{label}</label>
       {children}
@@ -110,17 +97,10 @@ export default function StudentProfilePage() {
         </motion.div>
 
         <div>
-          <motion.h1
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
+          <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
             Career Preference Profile
           </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-          >
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
             Manage your placement data, analytics, and core competencies.
           </motion.p>
         </div>
@@ -182,9 +162,7 @@ export default function StudentProfilePage() {
                 className={styles.select}
               >
                 <option value={HireStatus.STUDENT_ONLY}>Student Only</option>
-                <option value={HireStatus.ACTIVELY_LOOKING}>
-                  Actively Looking
-                </option>
+                <option value={HireStatus.ACTIVELY_LOOKING}>Actively Looking</option>
                 <option value={HireStatus.EMPLOYED}>Employed</option>
               </select>
             </InputField>
@@ -214,9 +192,7 @@ export default function StudentProfilePage() {
                 onChange={handleChange}
                 className={styles.select}
               >
-                <option value={WorkplacePreference.NO_PREFERENCE}>
-                  No Preference
-                </option>
+                <option value={WorkplacePreference.NO_PREFERENCE}>No Preference</option>
                 <option value={WorkplacePreference.REMOTE}>Remote</option>
                 <option value={WorkplacePreference.HYBRID}>Hybrid</option>
                 <option value={WorkplacePreference.ON_SITE}>On-Site</option>

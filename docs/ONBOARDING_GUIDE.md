@@ -5,6 +5,7 @@ This guide describes how to set up the StudentOS development environment.
 ## 1. Prerequisites
 
 Ensure you have the following installed on your machine:
+
 - Node.js (v20 LTS or newer)
 - npm (v10 or newer)
 - Git
@@ -13,13 +14,15 @@ We use npm workspaces for monorepo package management.
 
 ## 2. Setup Database
 
-We use Neon (Postgres) as our cloud database provider. 
+We use Neon (Postgres) as our cloud database provider.
+
 1. Obtain your connection string from the Neon dashboard.
 2. In production and local development, we configure the database settings via environment variables.
 
 ## 3. Environment Variables
 
 Create your local environment configuration file:
+
 - Create `apps/api/.env` and copy variables from `apps/api/.env.example`.
 - Fill in the `DATABASE_URL` with your Neon database connection string.
 

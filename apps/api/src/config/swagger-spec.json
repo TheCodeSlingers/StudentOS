@@ -25,7 +25,11 @@
                 "type": "object",
                 "required": ["email", "password", "name"],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "example": "mentor@studentos.com" },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "mentor@studentos.com"
+                  },
                   "password": { "type": "string", "minLength": 8, "example": "SecurePassword123" },
                   "name": { "type": "string", "example": "John Doe" },
                   "workspaceName": { "type": "string", "example": "Doe Academy" }
@@ -66,7 +70,11 @@
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "example": "mentor@studentos.com" },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "mentor@studentos.com"
+                  },
                   "password": { "type": "string", "example": "SecurePassword123" }
                 }
               }
@@ -166,10 +174,27 @@
                 "required": ["name", "startDate"],
                 "properties": {
                   "name": { "type": "string", "example": "Web Development - Batch 1" },
-                  "startDate": { "type": "string", "format": "date-time", "example": "2026-07-16T00:00:00Z" },
-                  "endDate": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-12-16T00:00:00Z" },
-                  "lateThresholdMinsOverride": { "type": "integer", "nullable": true, "example": 15 },
-                  "attendanceDurationMinsOverride": { "type": "integer", "nullable": true, "example": 30 }
+                  "startDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-07-16T00:00:00Z"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "example": "2026-12-16T00:00:00Z"
+                  },
+                  "lateThresholdMinsOverride": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": 15
+                  },
+                  "attendanceDurationMinsOverride": {
+                    "type": "integer",
+                    "nullable": true,
+                    "example": 30
+                  }
                 }
               }
             }
@@ -441,9 +466,18 @@
                   "courseName": { "type": "string", "nullable": true },
                   "specialization": { "type": "string", "nullable": true },
                   "skills": { "type": "array", "items": { "type": "string" } },
-                  "hireStatus": { "type": "string", "enum": ["EMPLOYED", "JOB_SEEKING", "FREELANCING", "STUDENT_ONLY"] },
-                  "jobType": { "type": "string", "enum": ["FULL_TIME", "PART_TIME", "INTERNSHIP", "FREELANCE", "NOT_LOOKING"] },
-                  "workplacePreference": { "type": "string", "enum": ["REMOTE", "ONSITE", "HYBRID", "NO_PREFERENCE"] },
+                  "hireStatus": {
+                    "type": "string",
+                    "enum": ["EMPLOYED", "JOB_SEEKING", "FREELANCING", "STUDENT_ONLY"]
+                  },
+                  "jobType": {
+                    "type": "string",
+                    "enum": ["FULL_TIME", "PART_TIME", "INTERNSHIP", "FREELANCE", "NOT_LOOKING"]
+                  },
+                  "workplacePreference": {
+                    "type": "string",
+                    "enum": ["REMOTE", "ONSITE", "HYBRID", "NO_PREFERENCE"]
+                  },
                   "currentEmployer": { "type": "string", "nullable": true },
                   "currentPosition": { "type": "string", "nullable": true },
                   "portfolioUrl": { "type": "string", "format": "uri", "nullable": true },
@@ -473,7 +507,11 @@
           { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } },
           { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
           { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
-          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["SCHEDULED", "STARTED", "ENDED", "CANCELLED"] } }
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["SCHEDULED", "STARTED", "ENDED", "CANCELLED"] }
+          }
         ],
         "responses": {
           "200": {
@@ -504,11 +542,30 @@
                 "required": ["title", "scheduledStart", "scheduledEnd"],
                 "properties": {
                   "title": { "type": "string", "example": "Typescript Architecture Deep Dive" },
-                  "scheduledStart": { "type": "string", "format": "date-time", "example": "2026-07-16T15:00:00Z" },
-                  "scheduledEnd": { "type": "string", "format": "date-time", "example": "2026-07-16T17:00:00Z" },
-                  "meetLink": { "type": "string", "format": "uri", "example": "https://meet.google.com/abc-defg-hij" },
-                  "description": { "type": "string", "example": "Discussion on modular architecture." },
-                  "type": { "type": "string", "enum": ["REGULAR", "MAKEUP", "EXAM"], "default": "REGULAR" }
+                  "scheduledStart": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-07-16T15:00:00Z"
+                  },
+                  "scheduledEnd": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-07-16T17:00:00Z"
+                  },
+                  "meetLink": {
+                    "type": "string",
+                    "format": "uri",
+                    "example": "https://meet.google.com/abc-defg-hij"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Discussion on modular architecture."
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["REGULAR", "MAKEUP", "EXAM"],
+                    "default": "REGULAR"
+                  }
                 }
               }
             }
@@ -764,7 +821,12 @@
         "tags": ["Attendance"],
         "summary": "Get Student Attendance History",
         "parameters": [
-          { "name": "batchMembershipId", "in": "path", "required": true, "schema": { "type": "string" } }
+          {
+            "name": "batchMembershipId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
         ],
         "responses": {
           "200": {
@@ -853,7 +915,11 @@
                 "type": "object",
                 "required": ["email", "role"],
                 "properties": {
-                  "email": { "type": "string", "format": "email", "example": "invited-student@studentos.com" },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "invited-student@studentos.com"
+                  },
                   "role": { "type": "string", "enum": ["MENTOR", "STUDENT"], "example": "STUDENT" }
                 }
               }
@@ -972,9 +1038,18 @@
           "courseName": { "type": "string", "nullable": true },
           "specialization": { "type": "string", "nullable": true },
           "skills": { "type": "array", "items": { "type": "string" } },
-          "hireStatus": { "type": "string", "enum": ["EMPLOYED", "JOB_SEEKING", "FREELANCING", "STUDENT_ONLY"] },
-          "jobType": { "type": "string", "enum": ["FULL_TIME", "PART_TIME", "INTERNSHIP", "FREELANCE", "NOT_LOOKING"] },
-          "workplacePreference": { "type": "string", "enum": ["REMOTE", "ONSITE", "HYBRID", "NO_PREFERENCE"] },
+          "hireStatus": {
+            "type": "string",
+            "enum": ["EMPLOYED", "JOB_SEEKING", "FREELANCING", "STUDENT_ONLY"]
+          },
+          "jobType": {
+            "type": "string",
+            "enum": ["FULL_TIME", "PART_TIME", "INTERNSHIP", "FREELANCE", "NOT_LOOKING"]
+          },
+          "workplacePreference": {
+            "type": "string",
+            "enum": ["REMOTE", "ONSITE", "HYBRID", "NO_PREFERENCE"]
+          },
           "currentEmployer": { "type": "string", "nullable": true },
           "currentPosition": { "type": "string", "nullable": true },
           "portfolioUrl": { "type": "string", "format": "uri", "nullable": true },

@@ -12,23 +12,25 @@
 
 ## 2. Proposed Tiers
 
-| Field | **Free** | **Starter** | **Growth** |
-|---|---|---|---|
-| `maxBatches` | 1 | 3 | 10 |
-| `maxStudents` | 30 | 150 | 500 |
-| `maxEmployees` | 2 | 5 | 15 |
-| `priceCents` | 0 | 1900 ($19/mo) | 4900 ($49/mo) |
-| Fraud detection | Basic (rotating code + duplicate) | Basic | Basic + review queue prioritization |
-| Report export | CSV only | CSV + Excel | CSV + Excel + Dynamic Report Builder |
-| Discord webhooks | ❌ | ✅ | ✅ |
-| Support | Community/email | Email | Priority email |
+| Field            | **Free**                          | **Starter**   | **Growth**                           |
+| ---------------- | --------------------------------- | ------------- | ------------------------------------ |
+| `maxBatches`     | 1                                 | 3             | 10                                   |
+| `maxStudents`    | 30                                | 150           | 500                                  |
+| `maxEmployees`   | 2                                 | 5             | 15                                   |
+| `priceCents`     | 0                                 | 1900 ($19/mo) | 4900 ($49/mo)                        |
+| Fraud detection  | Basic (rotating code + duplicate) | Basic         | Basic + review queue prioritization  |
+| Report export    | CSV only                          | CSV + Excel   | CSV + Excel + Dynamic Report Builder |
+| Discord webhooks | ❌                                | ✅            | ✅                                   |
+| Support          | Community/email                   | Email         | Priority email                       |
 
 **Rationale for these specific numbers:**
+
 - **Free = 1 batch** directly matches the v1 solo-founder use case already built into your role model (`ADMIN` with implicit batch access) — a free user's whole experience should work without ever hitting a wall they can't explain.
-- **`maxStudents` at 30 for Free** is generous enough that a small bootcamp cohort (typical size 15–30) fits entirely on the free tier — this is a deliberate growth lever: let people fully experience the product before they need to pay, then the *second* batch or a bigger cohort is what triggers upgrade.
+- **`maxStudents` at 30 for Free** is generous enough that a small bootcamp cohort (typical size 15–30) fits entirely on the free tier — this is a deliberate growth lever: let people fully experience the product before they need to pay, then the _second_ batch or a bigger cohort is what triggers upgrade.
 - **Growth at 500 students / 10 batches** should comfortably fit a mid-size training org running several concurrent cohorts — the ceiling above that is where a future custom/Enterprise tier with negotiated limits (via `Subscription.override*` fields) takes over rather than a fourth fixed tier.
 
 **Open questions for the founder to decide (not something I can determine for you):**
+
 - Is $19/$49 the right price point for your target market (bootcamps, training programs)? This depends on what they currently pay for the Google Sheets + manual labor alternative you're replacing — worth a few conversations with actual prospective users before finalizing.
 - Annual billing discount? Common SaaS pattern is ~15–20% off for annual — worth deciding once Paddle/billing integration is actually being built, not before.
 - Trial length on paid tiers — 14 days is a common default if you want one.
@@ -58,7 +60,7 @@ Check flags in code via `plan.featureFlags.dynamicReportBuilder === true` rather
 ```typescript
 const plans = [
   {
-    name: 'Free',
+    name: "Free",
     maxBatches: 1,
     maxStudents: 30,
     maxEmployees: 2,
@@ -72,7 +74,7 @@ const plans = [
     },
   },
   {
-    name: 'Starter',
+    name: "Starter",
     maxBatches: 3,
     maxStudents: 150,
     maxEmployees: 5,
@@ -86,7 +88,7 @@ const plans = [
     },
   },
   {
-    name: 'Growth',
+    name: "Growth",
     maxBatches: 10,
     maxStudents: 500,
     maxEmployees: 15,

@@ -3,7 +3,7 @@ export class ApiError extends Error {
     public readonly statusCode: number,
     public readonly code: string,
     message: string,
-    public readonly details?: any,
+    public readonly details?: any
   ) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
@@ -20,17 +20,14 @@ export class BadRequestError extends ApiError {
 export class UnauthorizedError extends ApiError {
   constructor(
     message = "Authentication is required to access this resource.",
-    code = "UNAUTHENTICATED",
+    code = "UNAUTHENTICATED"
   ) {
     super(401, code, message);
   }
 }
 
 export class ForbiddenError extends ApiError {
-  constructor(
-    message = "You do not have permission to perform this action.",
-    code = "FORBIDDEN",
-  ) {
+  constructor(message = "You do not have permission to perform this action.", code = "FORBIDDEN") {
     super(403, code, message);
   }
 }
@@ -42,10 +39,7 @@ export class NotFoundError extends ApiError {
 }
 
 export class InternalServerError extends ApiError {
-  constructor(
-    message = "An internal server error occurred.",
-    code = "INTERNAL_SERVER_ERROR",
-  ) {
+  constructor(message = "An internal server error occurred.", code = "INTERNAL_SERVER_ERROR") {
     super(500, code, message);
   }
 }

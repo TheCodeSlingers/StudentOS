@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 import styles from "@/app/(dashboard)/mentor/analytics/analytics.module.css";
 import { PlacementMetric } from "@/app/(dashboard)/mentor/analytics/analytics.interface";

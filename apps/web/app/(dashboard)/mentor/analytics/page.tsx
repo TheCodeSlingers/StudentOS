@@ -3,11 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, Variants } from "framer-motion";
 import styles from "./analytics.module.css";
-import {
-  PlacementMetric,
-  SkillMetric,
-  TopLevelStats,
-} from "./analytics.interface";
+import { PlacementMetric, SkillMetric, TopLevelStats } from "./analytics.interface";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { PlacementDonutChart } from "@/components/dashboard/PlacementDonutChart";
 import { SkillsBarChart } from "@/components/dashboard/SkillsBarChart";
@@ -64,12 +60,9 @@ const processMockData = () => {
   let totalSkills = 0;
 
   mockStudentProfiles.forEach((profile) => {
-    if (profile.hireStatus === HireStatus.ACTIVELY_LOOKING)
-      placementData[0].count++;
-    else if (profile.hireStatus === HireStatus.EMPLOYED)
-      placementData[1].count++;
-    else if (profile.hireStatus === HireStatus.STUDENT_ONLY)
-      placementData[2].count++;
+    if (profile.hireStatus === HireStatus.ACTIVELY_LOOKING) placementData[0].count++;
+    else if (profile.hireStatus === HireStatus.EMPLOYED) placementData[1].count++;
+    else if (profile.hireStatus === HireStatus.STUDENT_ONLY) placementData[2].count++;
 
     const skills = profile.skills.split(",").map((s) => s.trim());
     totalSkills += skills.length;
@@ -88,9 +81,7 @@ const processMockData = () => {
     totalStudents: mockStudentProfiles.length,
     activelyLooking: placementData[0].count,
     employed: placementData[1].count,
-    avgSkills: parseFloat(
-      (totalSkills / mockStudentProfiles.length).toFixed(1),
-    ),
+    avgSkills: parseFloat((totalSkills / mockStudentProfiles.length).toFixed(1)),
   };
 
   return { placementData, topSkills, stats };
@@ -196,7 +187,7 @@ export default function MentorAnalyticsPage() {
         processedPlacementData.map((d, i) => ({
           ...d,
           color: PLACEMENT_COLORS[i],
-        })),
+        }))
       );
 
       setIsLoading(false);

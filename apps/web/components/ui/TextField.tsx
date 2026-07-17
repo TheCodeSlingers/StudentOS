@@ -10,7 +10,14 @@ interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id
   revealable?: boolean;
 }
 
-export function TextField({ label, error, revealable = false, type = "text", className, ...rest }: TextFieldProps) {
+export function TextField({
+  label,
+  error,
+  revealable = false,
+  type = "text",
+  className,
+  ...rest
+}: TextFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
   const [revealed, setRevealed] = useState(false);

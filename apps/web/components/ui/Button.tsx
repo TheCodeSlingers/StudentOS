@@ -6,7 +6,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
 }
 
-export function Button({ variant = "primary", isLoading = false, disabled, children, className, ...rest }: ButtonProps) {
+export function Button({
+  variant = "primary",
+  isLoading = false,
+  disabled,
+  children,
+  className,
+  ...rest
+}: ButtonProps) {
   return (
     <button
       className={[styles.button, styles[variant], className].filter(Boolean).join(" ")}

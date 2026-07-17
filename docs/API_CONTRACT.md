@@ -7,15 +7,18 @@
 ## Conventions
 
 ### Success Envelope
+
 ```json
 {
-  "data": { },
-  "meta": { }
+  "data": {},
+  "meta": {}
 }
 ```
+
 `meta` is omitted unless pagination or extra context applies.
 
 ### Error Envelope
+
 ```json
 {
   "error": {
@@ -27,35 +30,37 @@
 ```
 
 ### Standard Status Codes
-| Code | Meaning |
-|---|---|
-| 200 | Success (GET, PATCH) |
-| 201 | Created (POST) |
-| 204 | Success, no body (DELETE) |
-| 400 | Malformed request |
-| 401 | Not authenticated |
-| 403 | Forbidden (membership or role check failed) |
-| 404 | Resource not found |
-| 409 | Conflict (e.g. duplicate resource) |
-| 422 | Validation error |
+
+| Code | Meaning                                     |
+| ---- | ------------------------------------------- |
+| 200  | Success (GET, PATCH)                        |
+| 201  | Created (POST)                              |
+| 204  | Success, no body (DELETE)                   |
+| 400  | Malformed request                           |
+| 401  | Not authenticated                           |
+| 403  | Forbidden (membership or role check failed) |
+| 404  | Resource not found                          |
+| 409  | Conflict (e.g. duplicate resource)          |
+| 422  | Validation error                            |
 
 ---
 
 ## 1. Auth (9 routes)
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/auth/signup` | Public | Creates User + Workspace + Membership(MENTOR) |
-| POST | `/auth/login` | Public | Email/password login |
-| POST | `/auth/logout` | Bearer | Invalidates authentication session |
-| POST | `/auth/refresh` | Refresh token | Issues new access token |
-| POST | `/auth/forgot-password` | Public | Sends password reset email |
-| POST | `/auth/reset-password` | Public (token) | Sets new password |
-| GET | `/auth/me` | Bearer | Current user + active workspace and membership role |
-| GET | `/auth/google` | Public | Initiates Google OAuth flow |
-| GET | `/auth/google/callback` | Public | Callback for Google OAuth authentication |
+| Method | Path                    | Auth           | Description                                         |
+| ------ | ----------------------- | -------------- | --------------------------------------------------- |
+| POST   | `/auth/signup`          | Public         | Creates User + Workspace + Membership(MENTOR)       |
+| POST   | `/auth/login`           | Public         | Email/password login                                |
+| POST   | `/auth/logout`          | Bearer         | Invalidates authentication session                  |
+| POST   | `/auth/refresh`         | Refresh token  | Issues new access token                             |
+| POST   | `/auth/forgot-password` | Public         | Sends password reset email                          |
+| POST   | `/auth/reset-password`  | Public (token) | Sets new password                                   |
+| GET    | `/auth/me`              | Bearer         | Current user + active workspace and membership role |
+| GET    | `/auth/google`          | Public         | Initiates Google OAuth flow                         |
+| GET    | `/auth/google/callback` | Public         | Callback for Google OAuth authentication            |
 
 **`POST /auth/signup`**
+
 ```json
 // Request
 {
@@ -77,6 +82,7 @@
 ```
 
 **`POST /auth/login`**
+
 ```json
 // Request
 {
@@ -95,6 +101,7 @@
 ```
 
 **`POST /auth/refresh`**
+
 ```json
 // Request
 {
@@ -111,6 +118,7 @@
 ```
 
 **`POST /auth/forgot-password`**
+
 ```json
 // Request
 {
@@ -126,6 +134,7 @@
 ```
 
 **`POST /auth/reset-password`**
+
 ```json
 // Request
 {
@@ -142,6 +151,7 @@
 ```
 
 **`GET /auth/me`**
+
 ```json
 // Response 200
 {
@@ -159,12 +169,13 @@
 
 ## 2. Workspace & Settings (2 routes)
 
-| Method | Path | Permission | Description |
-|---|---|---|---|
-| GET | `/workspace` | MENTOR / STUDENT | View workspace details |
-| PATCH | `/workspace/settings` | MENTOR | Update workspace settings |
+| Method | Path                  | Permission       | Description               |
+| ------ | --------------------- | ---------------- | ------------------------- |
+| GET    | `/workspace`          | MENTOR / STUDENT | View workspace details    |
+| PATCH  | `/workspace/settings` | MENTOR           | Update workspace settings |
 
 **`GET /workspace`**
+
 ```json
 // Response 200
 {
@@ -181,6 +192,7 @@
 ```
 
 **`PATCH /workspace/settings`**
+
 ```json
 // Request
 {
@@ -208,13 +220,14 @@
 
 ## 3. Members (3 routes)
 
-| Method | Path | Permission | Description |
-|---|---|---|---|
-| POST | `/workspace/members/invite` | MENTOR | Add or invite workspace member |
-| GET | `/workspace/members` | MENTOR | List all members in the workspace |
-| DELETE | `/workspace/members/:membershipId` | MENTOR | Revoke membership (sets status to inactive) |
+| Method | Path                               | Permission | Description                                 |
+| ------ | ---------------------------------- | ---------- | ------------------------------------------- |
+| POST   | `/workspace/members/invite`        | MENTOR     | Add or invite workspace member              |
+| GET    | `/workspace/members`               | MENTOR     | List all members in the workspace           |
+| DELETE | `/workspace/members/:membershipId` | MENTOR     | Revoke membership (sets status to inactive) |
 
 **`POST /workspace/members/invite`**
+
 ```json
 // Request
 {
@@ -238,15 +251,16 @@
 
 ## 4. Batches (5 routes)
 
-| Method | Path | Permission | Description |
-|---|---|---|---|
-| POST | `/batches` | MENTOR | Create a batch |
-| GET | `/batches` | MENTOR / STUDENT | List active batches |
-| GET | `/batches/:batchId` | MENTOR / STUDENT | Batch detail |
-| PATCH | `/batches/:batchId` | MENTOR | Update batch details/overrides |
-| POST | `/batches/:batchId/archive` | MENTOR | Archive a batch |
+| Method | Path                        | Permission       | Description                    |
+| ------ | --------------------------- | ---------------- | ------------------------------ |
+| POST   | `/batches`                  | MENTOR           | Create a batch                 |
+| GET    | `/batches`                  | MENTOR / STUDENT | List active batches            |
+| GET    | `/batches/:batchId`         | MENTOR / STUDENT | Batch detail                   |
+| PATCH  | `/batches/:batchId`         | MENTOR           | Update batch details/overrides |
+| POST   | `/batches/:batchId/archive` | MENTOR           | Archive a batch                |
 
 **`POST /batches`**
+
 ```json
 // Request
 {
@@ -273,18 +287,19 @@
 
 ## 5. Students & Profiles (8 routes)
 
-| Method | Path | Permission | Description |
-|---|---|---|---|
-| POST | `/batches/:batchId/students` | MENTOR | Enroll single student into batch |
-| GET | `/batches/:batchId/students` | MENTOR / STUDENT | List enrolled batch students |
-| DELETE | `/batches/:batchId/students/:batchMembershipId` | MENTOR | Revoke batch enrollment (sets revokedAt) |
-| POST | `/batches/:batchId/students/import` | MENTOR | Upload CSV for bulk importing |
-| GET | `/batches/:batchId/students/import/:jobId` | MENTOR | Check bulk import job status |
-| GET | `/batches/:batchId/students/import/:jobId/rows` | MENTOR | View row-level status details |
-| GET | `/students/:membershipId/profile` | MENTOR / STUDENT | Get student academic & career profile |
-| PATCH | `/students/:membershipId/profile` | STUDENT | Update student career & academic profile |
+| Method | Path                                            | Permission       | Description                              |
+| ------ | ----------------------------------------------- | ---------------- | ---------------------------------------- |
+| POST   | `/batches/:batchId/students`                    | MENTOR           | Enroll single student into batch         |
+| GET    | `/batches/:batchId/students`                    | MENTOR / STUDENT | List enrolled batch students             |
+| DELETE | `/batches/:batchId/students/:batchMembershipId` | MENTOR           | Revoke batch enrollment (sets revokedAt) |
+| POST   | `/batches/:batchId/students/import`             | MENTOR           | Upload CSV for bulk importing            |
+| GET    | `/batches/:batchId/students/import/:jobId`      | MENTOR           | Check bulk import job status             |
+| GET    | `/batches/:batchId/students/import/:jobId/rows` | MENTOR           | View row-level status details            |
+| GET    | `/students/:membershipId/profile`               | MENTOR / STUDENT | Get student academic & career profile    |
+| PATCH  | `/students/:membershipId/profile`               | STUDENT          | Update student career & academic profile |
 
 **`GET /students/:membershipId/profile`**
+
 ```json
 // Response 200
 {
@@ -308,6 +323,7 @@
 ```
 
 **`PATCH /students/:membershipId/profile`**
+
 ```json
 // Request
 {
@@ -332,6 +348,7 @@
 ```
 
 **`POST /batches/:batchId/students/import`**
+
 ```json
 // Request: multipart/form-data with field "file" containing the CSV file.
 // Response 202 Accepted
@@ -345,6 +362,7 @@
 ```
 
 **`GET /batches/:batchId/students/import/:jobId`**
+
 ```json
 // Response 200 OK
 {
@@ -362,6 +380,7 @@
 ```
 
 **`GET /batches/:batchId/students/import/:jobId/rows`**
+
 ```json
 // Response 200 OK
 {
@@ -388,17 +407,18 @@
 
 ## 6. Sessions (7 routes)
 
-| Method | Path | Permission | Description |
-|---|---|---|---|
-| POST | `/batches/:batchId/sessions` | MENTOR | Create a session |
-| GET | `/batches/:batchId/sessions` | MENTOR / STUDENT | List sessions in a batch |
-| GET | `/sessions/:sessionId` | MENTOR / STUDENT | Session details |
-| PATCH | `/sessions/:sessionId` | MENTOR | Update session details |
-| POST | `/sessions/:sessionId/cancel` | MENTOR | Cancel a scheduled session |
-| POST | `/sessions/:sessionId/attendance/open` | MENTOR / CR | Open attendance window (rotating code) |
-| POST | `/sessions/:sessionId/attendance/close` | MENTOR / CR | Close attendance window |
+| Method | Path                                    | Permission       | Description                            |
+| ------ | --------------------------------------- | ---------------- | -------------------------------------- |
+| POST   | `/batches/:batchId/sessions`            | MENTOR           | Create a session                       |
+| GET    | `/batches/:batchId/sessions`            | MENTOR / STUDENT | List sessions in a batch               |
+| GET    | `/sessions/:sessionId`                  | MENTOR / STUDENT | Session details                        |
+| PATCH  | `/sessions/:sessionId`                  | MENTOR           | Update session details                 |
+| POST   | `/sessions/:sessionId/cancel`           | MENTOR           | Cancel a scheduled session             |
+| POST   | `/sessions/:sessionId/attendance/open`  | MENTOR / CR      | Open attendance window (rotating code) |
+| POST   | `/sessions/:sessionId/attendance/close` | MENTOR / CR      | Close attendance window                |
 
 **`POST /batches/:batchId/sessions`**
+
 ```json
 // Request
 {
@@ -425,14 +445,15 @@
 
 ## 7. Attendance (4 routes)
 
-| Method | Path | Permission | Description |
-|---|---|---|---|
-| POST | `/sessions/:sessionId/attendance/submit` | STUDENT | Submit code for self-attendance |
-| POST | `/sessions/:sessionId/attendance/manual` | MENTOR / CR | Manually mark student attendance |
-| GET | `/sessions/:sessionId/attendance` | MENTOR / STUDENT | View session attendance roster |
-| GET | `/students/:batchMembershipId/attendance` | MENTOR / STUDENT | View historical attendance for a student |
+| Method | Path                                      | Permission       | Description                              |
+| ------ | ----------------------------------------- | ---------------- | ---------------------------------------- |
+| POST   | `/sessions/:sessionId/attendance/submit`  | STUDENT          | Submit code for self-attendance          |
+| POST   | `/sessions/:sessionId/attendance/manual`  | MENTOR / CR      | Manually mark student attendance         |
+| GET    | `/sessions/:sessionId/attendance`         | MENTOR / STUDENT | View session attendance roster           |
+| GET    | `/students/:batchMembershipId/attendance` | MENTOR / STUDENT | View historical attendance for a student |
 
 **`POST /sessions/:sessionId/attendance/submit`**
+
 ```json
 // Request
 {
@@ -451,6 +472,7 @@
 ```
 
 **`POST /sessions/:sessionId/attendance/manual`**
+
 ```json
 // Request
 {

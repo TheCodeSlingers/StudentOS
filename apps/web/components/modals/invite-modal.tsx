@@ -20,7 +20,12 @@ interface InviteModalProps {
 function CloseIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path
+        d="M5 5l10 10M15 5L5 15"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -99,7 +104,9 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
       setEmail("");
       setRole("STUDENT");
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+      setApiError(
+        error instanceof ApiError ? error.message : "Something went wrong. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -121,7 +128,12 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
             </h2>
             <p className={styles.subtitle}>Add a mentor or student to this workspace.</p>
           </div>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close dialog">
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
             <CloseIcon />
           </button>
         </div>

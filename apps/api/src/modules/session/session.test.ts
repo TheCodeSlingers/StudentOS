@@ -82,9 +82,13 @@ describe("SessionService", () => {
       prisma.session.deleteMany({ where: { batchId } }),
       prisma.batchMembership.deleteMany({ where: { id: batchMembershipId } }),
       prisma.batch.deleteMany({ where: { id: batchId } }),
-      prisma.membership.deleteMany({ where: { id: { in: [mentorMembershipId, studentMembershipId] } } }),
+      prisma.membership.deleteMany({
+        where: { id: { in: [mentorMembershipId, studentMembershipId] } },
+      }),
       prisma.workspace.deleteMany({ where: { id: workspaceId } }),
-      prisma.user.deleteMany({ where: { email: { in: ["session-mentor@example.com", "session-student@example.com"] } } }),
+      prisma.user.deleteMany({
+        where: { email: { in: ["session-mentor@example.com", "session-student@example.com"] } },
+      }),
     ]);
   });
 
@@ -183,7 +187,10 @@ describe("SessionService", () => {
   describe("listSessions", () => {
     it("should list sessions for mentor", async () => {
       const result = await SessionService.listSessions(
-        batchId, workspaceId, mentorMembershipId, "MENTOR"
+        batchId,
+        workspaceId,
+        mentorMembershipId,
+        "MENTOR"
       );
 
       expect(result.data.length).toBeGreaterThanOrEqual(1);
@@ -192,7 +199,10 @@ describe("SessionService", () => {
 
     it("should list sessions for enrolled student", async () => {
       const result = await SessionService.listSessions(
-        batchId, workspaceId, studentMembershipId, "STUDENT"
+        batchId,
+        workspaceId,
+        studentMembershipId,
+        "STUDENT"
       );
 
       expect(result.data.length).toBeGreaterThanOrEqual(1);
@@ -208,9 +218,7 @@ describe("SessionService", () => {
       });
 
       await expect(
-        SessionService.listSessions(
-          otherBatch.id, workspaceId, studentMembershipId, "STUDENT"
-        )
+        SessionService.listSessions(otherBatch.id, workspaceId, studentMembershipId, "STUDENT")
       ).rejects.toThrow(ForbiddenError);
 
       await prisma.batch.delete({ where: { id: otherBatch.id } });
@@ -218,7 +226,13 @@ describe("SessionService", () => {
 
     it("should filter by status", async () => {
       const result = await SessionService.listSessions(
-        batchId, workspaceId, mentorMembershipId, "MENTOR", 1, 20, "SCHEDULED"
+        batchId,
+        workspaceId,
+        mentorMembershipId,
+        "MENTOR",
+        1,
+        20,
+        "SCHEDULED"
       );
 
       expect(result.data.every((s: any) => s.status === "SCHEDULED")).toBe(true);
@@ -232,14 +246,26 @@ describe("SessionService", () => {
 
     it("should support cursor-based pagination", async () => {
       const firstPage = await SessionService.listSessions(
-        batchId, workspaceId, mentorMembershipId, "MENTOR", 1, 1
+        batchId,
+        workspaceId,
+        mentorMembershipId,
+        "MENTOR",
+        1,
+        1
       );
 
       expect(firstPage.data.length).toBeLessThanOrEqual(1);
 
       if (firstPage.meta.nextCursor) {
         const secondPage = await SessionService.listSessions(
-          batchId, workspaceId, mentorMembershipId, "MENTOR", 1, 1, undefined, firstPage.meta.nextCursor
+          batchId,
+          workspaceId,
+          mentorMembershipId,
+          "MENTOR",
+          1,
+          1,
+          undefined,
+          firstPage.meta.nextCursor
         );
 
         expect(secondPage.data.length).toBeLessThanOrEqual(1);
@@ -252,7 +278,10 @@ describe("SessionService", () => {
   describe("getSession", () => {
     it("should return session details for mentor (includes currentCode)", async () => {
       const session = await SessionService.getSession(
-        sessionId, workspaceId, mentorMembershipId, "MENTOR"
+        sessionId,
+        workspaceId,
+        mentorMembershipId,
+        "MENTOR"
       );
 
       expect(session).toBeDefined();
@@ -262,7 +291,10 @@ describe("SessionService", () => {
 
     it("should return session details for student (excludes currentCode)", async () => {
       const session = await SessionService.getSession(
-        sessionId, workspaceId, studentMembershipId, "STUDENT"
+        sessionId,
+        workspaceId,
+        studentMembershipId,
+        "STUDENT"
       );
 
       expect(session).toBeDefined();
@@ -437,9 +469,9 @@ describe("SessionService", () => {
     });
 
     it("should throw BadRequestError if session is already cancelled", async () => {
-      await expect(
-        SessionService.cancelSession(cancelSessionId, workspaceId)
-      ).rejects.toThrow(BadRequestError);
+      await expect(SessionService.cancelSession(cancelSessionId, workspaceId)).rejects.toThrow(
+        BadRequestError
+      );
     });
 
     it("should throw BadRequestError if session is ended", async () => {
@@ -453,9 +485,9 @@ describe("SessionService", () => {
         },
       });
 
-      await expect(
-        SessionService.cancelSession(endedSession.id, workspaceId)
-      ).rejects.toThrow(BadRequestError);
+      await expect(SessionService.cancelSession(endedSession.id, workspaceId)).rejects.toThrow(
+        BadRequestError
+      );
 
       await prisma.session.delete({ where: { id: endedSession.id } });
     });
@@ -486,9 +518,9 @@ describe("SessionService", () => {
         },
       });
 
-      await expect(
-        SessionService.cancelSession(otherSession.id, workspaceId)
-      ).rejects.toThrow(ForbiddenError);
+      await expect(SessionService.cancelSession(otherSession.id, workspaceId)).rejects.toThrow(
+        ForbiddenError
+      );
 
       await prisma.session.delete({ where: { id: otherSession.id } });
       await prisma.batch.delete({ where: { id: otherBatch.id } });
@@ -514,7 +546,10 @@ describe("SessionService", () => {
 
     it("should open attendance window for mentor", async () => {
       const result = await SessionService.openAttendanceWindow(
-        attendanceSessionId, workspaceId, mentorMembershipId, "MENTOR"
+        attendanceSessionId,
+        workspaceId,
+        mentorMembershipId,
+        "MENTOR"
       );
 
       expect(result.status).toBe("STARTED");
@@ -525,16 +560,17 @@ describe("SessionService", () => {
     it("should throw BadRequestError if attendance already open", async () => {
       await expect(
         SessionService.openAttendanceWindow(
-          attendanceSessionId, workspaceId, mentorMembershipId, "MENTOR"
+          attendanceSessionId,
+          workspaceId,
+          mentorMembershipId,
+          "MENTOR"
         )
       ).rejects.toThrow(BadRequestError);
     });
 
     it("should throw NotFoundError for non-existent session", async () => {
       await expect(
-        SessionService.openAttendanceWindow(
-          "fake-id", workspaceId, mentorMembershipId, "MENTOR"
-        )
+        SessionService.openAttendanceWindow("fake-id", workspaceId, mentorMembershipId, "MENTOR")
       ).rejects.toThrow(NotFoundError);
     });
 
@@ -566,7 +602,10 @@ describe("SessionService", () => {
 
       await expect(
         SessionService.openAttendanceWindow(
-          otherSession.id, workspaceId, mentorMembershipId, "MENTOR"
+          otherSession.id,
+          workspaceId,
+          mentorMembershipId,
+          "MENTOR"
         )
       ).rejects.toThrow(ForbiddenError);
 
@@ -592,13 +631,19 @@ describe("SessionService", () => {
       closeSessionId = s.id;
 
       await SessionService.openAttendanceWindow(
-        closeSessionId, workspaceId, mentorMembershipId, "MENTOR"
+        closeSessionId,
+        workspaceId,
+        mentorMembershipId,
+        "MENTOR"
       );
     });
 
     it("should close attendance window for mentor", async () => {
       const result = await SessionService.closeAttendanceWindow(
-        closeSessionId, workspaceId, mentorMembershipId, "MENTOR"
+        closeSessionId,
+        workspaceId,
+        mentorMembershipId,
+        "MENTOR"
       );
 
       expect(result.status).toBe("ENDED");
@@ -608,7 +653,10 @@ describe("SessionService", () => {
     it("should throw BadRequestError if attendance already closed", async () => {
       await expect(
         SessionService.closeAttendanceWindow(
-          closeSessionId, workspaceId, mentorMembershipId, "MENTOR"
+          closeSessionId,
+          workspaceId,
+          mentorMembershipId,
+          "MENTOR"
         )
       ).rejects.toThrow(BadRequestError);
     });
@@ -626,7 +674,10 @@ describe("SessionService", () => {
 
       await expect(
         SessionService.closeAttendanceWindow(
-          scheduledSession.id, workspaceId, mentorMembershipId, "MENTOR"
+          scheduledSession.id,
+          workspaceId,
+          mentorMembershipId,
+          "MENTOR"
         )
       ).rejects.toThrow(BadRequestError);
 
@@ -661,7 +712,10 @@ describe("SessionService", () => {
 
       await expect(
         SessionService.closeAttendanceWindow(
-          otherSession.id, workspaceId, mentorMembershipId, "MENTOR"
+          otherSession.id,
+          workspaceId,
+          mentorMembershipId,
+          "MENTOR"
         )
       ).rejects.toThrow(ForbiddenError);
 
@@ -704,14 +758,20 @@ describe("SessionService", () => {
 
     it("should allow CR to open attendance window", async () => {
       const result = await SessionService.openAttendanceWindow(
-        crSessionId, workspaceId, crMembershipId, "STUDENT"
+        crSessionId,
+        workspaceId,
+        crMembershipId,
+        "STUDENT"
       );
       expect(result.status).toBe("STARTED");
     });
 
     it("should allow CR to close attendance window", async () => {
       const result = await SessionService.closeAttendanceWindow(
-        crSessionId, workspaceId, crMembershipId, "STUDENT"
+        crSessionId,
+        workspaceId,
+        crMembershipId,
+        "STUDENT"
       );
       expect(result.status).toBe("ENDED");
     });
@@ -735,7 +795,10 @@ describe("SessionService", () => {
 
       await expect(
         SessionService.openAttendanceWindow(
-          nonCrSession.id, workspaceId, studentMembershipId, "STUDENT"
+          nonCrSession.id,
+          workspaceId,
+          studentMembershipId,
+          "STUDENT"
         )
       ).rejects.toThrow(ForbiddenError);
 

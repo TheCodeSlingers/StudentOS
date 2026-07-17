@@ -19,32 +19,22 @@ jest.mock("../../middleware/permission", () => ({
 // Mock the service to avoid hitting the actual database during these tests
 jest.mock("./student.service", () => ({
   StudentService: {
-    enrollStudent: jest
-      .fn()
-      .mockResolvedValue({
-        id: "enrollment_1",
-        batchId: "b1",
-        membershipId: "m1",
-      }),
-    getEnrolledStudents: jest
-      .fn()
-      .mockResolvedValue({
-        data: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
-      }),
-    revokeEnrollment: jest
-      .fn()
-      .mockResolvedValue({ id: "enrollment_1", revokedAt: new Date() }),
-    getStudentProfile: jest
-      .fn()
-      .mockResolvedValue({
-        id: "m1",
-        user: { name: "Test" },
-        studentProfile: {},
-      }),
-    updateStudentProfile: jest
-      .fn()
-      .mockResolvedValue({ id: "profile_1", hireStatus: "EMPLOYED" }),
+    enrollStudent: jest.fn().mockResolvedValue({
+      id: "enrollment_1",
+      batchId: "b1",
+      membershipId: "m1",
+    }),
+    getEnrolledStudents: jest.fn().mockResolvedValue({
+      data: [],
+      meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+    }),
+    revokeEnrollment: jest.fn().mockResolvedValue({ id: "enrollment_1", revokedAt: new Date() }),
+    getStudentProfile: jest.fn().mockResolvedValue({
+      id: "m1",
+      user: { name: "Test" },
+      studentProfile: {},
+    }),
+    updateStudentProfile: jest.fn().mockResolvedValue({ id: "profile_1", hireStatus: "EMPLOYED" }),
   },
 }));
 
@@ -60,9 +50,7 @@ describe("Student Module Integration Tests", () => {
     });
 
     it("POST /batches/:batchId/students - fails validation when membershipId is missing", async () => {
-      const response = await request(app)
-        .post("/api/v1/batches/b1/students")
-        .send({ isCR: true });
+      const response = await request(app).post("/api/v1/batches/b1/students").send({ isCR: true });
 
       expect(response.status).toBe(400);
       expect(response.body.error.code).toBe("VALIDATION_FAILED");
@@ -78,12 +66,10 @@ describe("Student Module Integration Tests", () => {
     });
 
     it("PATCH /students/:membershipId/profile - updates a profile with valid data", async () => {
-      const response = await request(app)
-        .patch("/api/v1/students/m1/profile")
-        .send({
-          hireStatus: "EMPLOYED",
-          linkedinUrl: "https://linkedin.com/in/test",
-        });
+      const response = await request(app).patch("/api/v1/students/m1/profile").send({
+        hireStatus: "EMPLOYED",
+        linkedinUrl: "https://linkedin.com/in/test",
+      });
 
       expect(response.status).toBe(200);
       expect(response.body.data.hireStatus).toBe("EMPLOYED");

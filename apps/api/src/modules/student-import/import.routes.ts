@@ -16,7 +16,7 @@ router.post(
   importRateLimiter,
   validateRequest(importRosterSchema),
   uploadSingle,
-  ImportController.importRoster,
+  ImportController.importRoster
 );
 
 router.get(
@@ -24,7 +24,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR"]),
   validateRequest(getSummarySchema),
-  ImportController.getSummary,
+  ImportController.getSummary
 );
 
 router.get(
@@ -32,7 +32,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR"]),
   validateRequest(getSummarySchema),
-  ImportController.getRows,
+  ImportController.getRows
 );
 
 export default router;

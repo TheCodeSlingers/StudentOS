@@ -1,10 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { Prisma } from "@prisma/client";
-import {
-  BadRequestError,
-  NotFoundError,
-  ForbiddenError,
-} from "../../common/errors";
+import { BadRequestError, NotFoundError, ForbiddenError } from "../../common/errors";
 
 export interface SubmitAttendanceResult {
   id: string;
@@ -49,7 +45,7 @@ export class AttendanceService {
   static async submitAttendance(
     sessionId: string,
     studentMembershipId: string,
-    code: string,
+    code: string
   ): Promise<SubmitAttendanceResult> {
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -70,16 +66,13 @@ export class AttendanceService {
     });
 
     if (!session) {
-      throw new NotFoundError(
-        "The specified session does not exist.",
-        "SESSION_NOT_FOUND",
-      );
+      throw new NotFoundError("The specified session does not exist.", "SESSION_NOT_FOUND");
     }
 
     if (session.status !== "STARTED") {
       throw new BadRequestError(
         "Attendance submission is not open for this session.",
-        "SESSION_NOT_STARTED",
+        "SESSION_NOT_STARTED"
       );
     }
 
@@ -101,7 +94,7 @@ export class AttendanceService {
     if (!studentBatchMembership) {
       throw new ForbiddenError(
         "You are not enrolled in the batch for this session.",
-        "NOT_ENROLLED",
+        "NOT_ENROLLED"
       );
     }
 
@@ -116,10 +109,7 @@ export class AttendanceService {
         where: { workspaceId: session.batch.workspaceId },
         select: { lateThresholdMins: true },
       });
-      if (
-        settings?.lateThresholdMins !== null &&
-        settings?.lateThresholdMins !== undefined
-      ) {
+      if (settings?.lateThresholdMins !== null && settings?.lateThresholdMins !== undefined) {
         lateThresholdMins = settings.lateThresholdMins;
       }
     }
@@ -151,13 +141,10 @@ export class AttendanceService {
         submittedAt: record.submittedAt!,
       };
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-      ) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
         throw new BadRequestError(
           "Attendance has already been submitted for this session.",
-          "ALREADY_SUBMITTED",
+          "ALREADY_SUBMITTED"
         );
       }
       throw error;
@@ -172,17 +159,14 @@ export class AttendanceService {
       studentBatchMembershipId: string;
       status: "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
       manualReason: string;
-    },
+    }
   ): Promise<any> {
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
     });
 
     if (!session) {
-      throw new NotFoundError(
-        "The specified session does not exist.",
-        "SESSION_NOT_FOUND",
-      );
+      throw new NotFoundError("The specified session does not exist.", "SESSION_NOT_FOUND");
     }
 
     if (actorRole === "STUDENT") {
@@ -198,7 +182,7 @@ export class AttendanceService {
       if (!crMembership) {
         throw new ForbiddenError(
           "Only Mentors or Class Representatives can manually mark attendance.",
-          "UNAUTHORIZED",
+          "UNAUTHORIZED"
         );
       }
     }
@@ -217,7 +201,7 @@ export class AttendanceService {
     if (!targetStudent) {
       throw new BadRequestError(
         "The target student is not enrolled in this batch.",
-        "STUDENT_NOT_ENROLLED",
+        "STUDENT_NOT_ENROLLED"
       );
     }
 
@@ -249,19 +233,14 @@ export class AttendanceService {
     return record;
   }
 
-  static async getSessionAttendanceRoster(
-    sessionId: string,
-  ): Promise<AttendanceRosterItem[]> {
+  static async getSessionAttendanceRoster(sessionId: string): Promise<AttendanceRosterItem[]> {
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       select: { batchId: true },
     });
 
     if (!session) {
-      throw new NotFoundError(
-        "The specified session does not exist.",
-        "SESSION_NOT_FOUND",
-      );
+      throw new NotFoundError("The specified session does not exist.", "SESSION_NOT_FOUND");
     }
 
     const enrollments = await prisma.batchMembership.findMany({
@@ -344,7 +323,7 @@ export class AttendanceService {
   static async getStudentAttendanceHistory(
     batchMembershipId: string,
     actorMembershipId: string,
-    actorRole: string,
+    actorRole: string
   ): Promise<AttendanceHistoryItem[]> {
     const targetStudent = await prisma.batchMembership.findUnique({
       where: { id: batchMembershipId },
@@ -354,17 +333,14 @@ export class AttendanceService {
     if (!targetStudent) {
       throw new NotFoundError(
         "The specified student batch enrollment was not found.",
-        "ENROLLMENT_NOT_FOUND",
+        "ENROLLMENT_NOT_FOUND"
       );
     }
 
-    if (
-      actorRole === "STUDENT" &&
-      targetStudent.membershipId !== actorMembershipId
-    ) {
+    if (actorRole === "STUDENT" && targetStudent.membershipId !== actorMembershipId) {
       throw new ForbiddenError(
         "You do not have permission to view this student's history.",
-        "UNAUTHORIZED",
+        "UNAUTHORIZED"
       );
     }
 

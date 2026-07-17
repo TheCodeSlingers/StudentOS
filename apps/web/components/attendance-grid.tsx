@@ -30,7 +30,12 @@ interface AttendanceGridProps {
 function CloseIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path
+        d="M5 5l10 10M15 5L5 15"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -114,22 +119,23 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
       });
 
       updateRow(studentBatchMembershipId, { isSaving: false, saved: true });
-      setRoster((current) =>
-        current?.map((item) =>
-          item.studentBatchMembershipId === studentBatchMembershipId
-            ? {
-                ...item,
-                attendance: {
-                  id: record.id,
-                  status: record.status,
-                  method: record.method,
-                  submittedAt: record.submittedAt ?? null,
-                  manualReason: row.reason.trim(),
-                  markedBy: item.attendance?.markedBy ?? null,
-                },
-              }
-            : item
-        ) ?? current
+      setRoster(
+        (current) =>
+          current?.map((item) =>
+            item.studentBatchMembershipId === studentBatchMembershipId
+              ? {
+                  ...item,
+                  attendance: {
+                    id: record.id,
+                    status: record.status,
+                    method: record.method,
+                    submittedAt: record.submittedAt ?? null,
+                    manualReason: row.reason.trim(),
+                    markedBy: item.attendance?.markedBy ?? null,
+                  },
+                }
+              : item
+          ) ?? current
       );
     } catch (error) {
       updateRow(studentBatchMembershipId, {
@@ -153,9 +159,16 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
             <h2 id="attendance-grid-title" className={styles.title}>
               Manual marking
             </h2>
-            <p className={styles.subtitle}>Override attendance status and record a reason for each change.</p>
+            <p className={styles.subtitle}>
+              Override attendance status and record a reason for each change.
+            </p>
           </div>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close dialog">
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
             <CloseIcon />
           </button>
         </div>
@@ -195,7 +208,10 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                         {item.isCR ? <span className={styles.crBadge}>CR</span> : null}
                       </td>
                       <td>
-                        <span className={styles.statusBadge} data-status={item.attendance?.status ?? "UNMARKED"}>
+                        <span
+                          className={styles.statusBadge}
+                          data-status={item.attendance?.status ?? "UNMARKED"}
+                        >
                           {item.attendance?.status ?? "UNMARKED"}
                         </span>
                       </td>
@@ -225,7 +241,10 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                           placeholder="Reason for override"
                           value={row.reason}
                           onChange={(event) =>
-                            updateRow(item.studentBatchMembershipId, { reason: event.target.value, saved: false })
+                            updateRow(item.studentBatchMembershipId, {
+                              reason: event.target.value,
+                              saved: false,
+                            })
                           }
                         />
                       </td>
@@ -241,7 +260,9 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                             Save
                           </Button>
                           {row.error ? <span className={styles.rowError}>{row.error}</span> : null}
-                          {row.saved && !row.error ? <span className={styles.rowSaved}>Saved</span> : null}
+                          {row.saved && !row.error ? (
+                            <span className={styles.rowSaved}>Saved</span>
+                          ) : null}
                         </div>
                       </td>
                     </tr>

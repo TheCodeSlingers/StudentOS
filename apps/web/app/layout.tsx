@@ -14,7 +14,8 @@ export const metadata: Metadata = {
     default: "StudentOS",
     template: "%s · StudentOS",
   },
-  description: "Attendance, batches, and organization management for coaching centers and student communities.",
+  description:
+    "Attendance, batches, and organization management for coaching centers and student communities.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
