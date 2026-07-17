@@ -20,45 +20,45 @@ router.use(requireRole(["MENTOR"]));
 router.post(
   "/batches",
   validateRequest(createBatchSchema),
-  BatchController.create,
+  BatchController.createBatch,
 );
 
-router.get("/batches", BatchController.list);
+router.get("/batches", BatchController.getListBatches);
 
 router.get(
   "/batches/:batchId",
   validateRequest(batchParamSchema),
-  BatchController.get,
+  BatchController.getBatch,
 );
 
 router.patch(
   "/batches/:batchId",
   validateRequest(updateBatchSchema),
-  BatchController.update,
+  BatchController.updateBatch,
 );
 
 router.post(
   "/batches/:batchId/archive",
   validateRequest(batchParamSchema),
-  BatchController.archive,
+  BatchController.archiveBatch,
 );
 
 router.post(
   "/batches/:batchId/members",
   validateRequest(allocateMemberSchema),
-  BatchController.allocate,
+  BatchController.allocateMember,
 );
 
 router.get(
   "/batches/:batchId/members",
   validateRequest(listMembersSchema),
-  BatchController.listMembers,
+  BatchController.getListBatchMembers,
 );
 
 router.patch(
   "/batches/:batchId/members/:batchMembershipId",
   validateRequest(updateMemberSchema),
-  BatchController.updateMember,
+  BatchController.updateBatchMembership,
 );
 
 export default router;

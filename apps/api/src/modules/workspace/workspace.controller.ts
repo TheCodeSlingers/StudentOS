@@ -8,7 +8,7 @@ export class WorkspaceController {
   static getWorkspace = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
-      const workspace = await WorkspaceService.getWorkspace({ workspaceId });
+      const workspace = await WorkspaceService.getWorkspaceFromDB({ workspaceId });
       ApiResponse.success(res, workspace, 200);
     },
   );
@@ -20,7 +20,7 @@ export class WorkspaceController {
 
       const workspaceId = req.membership.workspaceId;
 
-      const workspace = await WorkspaceService.updateWorkspaceSettings(
+      const workspace = await WorkspaceService.updateWorkspaceSettingsIntoDB(
         workspaceId,
         timezone,
         defaultAttendanceDurationMins,
@@ -35,7 +35,7 @@ export class WorkspaceController {
     async (req: any, res: Response): Promise<void> => {
       const { email, name, role } = req.body;
       const workspaceId = req.membership.workspaceId;
-      const membership = await WorkspaceService.inviteMember(workspaceId, {
+      const membership = await WorkspaceService.inviteMemberIntoDB(workspaceId, {
         email,
         name,
         role,
@@ -49,11 +49,11 @@ export class WorkspaceController {
     },
   );
 
-  static listMembers = asyncHandler(
+  static getListMembers = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const { page, limit } = parsePagination(req.query);
-      const { total, memberships } = await WorkspaceService.listMembers({
+      const { total, memberships } = await WorkspaceService.getListMembersFromDB({
         workspaceId,
         page,
         limit,
@@ -77,7 +77,7 @@ export class WorkspaceController {
     async (req: any, res: Response): Promise<void> => {
       const membershipId = req.params.membershipId;
 
-      await WorkspaceService.deactivateMember(membershipId as string);
+      await WorkspaceService.deactivateMemberIntoDB(membershipId as string);
 
       ApiResponse.success(res, null, 200);
     },

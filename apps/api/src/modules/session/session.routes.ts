@@ -9,7 +9,7 @@ import {
   closeAttendanceSchema,
   createSessionSchema,
   getSessionSchema,
-  listSessionsSchema,
+  getListSessionsSchema,
   openAttendanceSchema,
   updateSessionSchema,
 } from "./session.schema";
@@ -28,8 +28,8 @@ router.post(
 router.get(
   "/batches/:batchId/sessions",
   requireRole(["MENTOR", "STUDENT"]),
-  validateRequest(listSessionsSchema),
-  SessionController.listSessions
+  validateRequest(getListSessionsSchema),
+  SessionController.getListSessions
 );
 
 router.get(
@@ -58,7 +58,7 @@ router.post(
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(openAttendanceSchema),
   attendanceRateLimiter,
-  SessionController.openAttendance
+  SessionController.openAttendanceWindow
 );
 
 router.post(
@@ -66,7 +66,7 @@ router.post(
   requireRole(["MENTOR", "STUDENT"]),
   validateRequest(closeAttendanceSchema),
   attendanceRateLimiter,
-  SessionController.closeAttendance
+  SessionController.closeAttendanceWindow
 );
 
 export default router;

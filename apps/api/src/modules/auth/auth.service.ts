@@ -70,7 +70,7 @@ export class AuthService {
     await auth.api.signOut({ headers }).catch(() => {});
   }
 
-  static async refresh(headers: any) {
+  static async refreshToken(headers: any) {
     const session = await auth.api.getSession({ headers });
 
     if (!session) {

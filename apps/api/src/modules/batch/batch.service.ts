@@ -20,7 +20,7 @@ export interface BatchDetails {
 }
 
 export class BatchService {
-  static async createBatch(
+  static async createBatchIntoDB(
     workspaceId: string,
     data: {
       name: string;
@@ -43,7 +43,7 @@ export class BatchService {
     });
   }
 
-  static async listBatches(workspaceId: string): Promise<any[]> {
+  static async getListBatchesFromDB(workspaceId: string): Promise<any[]> {
     return prisma.batch.findMany({
       where: {
         workspaceId,
@@ -55,7 +55,7 @@ export class BatchService {
     });
   }
 
-  static async getBatch(
+  static async getBatchFromDB(
     workspaceId: string,
     batchId: string,
   ): Promise<BatchDetails> {
@@ -118,7 +118,7 @@ export class BatchService {
     };
   }
 
-  static async updateBatch(
+  static async updateBatchIntoDB(
     workspaceId: string,
     batchId: string,
     data: {
@@ -159,7 +159,7 @@ export class BatchService {
     });
   }
 
-  static async archiveBatch(
+  static async archiveBatchIntoDB(
     workspaceId: string,
     batchId: string,
   ): Promise<any> {
@@ -183,7 +183,7 @@ export class BatchService {
     });
   }
 
-  static async allocateMember(
+  static async allocateMemberIntoDB(
     workspaceId: string,
     batchId: string,
     data: {
@@ -260,7 +260,7 @@ export class BatchService {
     }
   }
 
-  static async listBatchMembers(
+  static async getListBatchMembersFromDB(
     workspaceId: string,
     batchId: string,
     roleFilter?: "MENTOR" | "STUDENT",
@@ -319,7 +319,7 @@ export class BatchService {
     }));
   }
 
-  static async updateBatchMembership(
+  static async updateBatchMembershipIntoDB(
     workspaceId: string,
     batchId: string,
     batchMembershipId: string,

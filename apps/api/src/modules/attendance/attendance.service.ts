@@ -46,7 +46,7 @@ export interface AttendanceHistoryItem {
 }
 
 export class AttendanceService {
-  static async submitAttendance(
+  static async submitAttendanceIntoDB(
     sessionId: string,
     studentMembershipId: string,
     code: string,
@@ -164,7 +164,7 @@ export class AttendanceService {
     }
   }
 
-  static async manualMarkAttendance(
+  static async manualMarkAttendanceIntoDB(
     sessionId: string,
     actorMembershipId: string,
     actorRole: string,
@@ -249,7 +249,7 @@ export class AttendanceService {
     return record;
   }
 
-  static async getSessionAttendanceRoster(
+  static async getSessionAttendanceRosterFromDB(
     sessionId: string,
   ): Promise<AttendanceRosterItem[]> {
     const session = await prisma.session.findUnique({
@@ -341,7 +341,7 @@ export class AttendanceService {
     });
   }
 
-  static async getStudentAttendanceHistory(
+  static async getStudentAttendanceHistoryFromDB(
     batchMembershipId: string,
     actorMembershipId: string,
     actorRole: string,

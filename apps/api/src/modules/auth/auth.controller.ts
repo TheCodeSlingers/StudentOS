@@ -37,7 +37,7 @@ export class AuthController {
 
   static refresh = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
-      const data = await AuthService.refresh(req.headers);
+      const data = await AuthService.refreshToken(req.headers);
       ApiResponse.success(res, data);
     },
   );

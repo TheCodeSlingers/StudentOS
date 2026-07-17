@@ -8,7 +8,7 @@ export class StudentController {
     const batchId = req.params.batchId as string;
     const body = req.body;
 
-    const enrollment = await StudentService.enrollStudent(
+    const enrollment = await StudentService.enrollStudentIntoDB(
       batchId,
       body.membershipId,
       body.isCR,
@@ -22,7 +22,7 @@ export class StudentController {
       const page = Number(req.query.page) || 1;
       const limit = Number(req.query.limit) || 10;
 
-      const students = await StudentService.getEnrolledStudents(
+      const students = await StudentService.getEnrolledStudentsFromDB(
         batchId,
         page,
         limit,
@@ -36,7 +36,7 @@ export class StudentController {
       const batchId = req.params.batchId as string;
       const batchMembershipId = req.params.batchMembershipId as string;
 
-      const result = await StudentService.revokeEnrollment(
+      const result = await StudentService.revokeEnrollmentIntoDB(
         batchId,
         batchMembershipId,
       );
@@ -47,7 +47,7 @@ export class StudentController {
   static getStudentProfile = asyncHandler(
     async (req: Request, res: Response) => {
       const membershipId = req.params.membershipId as string;
-      const profile = await StudentService.getStudentProfile(membershipId);
+      const profile = await StudentService.getStudentProfileFromDB(membershipId);
       return ApiResponse.success(res, profile);
     },
   );
@@ -57,7 +57,7 @@ export class StudentController {
       const membershipId = req.params.membershipId as string;
       const data = req.body;
 
-      const updatedProfile = await StudentService.updateStudentProfile(
+      const updatedProfile = await StudentService.updateStudentProfileIntoDB(
         membershipId,
         data,
       );
