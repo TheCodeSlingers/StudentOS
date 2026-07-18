@@ -2,15 +2,22 @@ import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { UnauthorizedError } from "../../common/errors";
 import { logger } from "../../lib/logger";
+import {
+  IAuthResult,
+  TAuthHeaders,
+  IResetPasswordPayload,
+  ISignInPayload,
+  ISignUpPayload,
+} from "./auth.interface";
 
 export class AuthService {
-  static async signUp(payload: any) {
+  static async signUp(payload: ISignUpPayload) {
     const { email, password, name, workspaceName } = payload;
 
     const result = (await auth.api.signUpEmail({
       body: { email, password, name },
       returnHeaders: true,
-    })) as any;
+    })) as unknown as IAuthResult;
 
     const workspace = await prisma.workspace.create({
       data: {
@@ -45,13 +52,13 @@ export class AuthService {
     };
   }
 
-  static async signIn(payload: any) {
+  static async signIn(payload: ISignInPayload) {
     const { email, password } = payload;
 
     const result = (await auth.api.signInEmail({
       body: { email, password },
       returnHeaders: true,
-    })) as any;
+    })) as unknown as IAuthResult;
 
     return {
       headers: result.headers,
@@ -67,7 +74,7 @@ export class AuthService {
     };
   }
 
-  static async signOut(headers: any) {
+  static async signOut(headers: TAuthHeaders) {
     await auth.api.signOut({ headers }).catch((err) => {
       logger.warn(
         {
@@ -79,7 +86,7 @@ export class AuthService {
     });
   }
 
-  static async refresh(headers: any) {
+  static async refresh(headers: TAuthHeaders) {
     const session = await auth.api.getSession({ headers });
 
     if (!session) {
@@ -115,13 +122,13 @@ export class AuthService {
       });
   }
 
-  static async resetPassword(payload: any) {
+  static async resetPassword(payload: IResetPasswordPayload) {
     await auth.api.resetPassword({
       body: { newPassword: payload.newPassword, token: payload.token },
     });
   }
 
-  static async getMe(headers: any) {
+  static async getMe(headers: TAuthHeaders) {
     const session = await auth.api.getSession({ headers });
 
     if (!session) {

@@ -1,11 +1,12 @@
-import { Response } from "express";
+import { Request, Response } from "express";
+import { MembershipRole } from "@prisma/client";
 import { BatchService } from "./batch.service";
 import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
 
 export class BatchController {
   static create = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const result = await BatchService.createBatch(workspaceId, req.body);
       ApiResponse.created(res, result);
@@ -26,9 +27,9 @@ export class BatchController {
   });
 
   static update = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
-      const { batchId } = req.params;
+      const batchId = req.params.batchId as string;
       const result = await BatchService.updateBatch(
         workspaceId,
         batchId,
@@ -39,18 +40,18 @@ export class BatchController {
   );
 
   static archive = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
-      const { batchId } = req.params;
+      const batchId = req.params.batchId as string;
       const result = await BatchService.archiveBatch(workspaceId, batchId);
       ApiResponse.success(res, result);
     },
   );
 
   static allocate = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
-      const { batchId } = req.params;
+      const batchId = req.params.batchId as string;
       const result = await BatchService.allocateMember(
         workspaceId,
         batchId,
@@ -61,10 +62,10 @@ export class BatchController {
   );
 
   static listMembers = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
-      const { batchId } = req.params;
-      const { role } = req.query;
+      const batchId = req.params.batchId as string;
+      const role = req.query.role as MembershipRole | undefined;
       const result = await BatchService.listBatchMembers(
         workspaceId,
         batchId,
@@ -75,9 +76,10 @@ export class BatchController {
   );
 
   static updateMember = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
-      const { batchId, batchMembershipId } = req.params;
+      const batchId = req.params.batchId as string;
+      const batchMembershipId = req.params.batchMembershipId as string;
       const result = await BatchService.updateBatchMembership(
         workspaceId,
         batchId,

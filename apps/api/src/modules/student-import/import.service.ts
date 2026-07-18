@@ -1,27 +1,12 @@
+import { ImportJobStatus, ImportRowStatus } from "@prisma/client";
 import { NotFoundError } from "../../common/errors";
 import { logger } from "../../lib/logger";
 import { prisma } from "../../lib/prisma";
 import { importQueue } from "../../lib/queue";
-
-export interface ImportJobSummary {
-  id: string;
-  batchId: string;
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "COMPLETED_WITH_ERRORS";
-  totalRows: number;
-  successRows: number;
-  failedRows: number;
-  createdAt: Date;
-  updatedAt: Date;
-  queueProgress?: number | null;
-}
-
-export interface ImportJobRowReport {
-  id: string;
-  rowNumber: number;
-  email: string;
-  status: "SUCCESS" | "FAILED" | "SKIPPED";
-  errorMessage: string | null;
-}
+import {
+  IImportJobRowReport,
+  IImportJobSummary,
+} from "./import.interface";
 
 export class ImportService {
   static async startImport(
@@ -62,7 +47,7 @@ export class ImportService {
     return job.id;
   }
 
-  static async getJobSummary(jobId: string): Promise<ImportJobSummary | null> {
+  static async getJobSummary(jobId: string): Promise<IImportJobSummary | null> {
     const [job, bullJob] = await Promise.all([
       prisma.studentImportJob.findUnique({
         where: { id: jobId },
@@ -91,7 +76,7 @@ export class ImportService {
     return {
       id: job.id,
       batchId: job.batchId,
-      status: job.status as any,
+      status: job.status as ImportJobStatus,
       totalRows: job.totalRows,
       successRows: job.successRows,
       failedRows: job.failedRows,
@@ -101,17 +86,17 @@ export class ImportService {
     };
   }
 
-  static async getJobRows(jobId: string): Promise<ImportJobRowReport[]> {
+  static async getJobRows(jobId: string): Promise<IImportJobRowReport[]> {
     const rows = await prisma.studentImportRow.findMany({
       where: { jobId },
       orderBy: { rowNumber: "asc" },
     });
 
-    return rows.map((r: any) => ({
+    return rows.map((r) => ({
       id: r.id,
       rowNumber: r.rowNumber,
       email: r.email,
-      status: r.status as any,
+      status: r.status as ImportRowStatus,
       errorMessage: r.errorMessage,
     }));
   }

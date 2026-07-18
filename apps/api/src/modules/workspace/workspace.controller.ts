@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Request, Response } from "express";
 import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
 import { buildPaginationMeta, parsePagination } from "../../utils/pagination";
@@ -6,7 +6,7 @@ import { WorkspaceService } from "./workspace.service";
 
 export class WorkspaceController {
   static getWorkspace = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const workspace = await WorkspaceService.getWorkspace({ workspaceId });
       ApiResponse.success(res, workspace, 200);
@@ -14,7 +14,7 @@ export class WorkspaceController {
   );
 
   static updateWorkspaceSettings = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const { timezone, defaultAttendanceDurationMins, lateThresholdMins } =
         req.body;
 
@@ -32,7 +32,7 @@ export class WorkspaceController {
   );
 
   static inviteMember = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const { email, name, role } = req.body;
       const workspaceId = req.membership.workspaceId;
       const membership = await WorkspaceService.inviteMember(workspaceId, {
@@ -50,7 +50,7 @@ export class WorkspaceController {
   );
 
   static listMembers = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
+    async (req: Request, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const { page, limit } = parsePagination(req.query);
       const { total, memberships } = await WorkspaceService.listMembers({
@@ -74,10 +74,10 @@ export class WorkspaceController {
   );
 
   static deactivateMember = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const membershipId = req.params.membershipId;
+    async (req: Request, res: Response): Promise<void> => {
+      const membershipId = req.params.membershipId as string;
 
-      await WorkspaceService.deactivateMember(membershipId as string);
+      await WorkspaceService.deactivateMember(membershipId);
 
       ApiResponse.success(res, null, 200);
     },

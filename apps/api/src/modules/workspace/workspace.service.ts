@@ -1,52 +1,19 @@
-import { MembershipRole, MembershipStatus } from "@prisma/client";
+import { MembershipStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-
-export interface WorkspaceResult {
-  id: string;
-  name: string;
-  timezone: string;
-  settings: {
-    defaultAttendanceDurationMins: number;
-    lateThresholdMins: number;
-  };
-}
-
-export interface MemberResult {
-  id: string;
-  userId: string;
-  workspaceId: string;
-  role: MembershipRole;
-  status: MembershipStatus;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
-export interface ListMembersResult {
-  total: number;
-  memberships: MemberResult[];
-}
-
-export interface InviteMemberPayload {
-  email: string;
-  name: string;
-  role: MembershipRole;
-}
-
-export interface ListMembersParams {
-  workspaceId: string;
-  page: number;
-  limit: number;
-}
+import {
+  IInviteMemberPayload,
+  IListMembersParams,
+  IListMembersResult,
+  IMemberResult,
+  IWorkspaceResult,
+} from "./workspace.interface";
 
 export class WorkspaceService {
   static async getWorkspace({
     workspaceId,
   }: {
     workspaceId: string;
-  }): Promise<WorkspaceResult> {
+  }): Promise<IWorkspaceResult> {
     const workspace = await prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: {
@@ -82,7 +49,7 @@ export class WorkspaceService {
     timezone?: string,
     defaultAttendanceDurationMins?: number,
     lateThresholdMins?: number,
-  ): Promise<WorkspaceResult> {
+  ): Promise<IWorkspaceResult> {
     const data: any = {};
     const settingsData: any = {};
 
@@ -147,8 +114,8 @@ export class WorkspaceService {
 
   static async inviteMember(
     workspaceId: string,
-    payload: InviteMemberPayload,
-  ): Promise<MemberResult> {
+    payload: IInviteMemberPayload,
+  ): Promise<IMemberResult> {
     const user = await prisma.user.upsert({
       where: { email: payload.email },
       update: { name: payload.name },
@@ -208,8 +175,8 @@ export class WorkspaceService {
   }
 
   static async listMembers(
-    params: ListMembersParams,
-  ): Promise<ListMembersResult> {
+    params: IListMembersParams,
+  ): Promise<IListMembersResult> {
     const skip = (params.page - 1) * params.limit;
 
     const [total, memberships] = await Promise.all([
@@ -247,7 +214,7 @@ export class WorkspaceService {
     return { total, memberships };
   }
 
-  static async deactivateMember(membershipId: string): Promise<MemberResult> {
+  static async deactivateMember(membershipId: string): Promise<IMemberResult> {
     const membership = await prisma.membership.update({
       where: {
         id: membershipId,

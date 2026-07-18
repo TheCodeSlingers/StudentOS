@@ -1,35 +1,22 @@
 import { prisma } from "../../lib/prisma";
 import { Prisma } from "@prisma/client";
 import { BadRequestError, NotFoundError } from "../../common/errors";
-
-export interface BatchMetrics {
-  totalStudents: number;
-  totalCRs: number;
-  totalSessions: number;
-}
-
-export interface BatchDetails {
-  id: string;
-  name: string;
-  startDate: Date;
-  endDate: Date | null;
-  isArchived: boolean;
-  lateThresholdMinsOverride: number | null;
-  attendanceDurationMinsOverride: number | null;
-  metrics: BatchMetrics;
-}
+import {
+  IAllocateMemberPayload,
+  IBatchDetails,
+  IBatchMemberResult,
+  IBatchMembershipResult,
+  IBatchResult,
+  ICreateBatchPayload,
+  IUpdateBatchMembershipPayload,
+  IUpdateBatchPayload,
+} from "./batch.interface";
 
 export class BatchService {
   static async createBatch(
     workspaceId: string,
-    data: {
-      name: string;
-      startDate: string;
-      endDate?: string | null;
-      lateThresholdMinsOverride?: number | null;
-      attendanceDurationMinsOverride?: number | null;
-    },
-  ): Promise<any> {
+    data: ICreateBatchPayload,
+  ): Promise<IBatchResult> {
     return prisma.batch.create({
       data: {
         workspaceId,
@@ -43,7 +30,7 @@ export class BatchService {
     });
   }
 
-  static async listBatches(workspaceId: string): Promise<any[]> {
+  static async listBatches(workspaceId: string): Promise<IBatchResult[]> {
     return prisma.batch.findMany({
       where: {
         workspaceId,
@@ -58,7 +45,7 @@ export class BatchService {
   static async getBatch(
     workspaceId: string,
     batchId: string,
-  ): Promise<BatchDetails> {
+  ): Promise<IBatchDetails> {
     const [batch, totalStudents, totalCRs, totalSessions] = await Promise.all([
       prisma.batch.findFirst({
         where: { id: batchId, workspaceId },
@@ -121,14 +108,8 @@ export class BatchService {
   static async updateBatch(
     workspaceId: string,
     batchId: string,
-    data: {
-      name?: string;
-      startDate?: string;
-      endDate?: string | null;
-      lateThresholdMinsOverride?: number | null;
-      attendanceDurationMinsOverride?: number | null;
-    },
-  ): Promise<any> {
+    data: IUpdateBatchPayload,
+  ): Promise<IBatchResult> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
       select: { id: true },
@@ -141,7 +122,7 @@ export class BatchService {
       );
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.BatchUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.startDate !== undefined)
       updateData.startDate = new Date(data.startDate);
@@ -156,13 +137,13 @@ export class BatchService {
     return prisma.batch.update({
       where: { id: batchId },
       data: updateData,
-    });
+    }) as unknown as IBatchResult;
   }
 
   static async archiveBatch(
     workspaceId: string,
     batchId: string,
-  ): Promise<any> {
+  ): Promise<IBatchResult> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
       select: { id: true, isArchived: true },
@@ -180,17 +161,14 @@ export class BatchService {
       data: {
         isArchived: !batch.isArchived,
       },
-    });
+    }) as unknown as IBatchResult;
   }
 
   static async allocateMember(
     workspaceId: string,
     batchId: string,
-    data: {
-      membershipId: string;
-      isCR?: boolean;
-    },
-  ): Promise<any> {
+    data: IAllocateMemberPayload,
+  ): Promise<IBatchMembershipResult> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
       select: { id: true },
@@ -216,13 +194,13 @@ export class BatchService {
     }
 
     try {
-      return await prisma.batchMembership.create({
+      return prisma.batchMembership.create({
         data: {
           batchId,
           membershipId: data.membershipId,
           isCR: data.isCR ?? false,
         },
-      });
+      }) as unknown as IBatchMembershipResult;
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -253,7 +231,7 @@ export class BatchService {
               isCR: data.isCR ?? false,
               assignedAt: new Date(),
             },
-          });
+          }) as unknown as IBatchMembershipResult;
         }
       }
       throw error;
@@ -264,7 +242,7 @@ export class BatchService {
     workspaceId: string,
     batchId: string,
     roleFilter?: "MENTOR" | "STUDENT",
-  ): Promise<any[]> {
+  ): Promise<IBatchMemberResult[]> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
     });
@@ -276,7 +254,7 @@ export class BatchService {
       );
     }
 
-    const whereClause: any = {
+    const whereClause: Prisma.BatchMembershipWhereInput = {
       batchId,
       revokedAt: null,
     };
@@ -323,11 +301,8 @@ export class BatchService {
     workspaceId: string,
     batchId: string,
     batchMembershipId: string,
-    data: {
-      isCR?: boolean;
-      revokedAt?: string | null;
-    },
-  ): Promise<any> {
+    data: IUpdateBatchMembershipPayload,
+  ): Promise<IBatchMembershipResult> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
     });
@@ -350,7 +325,7 @@ export class BatchService {
       );
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.BatchMembershipUpdateInput = {};
     if (data.isCR !== undefined) updateData.isCR = data.isCR;
     if (data.revokedAt !== undefined) {
       updateData.revokedAt = data.revokedAt ? new Date(data.revokedAt) : null;

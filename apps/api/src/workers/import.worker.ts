@@ -1,10 +1,19 @@
 import { Worker, Job } from "bullmq";
+import {
+  Prisma,
+  MembershipRole,
+  MembershipStatus,
+  HireStatus,
+  JobType,
+  WorkplacePreference,
+  ImportRowStatus,
+} from "@prisma/client";
 import { env } from "../config/env";
 import { prisma } from "../lib/prisma";
 import { parseCSV, CSVRow } from "../utils/csv-parser";
 import { logger } from "../lib/logger";
 
-export interface ImportJobData {
+export interface IImportJobData {
   jobId: string;
   workspaceId: string;
   batchId: string;
@@ -24,9 +33,9 @@ export function startImportWorker(): Worker | null {
     tls: {},
   };
 
-  const worker = new Worker<ImportJobData>(
+  const worker = new Worker<IImportJobData>(
     "student-import",
-    async (job: Job<ImportJobData>) => {
+    async (job: Job<IImportJobData>) => {
       const { jobId, workspaceId, batchId, csvBase64 } = job.data;
       const fileBuffer = Buffer.from(csvBase64, "base64");
 
@@ -41,7 +50,7 @@ export function startImportWorker(): Worker | null {
 
       try {
         rows = parseCSV(fileBuffer);
-      } catch (err: any) {
+        } catch (err: unknown) {
         await prisma.studentImportJob.update({
           where: { id: jobId },
           data: { status: "COMPLETED_WITH_ERRORS" },
@@ -52,7 +61,7 @@ export function startImportWorker(): Worker | null {
             rowNumber: 0,
             email: "N/A",
             status: "FAILED",
-            errorMessage: err.message || "Failed to parse CSV file",
+            errorMessage: (err as Error).message || "Failed to parse CSV file",
           },
         });
         logger.error({ jobId, err }, "CSV parse failed");
@@ -66,7 +75,7 @@ export function startImportWorker(): Worker | null {
 
       let successCount = 0;
       let failedCount = 0;
-      const importRowsToCreate: any[] = [];
+      const importRowsToCreate: Prisma.StudentImportRowCreateManyInput[] = [];
 
       const chunkSize = 50;
       let lastProgress = 0;
@@ -111,8 +120,8 @@ export function startImportWorker(): Worker | null {
             .map((uid) => ({
               workspaceId,
               userId: uid,
-              role: "STUDENT" as any,
-              status: "ACTIVE" as any,
+              role: MembershipRole.STUDENT,
+              status: MembershipStatus.ACTIVE,
             }));
 
           if (membershipsToCreate.length > 0) {
@@ -156,8 +165,8 @@ export function startImportWorker(): Worker | null {
           });
           const existingProfileMap = new Map(existingProfiles.map((p) => [p.membershipId, p]));
 
-          const profilesToCreate: any[] = [];
-          const profilesToUpdate: any[] = [];
+          const profilesToCreate: Prisma.StudentProfileCreateManyInput[] = [];
+          const profilesToUpdate: { membershipId: string; updateData: Prisma.StudentProfileUpdateInput }[] = [];
 
           for (const row of chunk) {
             const userId = userMap.get(row.email);
@@ -174,12 +183,12 @@ export function startImportWorker(): Worker | null {
                 courseName: row.courseName || null,
                 specialization: row.specialization || null,
                 skills: row.skills || [],
-                hireStatus: "STUDENT_ONLY" as any,
-                jobType: "NOT_LOOKING" as any,
-                workplacePreference: "NO_PREFERENCE" as any,
+                hireStatus: HireStatus.STUDENT_ONLY,
+                jobType: JobType.NOT_LOOKING,
+                workplacePreference: WorkplacePreference.NO_PREFERENCE,
               });
             } else {
-              const updateData: any = {};
+              const updateData: Prisma.StudentProfileUpdateInput = {};
               let hasUpdates = false;
               if (row.phone) {
                 updateData.phone = row.phone;
@@ -233,18 +242,18 @@ export function startImportWorker(): Worker | null {
               jobId,
               rowNumber: row.rowNumber,
               email: row.email,
-              status: "SUCCESS" as any,
+              status: ImportRowStatus.SUCCESS,
             });
             successCount++;
           }
-        } catch (err: any) {
+      } catch (err: unknown) {
           for (const row of chunk) {
             importRowsToCreate.push({
               jobId,
               rowNumber: row.rowNumber,
               email: row.email,
-              status: "FAILED" as any,
-              errorMessage: err.message || "Bulk transaction failure",
+              status: ImportRowStatus.FAILED,
+              errorMessage: (err as Error).message || "Bulk transaction failure",
             });
             failedCount++;
           }
@@ -283,7 +292,7 @@ export function startImportWorker(): Worker | null {
       );
     },
     {
-      connection: connectionOpts as any,
+      connection: connectionOpts as import("ioredis").RedisOptions,
       concurrency: 2,
     },
   );

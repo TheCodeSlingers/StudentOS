@@ -4,10 +4,14 @@ import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
 import { BadRequestError, NotFoundError } from "../../common/errors";
 
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
+
 export class ImportController {
   static importRoster = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { batchId } = req.params;
+    async (req: MulterRequest, res: Response): Promise<void> => {
+      const batchId = req.params.batchId as string;
       const file = req.file;
 
       if (!file) {
@@ -28,8 +32,8 @@ export class ImportController {
   );
 
   static getSummary = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { jobId } = req.params;
+    async (req: MulterRequest, res: Response): Promise<void> => {
+      const jobId = req.params.jobId as string;
       const job = await ImportService.getJobSummary(jobId);
 
       if (!job) {
@@ -44,8 +48,8 @@ export class ImportController {
   );
 
   static getRows = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { jobId } = req.params;
+    async (req: MulterRequest, res: Response): Promise<void> => {
+      const jobId = req.params.jobId as string;
       const job = await ImportService.getJobSummary(jobId);
 
       if (!job) {
