@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BatchFormModal } from "@/components/modals/batch-form-modal";
 import { Button } from "@/components/ui/Button";
 import { ApiError, Batch, BatchStatusFilter, archiveBatch, listBatches } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
 
@@ -17,9 +18,7 @@ export default function BatchesPage() {
   const isAuthorized = useRequireRole("MENTOR");
   const [statusFilter, setStatusFilter] = useState<BatchStatusFilter>("active");
   const [batches, setBatches] = useState<Batch[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
 
@@ -106,19 +105,8 @@ export default function BatchesPage() {
         </div>
       </div>
 
-      {error ? (
-        <div className={styles.banner} role="alert">
-          {error}
-        </div>
-      ) : null}
-      {actionError ? (
-        <div className={styles.banner} role="alert">
-          {actionError}
-        </div>
-      ) : null}
-
       <div className={styles.card}>
-        {!error && batches === null ? (
+        {batches === null ? (
           <p className={styles.emptyState}>Loading batches…</p>
         ) : batches && batches.length === 0 ? (
           <p className={styles.emptyState}>
@@ -182,7 +170,7 @@ export default function BatchesPage() {
               </tbody>
             </table>
           </div>
-        ) : null}
+        )}
       </div>
 
       <BatchFormModal

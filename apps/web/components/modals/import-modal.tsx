@@ -95,6 +95,7 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
 
   useEffect(() => {
     if (isOpen) return;
+    // Reset state when modal closes
     setFile(null);
     setError(null);
     setIsProcessing(false);
@@ -163,7 +164,7 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
 
   async function handleUpload() {
     if (!file) {
-      setError("Choose a CSV file first.");
+      notify.error("Choose a CSV file first.");
       return;
     }
 

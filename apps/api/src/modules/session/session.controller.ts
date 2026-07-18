@@ -25,7 +25,7 @@ export class SessionController {
       const workspaceId = req.membership.workspaceId;
       const userId = req.user.id;
       const role = req.membership.role;
-      const { page, limit, status } = req.query;
+      const { page, limit, status, cursor } = req.query;
 
       const result = await SessionService.getlistSessionsFromDB(
         batchId,
@@ -34,7 +34,8 @@ export class SessionController {
         role,
         page,
         limit,
-        status
+        status,
+        cursor
       );
 
       ApiResponse.success(res, result.data, 200, result.meta);

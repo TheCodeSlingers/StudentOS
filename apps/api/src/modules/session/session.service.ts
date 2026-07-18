@@ -6,6 +6,30 @@ import {
 } from "../../common/errors";
 import { ATTENDANCE_CODE } from "../../config/constants";
 import { prisma } from "../../lib/prisma";
+import { buildPaginationMeta } from "../../utils/pagination";
+
+// Shared select fragments — avoids duplication, keeps queries consistent
+const SESSION_SELECT = {
+  id: true,
+  batchId: true,
+  title: true,
+  description: true,
+  status: true,
+  scheduledStart: true,
+  scheduledEnd: true,
+  meetLink: true,
+  type: true,
+  attendanceOpenedAt: true,
+  attendanceClosedAt: true,
+  currentCode: true,
+} as const;
+
+const BATCH_SELECT = {
+  workspaceId: true,
+  isArchived: true,
+  startDate: true,
+  endDate: true,
+} as const;
 
 export class SessionService {
   // Route 1: Create Session
@@ -21,16 +45,10 @@ export class SessionService {
       type?: "REGULAR" | "MAKEUP" | "EXAM";
     },
   ): Promise<any> {
-    // 1. Validate batch exists and belongs to workspace
+    // 1. Validate batch exists and belongs to workspace (select only needed fields)
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
-      select: {
-        id: true,
-        workspaceId: true,
-        isArchived: true,
-        startDate: true,
-        endDate: true,
-      },
+      select: BATCH_SELECT,
     });
 
     if (!batch) {
@@ -98,7 +116,7 @@ export class SessionService {
     });
   }
 
-  // Route 2: List Sessions (with pagination)
+  // Route 2: List Sessions (cursor-based pagination for scale)
   static async getlistSessionsFromDB(
     batchId: string,
     workspaceId: string,
@@ -107,17 +125,15 @@ export class SessionService {
     page: number = 1,
     limit: number = 20,
     status?: "SCHEDULED" | "STARTED" | "ENDED" | "CANCELLED",
+    cursor?: string,
   ): Promise<{
     data: any[];
-    meta: { total: number; page: number; limit: number; totalPages: number };
+    meta: { total?: number; page: number; limit: number; totalPages?: number; nextCursor: string | null };
   }> {
     // 1. Validate batch exists and belongs to workspace
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
-      select: {
-        id: true,
-        workspaceId: true,
-      },
+      select: { workspaceId: true },
     });
 
     if (!batch) {
@@ -128,7 +144,7 @@ export class SessionService {
       throw new ForbiddenError("This batch does not belong to your workspace.");
     }
 
-    // 2. For students, verify enrollment
+    // 2. For students, verify enrollment (direct lookup — no JOIN through Membership)
     if (role === "STUDENT") {
       const batchMembership = await prisma.batchMembership.findFirst({
         where: {
@@ -136,6 +152,7 @@ export class SessionService {
           membership: { userId },
           revokedAt: null,
         },
+        select: { id: true },
       });
 
       if (!batchMembership) {
@@ -149,8 +166,28 @@ export class SessionService {
       whereClause.status = status;
     }
 
-    // 4. Get total count and paginated results
-    const skip = (page - 1) * limit;
+    // 4. Cursor-based pagination (constant time regardless of depth)
+    if (cursor) {
+      whereClause.scheduledStart = { lt: new Date(cursor) };
+    }
+
+    const sessions = await prisma.session.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        batchId: true,
+        title: true,
+        status: true,
+        scheduledStart: true,
+        scheduledEnd: true,
+      },
+      orderBy: { scheduledStart: "desc" },
+      take: limit + 1, // +1 to detect hasMore
+    });
+
+    const hasMore = sessions.length > limit;
+    const data = hasMore ? sessions.slice(0, limit) : sessions;
+    const nextCursor = hasMore ? data[data.length - 1].scheduledStart.toISOString() : null;
 
     const [sessions, total] = await Promise.all([
       prisma.session.findMany({
@@ -167,12 +204,8 @@ export class SessionService {
           attendanceClosedAt: true,
           currentCode: true,
         },
-        orderBy: { scheduledStart: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.session.count({ where: whereClause }),
-    ]);
+      };
+    }
 
     // Only MENTOR sees the live check-in code through the list — matches getSessionFromDB.
     const data =
@@ -183,10 +216,9 @@ export class SessionService {
     return {
       data,
       meta: {
-        total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
+        nextCursor,
       },
     };
   }
@@ -198,27 +230,12 @@ export class SessionService {
     userId: string,
     role: "MENTOR" | "STUDENT",
   ): Promise<any> {
-    // 1. Find session
+    // 1. Find session with batch workspace check (1 query for both)
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
       select: {
-        id: true,
-        batchId: true,
-        title: true,
-        description: true,
-        status: true,
-        scheduledStart: true,
-        scheduledEnd: true,
-        meetLink: true,
-        type: true,
-        attendanceOpenedAt: true,
-        attendanceClosedAt: true,
-        currentCode: true,
-        batch: {
-          select: {
-            workspaceId: true,
-          },
-        },
+        ...SESSION_SELECT,
+        batch: { select: { workspaceId: true } },
       },
     });
 
@@ -297,13 +314,7 @@ export class SessionService {
         scheduledEnd: true,
         meetLink: true,
         type: true,
-        batch: {
-          select: {
-            workspaceId: true,
-            startDate: true,
-            endDate: true,
-          },
-        },
+        batch: { select: BATCH_SELECT },
       },
     });
 

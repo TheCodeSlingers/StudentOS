@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { InviteModal } from "@/components/modals/invite-modal";
 import { ApiError, Member, listMembers, removeMember } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
 
@@ -16,15 +17,13 @@ function statusTone(status: Member["status"]): "success" | "warning" | "neutral"
 export default function MembersPage() {
   const isAuthorized = useRequireRole("MENTOR");
   const [members, setMembers] = useState<Member[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   function loadMembers() {
-    setError(null);
     listMembers()
       .then(setMembers)
-      .catch((fetchError) => setError(fetchError instanceof ApiError ? fetchError.message : "Could not load members."));
+      .catch((fetchError) => notify.error(fetchError, "Could not load members."));
   }
 
   useEffect(() => {
@@ -37,10 +36,11 @@ export default function MembersPage() {
     try {
       await removeMember(membershipId);
       setMembers((current) =>
-        current?.map((member) => (member.id === membershipId ? { ...member, status: "INACTIVE" } : member)) ?? current
+        current?.map((member) => (member.id === membershipId ? { ...member, status: "INACTIVE" } : member)) ?? null
       );
+      notify.success("Member has been removed from the workspace.");
     } catch (removeError) {
-      setError(removeError instanceof ApiError ? removeError.message : "Could not remove this member.");
+      notify.error(removeError, "Could not remove this member.");
     } finally {
       setRemovingId(null);
     }
@@ -62,18 +62,12 @@ export default function MembersPage() {
         </Button>
       </div>
 
-      {error ? (
-        <div className={styles.banner} role="alert">
-          {error}
-        </div>
-      ) : null}
-
       <div className={styles.card}>
-        {members === null && !error ? (
+        {members === null ? (
           <p className={styles.emptyState}>Loading members…</p>
-        ) : members && members.length === 0 ? (
+        ) : members.length === 0 ? (
           <p className={styles.emptyState}>No members yet.</p>
-        ) : members ? (
+        ) : (
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
@@ -117,7 +111,7 @@ export default function MembersPage() {
               </tbody>
             </table>
           </div>
-        ) : null}
+        )}
       </div>
 
       <InviteModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} onInvited={loadMembers} />

@@ -12,6 +12,7 @@ import {
   getSession,
   updateSession,
 } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import styles from "./modal.module.css";
 
 interface SessionFormModalProps {
@@ -64,8 +65,6 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
   const [meetLink, setMeetLink] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<SessionType>("REGULAR");
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
@@ -77,8 +76,6 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
     setMeetLink(session?.meetLink ?? "");
     setDescription("");
     setType("REGULAR");
-    setErrors({});
-    setApiError(null);
     setIsSubmitting(false);
 
     // The session list only carries summary fields — fetch the full detail so
@@ -110,27 +107,31 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
     return null;
   }
 
-  function validate(): boolean {
-    const nextErrors: FormErrors = {};
-    if (!title.trim()) nextErrors.title = "Title is required.";
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!title.trim()) {
+      notify.error("Title is required.");
+      return;
+    }
     if (!timesLocked) {
-      if (!scheduledStart) nextErrors.scheduledStart = "Start time is required.";
-      if (!scheduledEnd) nextErrors.scheduledEnd = "End time is required.";
-      if (scheduledStart && scheduledEnd && new Date(scheduledEnd) <= new Date(scheduledStart)) {
-        nextErrors.scheduledEnd = "End time must be after the start time.";
+      if (!scheduledStart) {
+        notify.error("Start time is required.");
+        return;
+      }
+      if (!scheduledEnd) {
+        notify.error("End time is required.");
+        return;
+      }
+      if (new Date(scheduledEnd) <= new Date(scheduledStart)) {
+        notify.error("End time must be after the start time.");
+        return;
       }
     }
     if (meetLink.trim() && !isValidUrl(meetLink.trim())) {
-      nextErrors.meetLink = "Enter a valid URL.";
+      notify.error("Enter a valid URL for the meeting link.");
+      return;
     }
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setApiError(null);
-    if (!validate()) return;
 
     setIsSubmitting(true);
     try {
@@ -158,10 +159,11 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
         if (description.trim()) payload.description = description.trim();
         await createSession(batchId, payload);
       }
+      notify.success(isEditing ? "Session updated successfully." : "Session created successfully.");
       onSaved();
       onClose();
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Could not save this session.");
+      notify.error(error, "Could not save this session.");
     } finally {
       setIsSubmitting(false);
     }
@@ -190,14 +192,8 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
           </button>
         </div>
 
-        {apiError ? (
-          <div className={styles.banner} role="alert">
-            {apiError}
-          </div>
-        ) : null}
-
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
-          <TextField label="Title" value={title} onChange={(event) => setTitle(event.target.value)} error={errors.title} />
+          <TextField label="Title" value={title} onChange={(event) => setTitle(event.target.value)} />
 
           <div className={styles.fieldRow}>
             <TextField
@@ -205,7 +201,6 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
               type="datetime-local"
               value={scheduledStart}
               onChange={(event) => setScheduledStart(event.target.value)}
-              error={errors.scheduledStart}
               disabled={timesLocked}
             />
             <TextField
@@ -213,7 +208,6 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
               type="datetime-local"
               value={scheduledEnd}
               onChange={(event) => setScheduledEnd(event.target.value)}
-              error={errors.scheduledEnd}
               disabled={timesLocked}
             />
           </div>
@@ -241,7 +235,6 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
             placeholder="https://…"
             value={meetLink}
             onChange={(event) => setMeetLink(event.target.value)}
-            error={errors.meetLink}
           />
 
           <div className={styles.fieldGroup}>

@@ -6,15 +6,10 @@ import { FormEvent, Suspense, useState } from "react";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { ApiError } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useAuth } from "@/lib/auth-context";
 import { isValidEmail } from "@/lib/validation";
 import styles from "../auth.module.css";
-
-interface FormErrors {
-  email?: string;
-  password?: string;
-}
 
 function SessionExpiredBanner() {
   const searchParams = useSearchParams();
@@ -33,41 +28,31 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  function validate(): boolean {
-    const nextErrors: FormErrors = {};
-
-    if (!email.trim()) {
-      nextErrors.email = "Email is required.";
-    } else if (!isValidEmail(email)) {
-      nextErrors.email = "Enter a valid email address.";
-    }
-
-    if (!password) {
-      nextErrors.password = "Password is required.";
-    }
-
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setApiError(null);
 
-    if (!validate()) {
+    if (!email.trim()) {
+      notify.error("Email is required.");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      notify.error("Enter a valid email address.");
+      return;
+    }
+    if (!password) {
+      notify.error("Password is required.");
       return;
     }
 
     setIsSubmitting(true);
     try {
       await login({ email: email.trim(), password });
+      notify.success("Login successful!");
       router.push("/dashboard");
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+      notify.error(error, "Invalid email or password. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -84,12 +69,6 @@ export default function LoginPage() {
         <SessionExpiredBanner />
       </Suspense>
 
-      {apiError ? (
-        <div className={styles.banner} role="alert">
-          {apiError}
-        </div>
-      ) : null}
-
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <TextField
           label="Email"
@@ -97,7 +76,6 @@ export default function LoginPage() {
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          error={errors.email}
         />
 
         <div>
@@ -108,7 +86,6 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            error={errors.password}
           />
           <div className={styles.forgotPasswordRow}>
             <Link href="/forgot-password" className={styles.inlineLink}>
