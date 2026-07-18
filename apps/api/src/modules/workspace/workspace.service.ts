@@ -247,6 +247,41 @@ export class WorkspaceService {
     return { total, memberships };
   }
 
+  static async getMyBatchesFromDB(membershipId: string) {
+    const enrollments = await prisma.batchMembership.findMany({
+      where: {
+        membershipId,
+        revokedAt: null,
+      },
+      select: {
+        id: true,
+        isCR: true,
+        batch: {
+          select: {
+            id: true,
+            name: true,
+            startDate: true,
+            endDate: true,
+            isArchived: true,
+          },
+        },
+      },
+      orderBy: {
+        assignedAt: "desc",
+      },
+    });
+
+    return enrollments.map((enrollment) => ({
+      batchMembershipId: enrollment.id,
+      batchId: enrollment.batch.id,
+      batchName: enrollment.batch.name,
+      isCR: enrollment.isCR,
+      startDate: enrollment.batch.startDate,
+      endDate: enrollment.batch.endDate,
+      isArchived: enrollment.batch.isArchived,
+    }));
+  }
+
   static async deactivateMemberIntoDB(membershipId: string): Promise<MemberResult> {
     const membership = await prisma.membership.update({
       where: {

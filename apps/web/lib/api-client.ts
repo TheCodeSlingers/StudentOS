@@ -197,7 +197,6 @@ export interface Batch {
   name: string;
   startDate: string;
   endDate: string | null;
-  capacity: number | null;
   isArchived: boolean;
   lateThresholdMinsOverride: number | null;
   attendanceDurationMinsOverride: number | null;
@@ -237,8 +236,10 @@ export interface AttendanceRosterItem {
   } | null;
 }
 
-export function listBatches(): Promise<Batch[]> {
-  return getJson<Batch[]>("/batches");
+export type BatchStatusFilter = "active" | "archived" | "all";
+
+export function listBatches(status: BatchStatusFilter = "active"): Promise<Batch[]> {
+  return getJson<Batch[]>(`/batches?status=${status}`);
 }
 
 export interface BatchPayload {
@@ -314,12 +315,42 @@ export function cancelSession(sessionId: string): Promise<{ id: string; status: 
   return postJson<{ id: string; status: SessionStatus }>(`/sessions/${sessionId}/cancel`, {});
 }
 
-export function openAttendanceWindow(sessionId: string): Promise<SessionSummary> {
-  return postJson<SessionSummary>(`/sessions/${sessionId}/attendance/open`, {});
+export interface SessionDetail {
+  id: string;
+  batchId: string;
+  title: string;
+  description: string | null;
+  status: SessionStatus;
+  scheduledStart: string;
+  scheduledEnd: string;
+  meetLink: string | null;
+  type: SessionType;
+  attendanceOpenedAt: string | null;
+  attendanceClosedAt: string | null;
+  /** Only present for MENTOR — the backend omits this field entirely for STUDENT. */
+  currentCode?: string | null;
 }
 
-export function closeAttendanceWindow(sessionId: string): Promise<SessionSummary> {
-  return postJson<SessionSummary>(`/sessions/${sessionId}/attendance/close`, {});
+export function getSession(sessionId: string): Promise<SessionDetail> {
+  return getJson<SessionDetail>(`/sessions/${sessionId}`);
+}
+
+// The open/close endpoints only return the fields they touched, keyed by `sessionId`
+// (not `id`) — callers must merge these into the existing session, not replace it.
+export interface AttendanceWindowResult {
+  sessionId: string;
+  status: SessionStatus;
+  attendanceOpenedAt?: string;
+  attendanceClosedAt?: string;
+  currentCode: string | null;
+}
+
+export function openAttendanceWindow(sessionId: string): Promise<AttendanceWindowResult> {
+  return postJson<AttendanceWindowResult>(`/sessions/${sessionId}/attendance/open`, {});
+}
+
+export function closeAttendanceWindow(sessionId: string): Promise<AttendanceWindowResult> {
+  return postJson<AttendanceWindowResult>(`/sessions/${sessionId}/attendance/close`, {});
 }
 
 export function getSessionRoster(sessionId: string): Promise<AttendanceRosterItem[]> {
@@ -441,6 +472,38 @@ export function enrollStudent(batchId: string, membershipId: string, isCR = fals
 
 export function removeStudent(batchId: string, batchMembershipId: string): Promise<null> {
   return deleteJson<null>(`/batches/${batchId}/students/${batchMembershipId}`);
+}
+
+export interface BatchMembershipUpdateResult {
+  id: string;
+  batchId: string;
+  membershipId: string;
+  isCR: boolean;
+  revokedAt: string | null;
+}
+
+/** Promote or demote a student to/from Class Representative for a batch. */
+export function setBatchMemberCR(
+  batchId: string,
+  batchMembershipId: string,
+  isCR: boolean
+): Promise<BatchMembershipUpdateResult> {
+  return patchJson<BatchMembershipUpdateResult>(`/batches/${batchId}/members/${batchMembershipId}`, { isCR });
+}
+
+export interface MyBatch {
+  batchMembershipId: string;
+  batchId: string;
+  batchName: string;
+  isCR: boolean;
+  startDate: string;
+  endDate: string | null;
+  isArchived: boolean;
+}
+
+/** The current user's own batch enrollments — used by student-facing pages. */
+export function getMyBatches(): Promise<MyBatch[]> {
+  return getJson<MyBatch[]>("/workspace/my-batches");
 }
 
 export type ImportJobStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "COMPLETED_WITH_ERRORS";

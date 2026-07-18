@@ -14,7 +14,10 @@ export class BatchController {
 
   static getListBatches = asyncHandler(async (req: any, res: Response): Promise<void> => {
     const workspaceId = req.membership.workspaceId;
-    const result = await BatchService.getListBatchesFromDB(workspaceId);
+    const status = ["active", "archived", "all"].includes(req.query.status)
+      ? req.query.status
+      : "active";
+    const result = await BatchService.getListBatchesFromDB(workspaceId, status);
     ApiResponse.success(res, result);
   });
 

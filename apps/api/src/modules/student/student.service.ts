@@ -27,6 +27,25 @@ export interface UpdateProfileData {
   linkedinUrl?: string | null;
 }
 
+interface EnrollmentRecord {
+  id: string;
+  membershipId: string;
+  isCR: boolean;
+  membership: { user: { id: string; name: string; email: string } };
+}
+
+/** Flattens a BatchMembership+Membership+User join into the shape the frontend's BatchStudent expects. */
+function flattenEnrollment(record: EnrollmentRecord) {
+  return {
+    batchMembershipId: record.id,
+    membershipId: record.membershipId,
+    userId: record.membership.user.id,
+    name: record.membership.user.name,
+    email: record.membership.user.email,
+    isCR: record.isCR,
+  };
+}
+
 export class StudentService {
   static async enrollStudentIntoDB(
     batchId: string,
@@ -65,23 +84,40 @@ export class StudentService {
       },
     });
 
+    const enrollmentSelect = {
+      id: true,
+      membershipId: true,
+      isCR: true,
+      membership: {
+        select: {
+          user: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      },
+    } as const;
+
     if (existingEnrollment) {
       if (existingEnrollment.revokedAt) {
-        return prisma.batchMembership.update({
+        const updated = await prisma.batchMembership.update({
           where: { id: existingEnrollment.id },
           data: { revokedAt: null, isCR },
+          select: enrollmentSelect,
         });
+        return flattenEnrollment(updated);
       }
       throw new BadRequestError("Student is already enrolled in this batch");
     }
 
-    return prisma.batchMembership.create({
+    const created = await prisma.batchMembership.create({
       data: {
         batchId,
         membershipId,
         isCR,
       },
+      select: enrollmentSelect,
     });
+    return flattenEnrollment(created);
   }
 
   static async getEnrolledStudentsFromDB(
@@ -99,28 +135,15 @@ export class StudentService {
         },
         select: {
           id: true,
-          batchId: true,
           membershipId: true,
           isCR: true,
-          assignedAt: true,
           membership: {
             select: {
-              id: true,
-              role: true,
               user: {
                 select: {
                   id: true,
                   name: true,
                   email: true,
-                },
-              },
-              studentProfile: {
-                select: {
-                  id: true,
-                  phone: true,
-                  courseName: true,
-                  specialization: true,
-                  skills: true,
                 },
               },
             },
@@ -141,7 +164,7 @@ export class StudentService {
     ]);
 
     return {
-      data: students,
+      data: students.map(flattenEnrollment),
       meta: {
         total,
         page,
@@ -188,7 +211,28 @@ export class StudentService {
       throw new NotFoundError("Membership not found");
     }
 
-    return membership;
+    const profile = membership.studentProfile;
+
+    // Flatten to match the documented profile shape even when no profile row
+    // exists yet (e.g. a freshly-enrolled student who hasn't saved anything).
+    return {
+      membershipId: membership.id,
+      name: membership.user.name,
+      email: membership.user.email,
+      phone: profile?.phone ?? null,
+      address: profile?.address ?? null,
+      avatarUrl: profile?.avatarUrl ?? null,
+      courseName: profile?.courseName ?? null,
+      specialization: profile?.specialization ?? null,
+      skills: profile?.skills ?? [],
+      hireStatus: profile?.hireStatus ?? "STUDENT_ONLY",
+      jobType: profile?.jobType ?? "NOT_LOOKING",
+      workplacePreference: profile?.workplacePreference ?? "NO_PREFERENCE",
+      currentEmployer: profile?.currentEmployer ?? null,
+      currentPosition: profile?.currentPosition ?? null,
+      portfolioUrl: profile?.portfolioUrl ?? null,
+      linkedinUrl: profile?.linkedinUrl ?? null,
+    };
   }
 
   static async updateStudentProfileIntoDB(

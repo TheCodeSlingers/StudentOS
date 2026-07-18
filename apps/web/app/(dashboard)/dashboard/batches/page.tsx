@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { BatchFormModal } from "@/components/modals/batch-form-modal";
 import { Button } from "@/components/ui/Button";
-import { ApiError, Batch, archiveBatch, listBatches } from "@/lib/api-client";
+import { ApiError, Batch, BatchStatusFilter, archiveBatch, listBatches } from "@/lib/api-client";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
 
@@ -14,6 +15,7 @@ function formatDate(iso: string | null): string {
 
 export default function BatchesPage() {
   const isAuthorized = useRequireRole("MENTOR");
+  const [statusFilter, setStatusFilter] = useState<BatchStatusFilter>("active");
   const [batches, setBatches] = useState<Batch[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
@@ -21,29 +23,33 @@ export default function BatchesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
 
-  useEffect(() => {
+  const refetchBatches = useCallback(() => {
     if (!isAuthorized) return;
-    let cancelled = false;
-    listBatches()
-      .then((result) => {
-        if (!cancelled) setBatches(result);
-      })
+    setBatches(null);
+    setError(null);
+    listBatches(statusFilter)
+      .then(setBatches)
       .catch((fetchError) => {
-        if (!cancelled) setError(fetchError instanceof ApiError ? fetchError.message : "Could not load batches.");
+        setError(fetchError instanceof ApiError ? fetchError.message : "Could not load batches.");
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthorized]);
+  }, [isAuthorized, statusFilter]);
 
-  async function handleArchive(batchId: string) {
+  useEffect(() => {
+    refetchBatches();
+  }, [refetchBatches]);
+
+  async function handleArchiveToggle(batch: Batch) {
     setActionError(null);
-    setArchivingId(batchId);
+    setArchivingId(batch.id);
     try {
-      await archiveBatch(batchId);
-      setBatches((current) => current?.filter((batch) => batch.id !== batchId) ?? current);
+      await archiveBatch(batch.id);
+      setBatches((current) => current?.filter((item) => item.id !== batch.id) ?? current);
     } catch (archiveError) {
-      setActionError(archiveError instanceof ApiError ? archiveError.message : "Could not archive this batch.");
+      setActionError(
+        archiveError instanceof ApiError
+          ? archiveError.message
+          : `Could not ${batch.isArchived ? "unarchive" : "archive"} this batch.`
+      );
     } finally {
       setArchivingId(null);
     }
@@ -76,11 +82,28 @@ export default function BatchesPage() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Batches</h1>
-          <p className={styles.subtitle}>Active batches in your workspace.</p>
+          <p className={styles.subtitle}>
+            {statusFilter === "active"
+              ? "Active batches in your workspace."
+              : statusFilter === "archived"
+                ? "Archived batches in your workspace."
+                : "All batches in your workspace."}
+          </p>
         </div>
-        <Button type="button" style={{ width: "auto" }} onClick={openCreateForm}>
-          New batch
-        </Button>
+        <div className={styles.selectGroup}>
+          <select
+            className={styles.select}
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as BatchStatusFilter)}
+          >
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+            <option value="all">All</option>
+          </select>
+          <Button type="button" style={{ width: "auto" }} onClick={openCreateForm}>
+            New batch
+          </Button>
+        </div>
       </div>
 
       {error ? (
@@ -98,7 +121,9 @@ export default function BatchesPage() {
         {!error && batches === null ? (
           <p className={styles.emptyState}>Loading batches…</p>
         ) : batches && batches.length === 0 ? (
-          <p className={styles.emptyState}>No active batches yet.</p>
+          <p className={styles.emptyState}>
+            {statusFilter === "archived" ? "No archived batches." : "No active batches yet."}
+          </p>
         ) : batches ? (
           <div className={styles.tableScroll}>
             <table className={styles.table}>
@@ -107,17 +132,29 @@ export default function BatchesPage() {
                   <th>Name</th>
                   <th>Start date</th>
                   <th>End date</th>
-                  <th>Capacity</th>
+                  <th>Status</th>
                   <th />
                 </tr>
               </thead>
               <tbody>
                 {batches.map((batch) => (
                   <tr key={batch.id}>
-                    <td className={styles.primaryCell}>{batch.name}</td>
+                    <td className={styles.primaryCell}>
+                      <Link href={`/dashboard/batches/${batch.id}`}>{batch.name}</Link>
+                    </td>
                     <td>{formatDate(batch.startDate)}</td>
                     <td>{formatDate(batch.endDate)}</td>
-                    <td>{batch.capacity ?? "—"}</td>
+                    <td>
+                      {batch.isArchived ? (
+                        <span className={styles.badge} data-tone="neutral">
+                          Archived
+                        </span>
+                      ) : (
+                        <span className={styles.badge} data-tone="success">
+                          Active
+                        </span>
+                      )}
+                    </td>
                     <td>
                       <div className={styles.rowActions}>
                         <button type="button" className={styles.textButton} onClick={() => openEditForm(batch)}>
@@ -128,9 +165,15 @@ export default function BatchesPage() {
                           className={styles.textButton}
                           data-tone="danger"
                           disabled={archivingId === batch.id}
-                          onClick={() => handleArchive(batch.id)}
+                          onClick={() => handleArchiveToggle(batch)}
                         >
-                          {archivingId === batch.id ? "Archiving…" : "Archive"}
+                          {archivingId === batch.id
+                            ? batch.isArchived
+                              ? "Unarchiving…"
+                              : "Archiving…"
+                            : batch.isArchived
+                              ? "Unarchive"
+                              : "Archive"}
                         </button>
                       </div>
                     </td>

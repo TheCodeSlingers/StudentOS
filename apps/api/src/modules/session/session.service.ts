@@ -162,6 +162,10 @@ export class SessionService {
           status: true,
           scheduledStart: true,
           scheduledEnd: true,
+          meetLink: true,
+          attendanceOpenedAt: true,
+          attendanceClosedAt: true,
+          currentCode: true,
         },
         orderBy: { scheduledStart: "desc" },
         skip,
@@ -170,8 +174,14 @@ export class SessionService {
       prisma.session.count({ where: whereClause }),
     ]);
 
+    // Only MENTOR sees the live check-in code through the list — matches getSessionFromDB.
+    const data =
+      role === "MENTOR"
+        ? sessions
+        : sessions.map(({ currentCode, ...rest }) => rest);
+
     return {
-      data: sessions,
+      data,
       meta: {
         total,
         page,

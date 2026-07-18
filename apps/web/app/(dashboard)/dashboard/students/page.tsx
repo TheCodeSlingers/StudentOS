@@ -13,6 +13,7 @@ import {
   listBatches,
   listMembers,
   removeStudent,
+  setBatchMemberCR,
 } from "@/lib/api-client";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
@@ -28,9 +29,11 @@ export default function StudentsPage() {
 
   const [members, setMembers] = useState<Member[] | null>(null);
   const [selectedMembershipId, setSelectedMembershipId] = useState("");
+  const [enrollAsCR, setEnrollAsCR] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [updatingCRId, setUpdatingCRId] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
 
   useEffect(() => {
@@ -77,9 +80,10 @@ export default function StudentsPage() {
     setEnrollError(null);
     setIsEnrolling(true);
     try {
-      const enrolled = await enrollStudent(selectedBatchId, selectedMembershipId);
+      const enrolled = await enrollStudent(selectedBatchId, selectedMembershipId, enrollAsCR);
       setStudents((current) => (current ? [...current, enrolled] : [enrolled]));
       setSelectedMembershipId("");
+      setEnrollAsCR(false);
     } catch (error) {
       setEnrollError(error instanceof ApiError ? error.message : "Could not enroll this student.");
     } finally {
@@ -97,6 +101,25 @@ export default function StudentsPage() {
       setStudentsError(error instanceof ApiError ? error.message : "Could not remove this student.");
     } finally {
       setRemovingId(null);
+    }
+  }
+
+  async function handleToggleCR(student: BatchStudent) {
+    if (!selectedBatchId) return;
+    setUpdatingCRId(student.batchMembershipId);
+    setStudentsError(null);
+    try {
+      await setBatchMemberCR(selectedBatchId, student.batchMembershipId, !student.isCR);
+      setStudents(
+        (current) =>
+          current?.map((item) =>
+            item.batchMembershipId === student.batchMembershipId ? { ...item, isCR: !item.isCR } : item
+          ) ?? current
+      );
+    } catch (error) {
+      setStudentsError(error instanceof ApiError ? error.message : "Could not update Class Representative status.");
+    } finally {
+      setUpdatingCRId(null);
     }
   }
 
@@ -166,6 +189,18 @@ export default function StudentsPage() {
                 </option>
               ))}
             </select>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--space-2)",
+                fontSize: "var(--font-size-sm)",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <input type="checkbox" checked={enrollAsCR} onChange={(event) => setEnrollAsCR(event.target.checked)} />
+              Enroll as CR
+            </label>
             <Button type="button" isLoading={isEnrolling} onClick={handleEnroll} style={{ width: "auto" }}>
               Enroll
             </Button>
@@ -211,6 +246,18 @@ export default function StudentsPage() {
                       </td>
                       <td>
                         <div className={styles.rowActions}>
+                          <button
+                            type="button"
+                            className={styles.textButton}
+                            disabled={updatingCRId === student.batchMembershipId}
+                            onClick={() => handleToggleCR(student)}
+                          >
+                            {updatingCRId === student.batchMembershipId
+                              ? "Updating…"
+                              : student.isCR
+                                ? "Revoke CR"
+                                : "Make CR"}
+                          </button>
                           <button
                             type="button"
                             className={styles.textButton}

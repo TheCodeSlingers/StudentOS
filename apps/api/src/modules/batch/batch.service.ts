@@ -43,11 +43,18 @@ export class BatchService {
     });
   }
 
-  static async getListBatchesFromDB(workspaceId: string): Promise<any[]> {
+  static async getListBatchesFromDB(
+    workspaceId: string,
+    status: "active" | "archived" | "all" = "active",
+  ): Promise<any[]> {
     return prisma.batch.findMany({
       where: {
         workspaceId,
-        isArchived: false,
+        ...(status === "active"
+          ? { isArchived: false }
+          : status === "archived"
+            ? { isArchived: true }
+            : {}),
       },
       orderBy: {
         createdAt: "desc",
