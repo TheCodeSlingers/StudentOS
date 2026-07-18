@@ -7,6 +7,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  TooltipContentProps,
 } from "recharts";
 
 import styles from "@/app/(dashboard)/mentor/analytics/analytics.module.css";
@@ -16,7 +17,7 @@ interface PlacementDonutChartProps {
   data: PlacementMetric[];
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: Partial<TooltipContentProps<number, string>>) => {
   if (active && payload && payload.length) {
     return (
       <div className="p-2 text-sm bg-slate-800 text-white rounded-md shadow-lg">

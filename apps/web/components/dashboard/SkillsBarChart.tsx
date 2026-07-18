@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
+  TooltipContentProps,
 } from "recharts";
 
 import styles from "@/app/(dashboard)/mentor/analytics/analytics.module.css";
@@ -17,7 +18,7 @@ interface SkillsBarChartProps {
   data: SkillMetric[];
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: Partial<TooltipContentProps<number, string>>) => {
   if (active && payload && payload.length) {
     return (
       <div className="p-2 text-sm bg-slate-800 text-white rounded-md shadow-lg">
