@@ -36,6 +36,7 @@ export const getListSessionsSchema = z.object({
       .max(PAGINATION.MAX_LIMIT)
       .default(PAGINATION.DEFAULT_LIMIT),
     status: z.enum(["SCHEDULED", "STARTED", "ENDED", "CANCELLED"]).optional(),
+    cursor: z.string().datetime("Invalid cursor").optional(),
   }),
 });
 
