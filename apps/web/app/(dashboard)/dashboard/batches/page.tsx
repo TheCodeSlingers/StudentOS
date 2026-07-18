@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BatchFormModal } from "@/components/modals/batch-form-modal";
+import { Button } from "@/components/ui/Button";
 import { ApiError, Batch, archiveBatch, listBatches } from "@/lib/api-client";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
@@ -16,6 +18,8 @@ export default function BatchesPage() {
   const [error, setError] = useState<string | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -30,7 +34,7 @@ export default function BatchesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthorized]);
 
   async function handleArchive(batchId: string) {
     setActionError(null);
@@ -45,6 +49,24 @@ export default function BatchesPage() {
     }
   }
 
+  function openCreateForm() {
+    setEditingBatch(null);
+    setIsFormOpen(true);
+  }
+
+  function openEditForm(batch: Batch) {
+    setEditingBatch(batch);
+    setIsFormOpen(true);
+  }
+
+  function handleSaved(saved: Batch) {
+    setBatches((current) => {
+      if (!current) return [saved];
+      const exists = current.some((batch) => batch.id === saved.id);
+      return exists ? current.map((batch) => (batch.id === saved.id ? saved : batch)) : [saved, ...current];
+    });
+  }
+
   if (!isAuthorized) {
     return null;
   }
@@ -56,6 +78,9 @@ export default function BatchesPage() {
           <h1 className={styles.title}>Batches</h1>
           <p className={styles.subtitle}>Active batches in your workspace.</p>
         </div>
+        <Button type="button" style={{ width: "auto" }} onClick={openCreateForm}>
+          New batch
+        </Button>
       </div>
 
       {error ? (
@@ -75,42 +100,54 @@ export default function BatchesPage() {
         ) : batches && batches.length === 0 ? (
           <p className={styles.emptyState}>No active batches yet.</p>
         ) : batches ? (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Start date</th>
-                <th>End date</th>
-                <th>Capacity</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {batches.map((batch) => (
-                <tr key={batch.id}>
-                  <td className={styles.primaryCell}>{batch.name}</td>
-                  <td>{formatDate(batch.startDate)}</td>
-                  <td>{formatDate(batch.endDate)}</td>
-                  <td>{batch.capacity ?? "—"}</td>
-                  <td>
-                    <div className={styles.rowActions}>
-                      <button
-                        type="button"
-                        className={styles.textButton}
-                        data-tone="danger"
-                        disabled={archivingId === batch.id}
-                        onClick={() => handleArchive(batch.id)}
-                      >
-                        {archivingId === batch.id ? "Archiving…" : "Archive"}
-                      </button>
-                    </div>
-                  </td>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Start date</th>
+                  <th>End date</th>
+                  <th>Capacity</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {batches.map((batch) => (
+                  <tr key={batch.id}>
+                    <td className={styles.primaryCell}>{batch.name}</td>
+                    <td>{formatDate(batch.startDate)}</td>
+                    <td>{formatDate(batch.endDate)}</td>
+                    <td>{batch.capacity ?? "—"}</td>
+                    <td>
+                      <div className={styles.rowActions}>
+                        <button type="button" className={styles.textButton} onClick={() => openEditForm(batch)}>
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.textButton}
+                          data-tone="danger"
+                          disabled={archivingId === batch.id}
+                          onClick={() => handleArchive(batch.id)}
+                        >
+                          {archivingId === batch.id ? "Archiving…" : "Archive"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : null}
       </div>
+
+      <BatchFormModal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        batch={editingBatch}
+        onSaved={handleSaved}
+      />
     </div>
   );
 }

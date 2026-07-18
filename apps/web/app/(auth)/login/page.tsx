@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ApiError } from "@/lib/api-client";
@@ -13,6 +14,18 @@ import styles from "../auth.module.css";
 interface FormErrors {
   email?: string;
   password?: string;
+}
+
+function SessionExpiredBanner() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("reason") !== "session-expired") {
+    return null;
+  }
+  return (
+    <div className={styles.infoBanner} role="status">
+      Your session expired. Please log in again.
+    </div>
+  );
 }
 
 export default function LoginPage() {
@@ -67,6 +80,10 @@ export default function LoginPage() {
         <p>Log in to your StudentOS workspace.</p>
       </div>
 
+      <Suspense fallback={null}>
+        <SessionExpiredBanner />
+      </Suspense>
+
       {apiError ? (
         <div className={styles.banner} role="alert">
           {apiError}
@@ -103,6 +120,10 @@ export default function LoginPage() {
         <Button type="submit" isLoading={isSubmitting}>
           Log in
         </Button>
+
+        <div className={styles.divider}>or</div>
+
+        <GoogleAuthButton />
       </form>
 
       <p className={styles.footer}>

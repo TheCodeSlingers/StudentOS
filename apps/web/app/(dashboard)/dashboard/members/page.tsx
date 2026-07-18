@@ -74,47 +74,49 @@ export default function MembersPage() {
         ) : members && members.length === 0 ? (
           <p className={styles.emptyState}>No members yet.</p>
         ) : members ? (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Member</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr key={member.id}>
-                  <td>
-                    <div className={styles.primaryCell}>{member.user.name}</div>
-                    <div className={styles.secondaryCell}>{member.user.email}</div>
-                  </td>
-                  <td>{member.role === "MENTOR" ? "Mentor" : "Student"}</td>
-                  <td>
-                    <span className={styles.badge} data-tone={statusTone(member.status)}>
-                      {member.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className={styles.rowActions}>
-                      {member.status === "ACTIVE" ? (
-                        <button
-                          type="button"
-                          className={styles.textButton}
-                          data-tone="danger"
-                          disabled={removingId === member.id}
-                          onClick={() => handleRemove(member.id)}
-                        >
-                          {removingId === member.id ? "Removing…" : "Remove"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </td>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {members.map((member) => (
+                  <tr key={member.id}>
+                    <td>
+                      <div className={styles.primaryCell}>{member.user.name}</div>
+                      <div className={styles.secondaryCell}>{member.user.email}</div>
+                    </td>
+                    <td>{member.role === "MENTOR" ? "Mentor" : "Student"}</td>
+                    <td>
+                      <span className={styles.badge} data-tone={statusTone(member.status)}>
+                        {member.status}
+                      </span>
+                    </td>
+                    <td>
+                      <div className={styles.rowActions}>
+                        {member.status === "ACTIVE" ? (
+                          <button
+                            type="button"
+                            className={styles.textButton}
+                            data-tone="danger"
+                            disabled={removingId === member.id}
+                            onClick={() => handleRemove(member.id)}
+                          >
+                            {removingId === member.id ? "Removing…" : "Remove"}
+                          </button>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : null}
       </div>
 
