@@ -78,8 +78,10 @@ async function wipeSeedWorkspace(name: string) {
   await prisma.workspace.delete({ where: { id: workspace.id } });
 }
 
-// 15 filler students, enrolled one-per-filler-batch to push BatchMembership,
-// Session, and Attendance counts past 20 without hand-authoring every row.
+// 30 filler students, enrolled several-per-filler-batch (with overlapping
+// rosters across batches, like real students taking more than one course) so
+// a single batch's roster/sessions/attendance views have real volume instead
+// of just one token row each.
 const GENERIC_STUDENT_NAMES = [
   "Morgan Lee",
   "Jamie Chen",
@@ -96,7 +98,25 @@ const GENERIC_STUDENT_NAMES = [
   "Peyton Bennett",
   "Sawyer Simmons",
   "Charlie Price",
+  "Micah Foster",
+  "Elliot Ramirez",
+  "Quinn Sullivan",
+  "Blake Coleman",
+  "Dakota Reyes",
+  "Phoenix Bailey",
+  "Remy Torres",
+  "Sage Mitchell",
+  "Kendall Ross",
+  "Marlowe Hughes",
+  "Tatum Diaz",
+  "Sutton Flores",
+  "Wren Patterson",
+  "Briar Ford",
+  "Ellis Cooper",
 ];
+
+const STUDENTS_PER_FILLER_BATCH = 6;
+const SESSIONS_PER_FILLER_BATCH = 4;
 
 const FILLER_BATCH_SUBJECTS = [
   "UI/UX Design",
@@ -407,56 +427,88 @@ async function seedHorizon() {
     data: { membershipId: student3.id, batchId: batchD.id, isCR: false },
   });
 
-  // ---- batch memberships + one session (+ attendance where ended) per
-  // filler batch, cycling through the 15 generic students ----
+  // ---- batch memberships + several sessions (+ attendance) per filler
+  // batch, cycling through the 30 generic students with an overlapping
+  // rolling window, so any single batch's roster/session-list/attendance
+  // views have real volume to scroll through instead of one token row ----
   const fillerBatchMemberships = [];
   const fillerSessions = [];
   for (let i = 0; i < fillerBatches.length; i += 1) {
     const batch = fillerBatches[i];
-    const genericStudent = genericStudents[i % genericStudents.length];
+    const isArchived = i >= FILLER_BATCH_SUBJECTS.length - 2;
 
-    const bm = await prisma.batchMembership.create({
-      data: { membershipId: genericStudent.id, batchId: batch.id, isCR: false },
-    });
-    fillerBatchMemberships.push(bm);
+    // Rolling window of students per batch (offset by 3 each batch) so
+    // rosters overlap across batches — like real students taking more than
+    // one course — without every batch having an identical roster.
+    const batchMembers = [];
+    for (let s = 0; s < STUDENTS_PER_FILLER_BATCH; s += 1) {
+      const genericStudent = genericStudents[(i * 3 + s) % genericStudents.length];
+      const bm = await prisma.batchMembership.create({
+        data: { membershipId: genericStudent.id, batchId: batch.id, isCR: s === 0 },
+      });
+      batchMembers.push(bm);
+      fillerBatchMemberships.push(bm);
+    }
 
-    // 14 of the 16 get an ENDED session with attendance; the other 2 stay
-    // SCHEDULED, so the session list also shows upcoming, attendance-free
-    // sessions and not just historical ones.
-    const isEnded = i < FILLER_BATCH_SUBJECTS.length - 2;
+    // Archived batches are already finished, so every session is ENDED.
+    // Active batches get a realistic mix: one live (STARTED) session, two
+    // historical (ENDED) ones, and one still upcoming (SCHEDULED).
+    for (let sIdx = 0; sIdx < SESSIONS_PER_FILLER_BATCH; sIdx += 1) {
+      const status = isArchived ? "ENDED" : sIdx === 0 ? "STARTED" : sIdx === 3 ? "SCHEDULED" : "ENDED";
+      const isEnded = status === "ENDED";
+      const isStarted = status === "STARTED";
+      const dayOffset = -40 - i - sIdx * 7;
 
-    const session = await prisma.session.create({
-      data: {
-        batchId: batch.id,
-        title: `${FILLER_BATCH_SUBJECTS[i]} — Orientation`,
-        scheduledStart: isEnded ? daysFromNow(-10 - i) : daysFromNow(5 + i),
-        scheduledEnd: isEnded ? daysFromNow(-10 - i) : minutesFromNow((5 + i) * 24 * 60 + 90),
-        status: isEnded ? "ENDED" : "SCHEDULED",
-        ...(isEnded
-          ? {
-              attendanceOpenedAt: daysFromNow(-10 - i),
-              attendanceOpenedById: mentor.id,
-              attendanceClosedAt: daysFromNow(-10 - i),
-              attendanceClosedById: mentor.id,
-            }
-          : {}),
-      },
-    });
-    fillerSessions.push(session);
-
-    if (isEnded) {
-      await prisma.attendance.create({
+      const session = await prisma.session.create({
         data: {
-          sessionId: session.id,
-          studentBatchMembershipId: bm.id,
-          status: ATTENDANCE_STATUSES[i % ATTENDANCE_STATUSES.length],
-          method: i % 4 === 0 ? "MANUAL" : "SELF_SUBMITTED",
-          submittedAt: daysFromNow(-10 - i),
-          ...(i % 4 === 0
-            ? { markedById: mentor.id, manualReason: "Marked manually during roll call." }
+          batchId: batch.id,
+          title: `${FILLER_BATCH_SUBJECTS[i]} — Session ${sIdx + 1}`,
+          scheduledStart: isStarted
+            ? minutesFromNow(-20)
+            : isEnded
+              ? daysFromNow(dayOffset)
+              : daysFromNow(5 + i + sIdx),
+          scheduledEnd: isStarted
+            ? minutesFromNow(40)
+            : isEnded
+              ? daysFromNow(dayOffset)
+              : minutesFromNow((5 + i + sIdx) * 24 * 60 + 90),
+          status,
+          ...(isEnded
+            ? {
+                attendanceOpenedAt: daysFromNow(dayOffset),
+                attendanceOpenedById: mentor.id,
+                attendanceClosedAt: daysFromNow(dayOffset),
+                attendanceClosedById: mentor.id,
+              }
+            : {}),
+          ...(isStarted
+            ? {
+                attendanceOpenedAt: minutesFromNow(-10),
+                attendanceOpenedById: mentor.id,
+                currentCode: String(100000 + i * 37 + sIdx * 911).slice(0, 6),
+                codeRotatedAt: minutesFromNow(-10),
+              }
             : {}),
         },
       });
+      fillerSessions.push(session);
+
+      if (isEnded || isStarted) {
+        // Live sessions only have partial check-ins so far — only half the
+        // roster has submitted, mirroring real self check-in in progress.
+        const checkedIn = isStarted ? batchMembers.filter((_, m) => m % 2 === 0) : batchMembers;
+        const attendanceRows = checkedIn.map((member, idx) => ({
+          sessionId: session.id,
+          studentBatchMembershipId: member.id,
+          status: ATTENDANCE_STATUSES[(i + sIdx + idx) % ATTENDANCE_STATUSES.length],
+          method: idx % 4 === 0 ? ("MANUAL" as const) : ("SELF_SUBMITTED" as const),
+          submittedAt: isEnded ? daysFromNow(dayOffset) : minutesFromNow(-8),
+          markedById: idx % 4 === 0 ? mentor.id : undefined,
+          manualReason: idx % 4 === 0 ? "Marked manually during roll call." : undefined,
+        }));
+        await prisma.attendance.createMany({ data: attendanceRows });
+      }
     }
   }
 
@@ -804,7 +856,7 @@ async function main() {
   console.log(line("Student (co-CR, batch A)", "seed.student7@studentos.test"));
   console.log(line("Student (CR, batch B)", "seed.student8@studentos.test"));
   console.log(line("Student (legacy alumni)", "seed.student9@studentos.test"));
-  console.log(line("Generic students", "seed.student10@studentos.test … seed.student24@studentos.test"));
+  console.log(line("Generic students", "seed.student10@studentos.test … seed.student39@studentos.test"));
   console.log(line("Batch A (active, has overrides)", horizon.batches.batchA.id));
   console.log(line("Batch B (active, no overrides)", horizon.batches.batchB.id));
   console.log(line("Batch C (archived)", horizon.batches.batchC.id));
