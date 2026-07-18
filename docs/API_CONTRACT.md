@@ -157,12 +157,13 @@
 
 ---
 
-## 2. Workspace & Settings (2 routes)
+## 2. Workspace & Settings (3 routes)
 
 | Method | Path | Permission | Description |
 |---|---|---|---|
 | GET | `/workspace` | MENTOR / STUDENT | View workspace details |
 | PATCH | `/workspace/settings` | MENTOR | Update workspace settings |
+| GET | `/workspace/my-batches` | MENTOR / STUDENT | List the caller's own active batch enrollments |
 
 **`GET /workspace`**
 ```json
@@ -204,6 +205,27 @@
 }
 ```
 
+**`GET /workspace/my-batches`**
+
+Exists because there is no other endpoint that lets a STUDENT discover their own `batchMembershipId` per batch — `GET /batches` is MENTOR-only, so the student-facing "My batches"/"My sessions"/"My attendance" pages have nothing else to call.
+
+```json
+// Response 200
+{
+  "data": [
+    {
+      "batchMembershipId": "bmem_cuid2222",
+      "batchId": "bat_cuid1111",
+      "batchName": "Web Development - Batch 1",
+      "isCR": true,
+      "startDate": "2026-07-16T00:00:00Z",
+      "endDate": "2026-12-16T00:00:00Z",
+      "isArchived": false
+    }
+  ]
+}
+```
+
 ---
 
 ## 3. Members (3 routes)
@@ -236,15 +258,18 @@
 
 ---
 
-## 4. Batches (5 routes)
+## 4. Batches (8 routes)
 
 | Method | Path | Permission | Description |
 |---|---|---|---|
 | POST | `/batches` | MENTOR | Create a batch |
-| GET | `/batches` | MENTOR / STUDENT | List active batches |
-| GET | `/batches/:batchId` | MENTOR / STUDENT | Batch detail |
+| GET | `/batches` | MENTOR | List batches, filtered by `?status=active\|archived\|all` (defaults to `active`) |
+| GET | `/batches/:batchId` | MENTOR | Batch detail, including `metrics` (totalStudents, totalCRs, totalSessions) |
 | PATCH | `/batches/:batchId` | MENTOR | Update batch details/overrides |
-| POST | `/batches/:batchId/archive` | MENTOR | Archive a batch |
+| POST | `/batches/:batchId/archive` | MENTOR | Toggle archive status (calling it again un-archives) |
+| GET | `/batches/:batchId/members` | MENTOR | List active batch members, optionally filtered by `?role=MENTOR\|STUDENT` |
+| POST | `/batches/:batchId/members` | MENTOR | Allocate an existing workspace member to the batch |
+| PATCH | `/batches/:batchId/members/:batchMembershipId` | MENTOR | Promote/demote a Class Representative (`isCR`) and/or revoke (`revokedAt`) |
 
 **`POST /batches`**
 ```json
@@ -253,8 +278,8 @@
   "name": "Batch 14",
   "startDate": "2026-08-01T00:00:00Z",
   "endDate": "2026-12-01T00:00:00Z",
-  "capacity": 35,
-  "defaultMeetLink": "https://meet.google.com/abc-defg-hij"
+  "lateThresholdMinsOverride": 15,
+  "attendanceDurationMinsOverride": 30
 }
 
 // Response 201
@@ -264,7 +289,92 @@
     "name": "Batch 14",
     "startDate": "2026-08-01T00:00:00Z",
     "endDate": "2026-12-01T00:00:00Z",
-    "isArchived": false
+    "isArchived": false,
+    "lateThresholdMinsOverride": 15,
+    "attendanceDurationMinsOverride": 30
+  }
+}
+```
+
+**`GET /batches/:batchId`**
+```json
+// Response 200
+{
+  "data": {
+    "id": "bat_cuid1111",
+    "name": "Batch 14",
+    "startDate": "2026-08-01T00:00:00Z",
+    "endDate": "2026-12-01T00:00:00Z",
+    "isArchived": false,
+    "lateThresholdMinsOverride": 15,
+    "attendanceDurationMinsOverride": 30,
+    "metrics": {
+      "totalStudents": 24,
+      "totalCRs": 2,
+      "totalSessions": 6
+    }
+  }
+}
+```
+
+**`GET /batches/:batchId/members`**
+```json
+// Response 200
+{
+  "data": [
+    {
+      "batchMembershipId": "bmem_cuid2222",
+      "membershipId": "mem_cuid9012",
+      "userId": "usr_cuid5678",
+      "name": "Jane Smith",
+      "email": "student@studentos.com",
+      "role": "STUDENT",
+      "isCR": true,
+      "assignedAt": "2026-07-16T00:00:00Z"
+    }
+  ]
+}
+```
+
+**`POST /batches/:batchId/members`**
+```json
+// Request
+{
+  "membershipId": "mem_cuid9012",
+  "isCR": false
+}
+
+// Response 200
+{
+  "data": {
+    "id": "bmem_cuid2222",
+    "batchId": "bat_cuid1111",
+    "membershipId": "mem_cuid9012",
+    "isCR": false
+  }
+}
+```
+
+**`PATCH /batches/:batchId/members/:batchMembershipId`**
+```json
+// Request — promote to CR
+{
+  "isCR": true
+}
+
+// Request — revoke enrollment (alternative to DELETE /batches/:batchId/students/:batchMembershipId)
+{
+  "revokedAt": "2026-07-18T00:00:00Z"
+}
+
+// Response 200
+{
+  "data": {
+    "id": "bmem_cuid2222",
+    "batchId": "bat_cuid1111",
+    "membershipId": "mem_cuid9012",
+    "isCR": true,
+    "revokedAt": null
   }
 }
 ```
@@ -282,7 +392,46 @@
 | GET | `/batches/:batchId/students/import/:jobId` | MENTOR | Check bulk import job status |
 | GET | `/batches/:batchId/students/import/:jobId/rows` | MENTOR | View row-level status details |
 | GET | `/students/:membershipId/profile` | MENTOR / STUDENT | Get student academic & career profile |
-| PATCH | `/students/:membershipId/profile` | STUDENT | Update student career & academic profile |
+| PATCH | `/students/:membershipId/profile` | MENTOR / STUDENT | Update student career & academic profile |
+
+**`POST /batches/:batchId/students`**
+```json
+// Request
+{
+  "membershipId": "mem_cuid9012",
+  "isCR": false
+}
+
+// Response 201
+{
+  "data": {
+    "batchMembershipId": "bmem_cuid2222",
+    "membershipId": "mem_cuid9012",
+    "userId": "usr_cuid5678",
+    "name": "Jane Smith",
+    "email": "student@studentos.com",
+    "isCR": false
+  }
+}
+```
+
+**`GET /batches/:batchId/students`**
+```json
+// Response 200
+{
+  "data": [
+    {
+      "batchMembershipId": "bmem_cuid2222",
+      "membershipId": "mem_cuid9012",
+      "userId": "usr_cuid5678",
+      "name": "Jane Smith",
+      "email": "student@studentos.com",
+      "isCR": false
+    }
+  ],
+  "meta": { "total": 1, "page": 1, "limit": 10, "totalPages": 1 }
+}
+```
 
 **`GET /students/:membershipId/profile`**
 ```json
@@ -290,6 +439,8 @@
 {
   "data": {
     "membershipId": "mem_cuid9012",
+    "name": "Jane Smith",
+    "email": "student@studentos.com",
     "phone": "+8801700000000",
     "address": "Dhaka, Bangladesh",
     "avatarUrl": "https://images.studentos.com/avatar.jpg",
@@ -417,6 +568,81 @@
     "status": "SCHEDULED",
     "scheduledStart": "2026-07-14T20:00:00Z",
     "scheduledEnd": "2026-07-14T21:00:00Z"
+  }
+}
+```
+
+**`GET /batches/:batchId/sessions`**
+
+List rows only carry summary fields (`id`, `batchId`, `title`, `status`, `scheduledStart`, `scheduledEnd`, `meetLink`, `attendanceOpenedAt`, `attendanceClosedAt`, and `currentCode` for MENTOR callers only) — `description` and `type` are omitted from the list and only available via `GET /sessions/:sessionId`.
+```json
+// Response 200
+{
+  "data": [
+    {
+      "id": "ses_cuid3333",
+      "batchId": "bat_cuid1111",
+      "title": "Module 3: Advanced APIs",
+      "status": "STARTED",
+      "scheduledStart": "2026-07-14T20:00:00Z",
+      "scheduledEnd": "2026-07-14T21:00:00Z",
+      "meetLink": "https://meet.google.com/abc-defg-hij",
+      "attendanceOpenedAt": "2026-07-14T20:02:00Z",
+      "attendanceClosedAt": null,
+      "currentCode": "149258"
+    }
+  ],
+  "meta": { "total": 1, "page": 1, "limit": 20, "totalPages": 1 }
+}
+```
+
+**`GET /sessions/:sessionId`**
+
+The only endpoint that returns `description` and `type` together with everything else. `currentCode` is included for MENTOR callers and omitted entirely (not `null` — the key is absent) for STUDENT.
+```json
+// Response 200 (MENTOR)
+{
+  "data": {
+    "id": "ses_cuid3333",
+    "batchId": "bat_cuid1111",
+    "title": "Module 3: Advanced APIs",
+    "description": "Discussion on modular architecture.",
+    "status": "STARTED",
+    "scheduledStart": "2026-07-14T20:00:00Z",
+    "scheduledEnd": "2026-07-14T21:00:00Z",
+    "meetLink": "https://meet.google.com/abc-defg-hij",
+    "type": "REGULAR",
+    "attendanceOpenedAt": "2026-07-14T20:02:00Z",
+    "attendanceClosedAt": null,
+    "currentCode": "149258"
+  }
+}
+```
+
+**`POST /sessions/:sessionId/attendance/open`**
+
+Only returns the fields it touched, keyed by `sessionId` (not `id`) — callers should merge this into their existing session state rather than treat it as a full record, or re-fetch `GET /sessions/:sessionId`.
+```json
+// Response 200
+{
+  "data": {
+    "sessionId": "ses_cuid3333",
+    "status": "STARTED",
+    "attendanceOpenedAt": "2026-07-14T20:02:00Z",
+    "currentCode": "149258"
+  }
+}
+```
+
+**`POST /sessions/:sessionId/attendance/close`**
+```json
+// Response 200
+{
+  "data": {
+    "sessionId": "ses_cuid3333",
+    "status": "ENDED",
+    "attendanceClosedAt": "2026-07-14T21:00:00Z",
+    "currentCode": null
   }
 }
 ```

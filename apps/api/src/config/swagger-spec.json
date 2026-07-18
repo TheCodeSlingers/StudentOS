@@ -138,7 +138,15 @@
       "get": {
         "tags": ["Batches"],
         "summary": "List Batches",
-        "description": "Returns a list of all active batches in the workspace. (Requires MENTOR role)",
+        "description": "Returns batches in the workspace, filtered by archive status. (Requires MENTOR role)",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Defaults to 'active' when omitted.",
+            "schema": { "type": "string", "enum": ["active", "archived", "all"], "default": "active" }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful retrieval",
@@ -244,11 +252,121 @@
       "post": {
         "tags": ["Batches"],
         "summary": "Archive Batch",
+        "description": "Toggles isArchived — calling this again on an already-archived batch un-archives it.",
         "parameters": [
           { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": { "description": "Toggled batch archive status" }
+        }
+      }
+    },
+    "/batches/{batchId}/members": {
+      "get": {
+        "tags": ["Batches"],
+        "summary": "List Batch Members",
+        "description": "Returns every active (non-revoked) member of the batch, MENTOR and STUDENT alike. (Requires MENTOR role)",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "role", "in": "query", "schema": { "type": "string", "enum": ["MENTOR", "STUDENT"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/BatchMember" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Batches"],
+        "summary": "Allocate Member to Batch",
+        "description": "Adds an existing active workspace member (MENTOR or STUDENT) to the batch. (Requires MENTOR role)",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["membershipId"],
+                "properties": {
+                  "membershipId": { "type": "string" },
+                  "isCR": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member allocated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "batchId": { "type": "string" },
+                    "membershipId": { "type": "string" },
+                    "isCR": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/batches/{batchId}/members/{batchMembershipId}": {
+      "patch": {
+        "tags": ["Batches"],
+        "summary": "Update Batch Membership",
+        "description": "Promotes/demotes a Class Representative (isCR) and/or revokes the enrollment (revokedAt). (Requires MENTOR role)",
+        "parameters": [
+          { "name": "batchId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "batchMembershipId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isCR": { "type": "boolean" },
+                  "revokedAt": { "type": "string", "format": "date-time", "nullable": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch membership updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "batchId": { "type": "string" },
+                    "membershipId": { "type": "string" },
+                    "isCR": { "type": "boolean" },
+                    "revokedAt": { "type": "string", "format": "date-time", "nullable": true }
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -263,31 +381,12 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful retrieval",
+            "description": "Successful retrieval. Pagination info is returned in the top-level 'meta' envelope field, not inlined here.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "total": { "type": "integer" },
-                    "students": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": { "type": "string" },
-                          "isCR": { "type": "boolean" },
-                          "membership": {
-                            "type": "object",
-                            "properties": {
-                              "id": { "type": "string" },
-                              "user": { "$ref": "#/components/schemas/User" }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/StudentEnrollmentSummary" }
                 }
               }
             }
@@ -316,7 +415,14 @@
           }
         },
         "responses": {
-          "201": { "description": "Student successfully enrolled" }
+          "201": {
+            "description": "Student successfully enrolled",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/StudentEnrollmentSummary" }
+              }
+            }
+          }
         }
       }
     },
@@ -602,7 +708,7 @@
       "post": {
         "tags": ["Sessions", "Attendance"],
         "summary": "Open Self-Attendance Window",
-        "description": "Opens the digital window allowing students to submit their attendance with a randomly generated 6-digit session validation code.",
+        "description": "Opens the digital window allowing students to submit their attendance with a randomly generated 6-digit session validation code. Callable by MENTOR or the batch's CR. Only returns the fields it touched — re-fetch the session for the full record.",
         "parameters": [
           { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
@@ -614,9 +720,10 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "string" },
-                    "attendanceCode": { "type": "string", "example": "149258" },
-                    "attendanceWindowOpenedAt": { "type": "string", "format": "date-time" }
+                    "sessionId": { "type": "string" },
+                    "status": { "type": "string", "enum": ["STARTED"] },
+                    "attendanceOpenedAt": { "type": "string", "format": "date-time" },
+                    "currentCode": { "type": "string", "example": "149258" }
                   }
                 }
               }
@@ -629,12 +736,26 @@
       "post": {
         "tags": ["Sessions", "Attendance"],
         "summary": "Close Attendance Window",
+        "description": "Callable by MENTOR or the batch's CR. Only returns the fields it touched — re-fetch the session for the full record.",
         "parameters": [
           { "name": "sessionId", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": {
           "200": {
-            "description": "Attendance window closed successfully"
+            "description": "Attendance window closed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": { "type": "string" },
+                    "status": { "type": "string", "enum": ["ENDED"] },
+                    "attendanceClosedAt": { "type": "string", "format": "date-time" },
+                    "currentCode": { "type": "string", "nullable": true, "example": null }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -903,6 +1024,26 @@
           "200": { "description": "Member successfully deactivated" }
         }
       }
+    },
+    "/workspace/my-batches": {
+      "get": {
+        "tags": ["Workspace"],
+        "summary": "List My Batches",
+        "description": "Returns the caller's own active batch enrollments (MENTOR or STUDENT). Backs the student-facing 'My batches', 'My sessions', and 'My attendance' pages, which have no other way to discover the caller's own batchMembershipId per batch.",
+        "responses": {
+          "200": {
+            "description": "Successful retrieval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/MyBatch" }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -940,13 +1081,21 @@
         "type": "object",
         "properties": {
           "id": { "type": "string" },
+          "batchId": { "type": "string" },
           "title": { "type": "string" },
           "scheduledStart": { "type": "string", "format": "date-time" },
           "scheduledEnd": { "type": "string", "format": "date-time" },
           "meetLink": { "type": "string", "format": "uri", "nullable": true },
           "description": { "type": "string", "nullable": true },
           "type": { "type": "string", "enum": ["REGULAR", "MAKEUP", "EXAM"] },
-          "status": { "type": "string", "enum": ["SCHEDULED", "STARTED", "ENDED", "CANCELLED"] }
+          "status": { "type": "string", "enum": ["SCHEDULED", "STARTED", "ENDED", "CANCELLED"] },
+          "attendanceOpenedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "attendanceClosedAt": { "type": "string", "format": "date-time", "nullable": true },
+          "currentCode": {
+            "type": "string",
+            "nullable": true,
+            "description": "Only present in the GET /sessions/:sessionId response, and only for MENTOR callers — omitted entirely for STUDENT."
+          }
         }
       },
       "Attendance": {
@@ -962,10 +1111,49 @@
           "markedById": { "type": "string", "nullable": true }
         }
       },
+      "StudentEnrollmentSummary": {
+        "type": "object",
+        "properties": {
+          "batchMembershipId": { "type": "string" },
+          "membershipId": { "type": "string" },
+          "userId": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "isCR": { "type": "boolean" }
+        }
+      },
+      "BatchMember": {
+        "type": "object",
+        "properties": {
+          "batchMembershipId": { "type": "string" },
+          "membershipId": { "type": "string" },
+          "userId": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string", "enum": ["MENTOR", "STUDENT"] },
+          "isCR": { "type": "boolean" },
+          "assignedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "MyBatch": {
+        "type": "object",
+        "description": "A batch the current caller is enrolled in — used to drive the student-facing 'My batches' / 'My sessions' / 'My attendance' pages.",
+        "properties": {
+          "batchMembershipId": { "type": "string" },
+          "batchId": { "type": "string" },
+          "batchName": { "type": "string" },
+          "isCR": { "type": "boolean" },
+          "startDate": { "type": "string", "format": "date-time" },
+          "endDate": { "type": "string", "format": "date-time", "nullable": true },
+          "isArchived": { "type": "boolean" }
+        }
+      },
       "StudentProfile": {
         "type": "object",
         "properties": {
           "membershipId": { "type": "string" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
           "phone": { "type": "string", "nullable": true },
           "address": { "type": "string", "nullable": true },
           "avatarUrl": { "type": "string", "format": "uri", "nullable": true },
