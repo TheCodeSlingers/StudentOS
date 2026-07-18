@@ -5,6 +5,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "../../common/errors";
+import { logger } from "../../lib/logger";
 
 describe("AttendanceService", () => {
   let workspaceId: string;
@@ -169,7 +170,16 @@ describe("AttendanceService", () => {
         .delete({
           where: { id: sessionId },
         })
-        .catch(() => {});
+        .catch((err) => {
+          logger.warn(
+            {
+              err,
+              sessionId,
+              operation: "attendance-test-cleanup",
+            },
+            "Failed to clean up test session",
+          );
+        })
       sessionId = undefined as any;
     }
   });

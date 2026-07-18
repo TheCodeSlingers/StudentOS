@@ -38,4 +38,4 @@ router.delete(
   WorkspaceController.deactivateMember,
 );
 
-export const WorkspaceRouter = router;
+export default router;

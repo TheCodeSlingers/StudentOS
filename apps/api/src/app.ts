@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
+import { env } from "./config/env";
 import { setupSwagger } from "./config/swagger";
 import { logger } from "./lib/logger";
 import { compressionMiddleware } from "./middleware/compression";
@@ -13,7 +14,8 @@ import authRouter from "./modules/auth/auth.routes";
 import batchRouter from "./modules/batch/batch.routes";
 import importRouter from "./modules/student-import/import.routes";
 import studentRouter from "./modules/student/student.routes";
-import { WorkspaceRouter } from "./modules/workspace/workspace.route";
+import sessionRouter from "./modules/session/session.routes";
+import WorkspaceRouter from "./modules/workspace/workspace.routes";
 
 const app = express();
 
@@ -38,7 +40,7 @@ app.use(
 );
 app.use(globalRateLimiter);
 
-app.use(express.json({ limit: "50kb" }));
+app.use(express.json({ limit: env.JSON_BODY_LIMIT }));
 
 setupSwagger(app);
 
@@ -48,6 +50,7 @@ app.use("/api/v1", studentRouter);
 app.use("/api/v1", attendanceRouter);
 app.use("/api/v1", batchRouter);
 app.use("/api/v1", WorkspaceRouter);
+app.use("/api/v1", sessionRouter);
 
 app.get("/", (_req, res) => {
   res.status(200).json({
@@ -66,4 +69,3 @@ app.get("/health", (_req, res) => {
 app.use(errorHandler);
 
 export { app };
-

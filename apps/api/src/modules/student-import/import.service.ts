@@ -1,4 +1,5 @@
 import { NotFoundError } from "../../common/errors";
+import { logger } from "../../lib/logger";
 import { prisma } from "../../lib/prisma";
 import { importQueue } from "../../lib/queue";
 
@@ -63,8 +64,21 @@ export class ImportService {
 
   static async getJobSummaryFromDB(jobId: string): Promise<ImportJobSummary | null> {
     const [job, bullJob] = await Promise.all([
-      prisma.studentImportJob.findUnique({ where: { id: jobId } }),
-      importQueue?.getJob(jobId).catch(() => null) ?? Promise.resolve(null),
+      prisma.studentImportJob.findUnique({
+        where: { id: jobId },
+      }),
+      importQueue?.getJob(jobId).catch((err) => {
+        logger.warn(
+          {
+            err,
+            jobId,
+            operation: "getJobSummary",
+          },
+          "Failed to fetch BullMQ job information",
+        );
+
+        return null;
+      }) ?? Promise.resolve(null),
     ]);
 
     if (!job) {
