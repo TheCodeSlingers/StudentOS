@@ -2,6 +2,7 @@
 
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from "react";
 import {
+  CRBatchSummary,
   LoginPayload,
   SignupPayload,
   getCurrentUser,
@@ -26,6 +27,8 @@ interface AuthState {
   membershipId: string | null;
   workspaceId: string | null;
   workspaceName: string | null;
+  isCR: boolean;
+  crBatches: CRBatchSummary[];
 }
 
 interface AuthContextValue extends AuthState {
@@ -41,6 +44,8 @@ const INITIAL_STATE: AuthState = {
   membershipId: null,
   workspaceId: null,
   workspaceName: null,
+  isCR: false,
+  crBatches: [],
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -67,6 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         membershipId: active?.membershipId ?? null,
         workspaceId: active?.workspaceId ?? null,
         workspaceName: active?.workspaceName ?? null,
+        isCR: active?.isCR ?? false,
+        crBatches: active?.crBatches ?? [],
       };
       setState(next);
       return next;

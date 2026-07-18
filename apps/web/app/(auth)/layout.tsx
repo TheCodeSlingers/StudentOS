@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { ReactNode, useEffect } from "react";
 import { Logo } from "@/components/brand/Logo";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { useAuth } from "@/lib/auth-context";
 import styles from "./layout.module.css";
 
@@ -31,8 +32,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     }
   }, [status, router]);
 
-  if (status === "authenticated") {
-    return null;
+  // Render the form only once we know for sure there's no active session — otherwise an
+  // already-logged-in user would see the login/signup form flash before the redirect fires.
+  if (status !== "unauthenticated") {
+    return status === "loading" ? <LoadingScreen /> : null;
   }
 
   return (
