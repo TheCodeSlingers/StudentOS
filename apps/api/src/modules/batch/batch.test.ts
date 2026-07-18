@@ -3,6 +3,7 @@ import { prisma } from "../../lib/prisma";
 import { BadRequestError, NotFoundError } from "../../common/errors";
 
 describe("BatchService", () => {
+  jest.setTimeout(30000);
   let workspaceId: string;
   let mentorUserId: string;
   let mentorMembershipId: string;

@@ -6,7 +6,7 @@ import {
   IListMembersResult,
   IMemberResult,
   IWorkspaceResult,
-} from "./workspace.interface";
+} from "@studentos/shared-types";
 
 export class WorkspaceService {
   static async getWorkspace({

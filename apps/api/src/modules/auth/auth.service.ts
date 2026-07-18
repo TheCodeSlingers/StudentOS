@@ -11,7 +11,7 @@ import {
   ISignInResult,
   IRefreshResult,
   IGetMeResult,
-} from "./auth.interface";
+} from "@studentos/shared-types";
 
 export class AuthService {
   static async signUp(payload: ISignUpPayload): Promise<ISignUpResult> {

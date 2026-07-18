@@ -6,7 +6,7 @@ import { importQueue } from "../../lib/queue";
 import {
   IImportJobRowReport,
   IImportJobSummary,
-} from "./import.interface";
+} from "@studentos/shared-types";
 
 export class ImportService {
   static async startImport(
@@ -76,7 +76,7 @@ export class ImportService {
     return {
       id: job.id,
       batchId: job.batchId,
-      status: job.status as ImportJobStatus,
+      status: job.status,
       totalRows: job.totalRows,
       successRows: job.successRows,
       failedRows: job.failedRows,
@@ -96,7 +96,7 @@ export class ImportService {
       id: r.id,
       rowNumber: r.rowNumber,
       email: r.email,
-      status: r.status as ImportRowStatus,
+      status: r.status,
       errorMessage: r.errorMessage,
     }));
   }

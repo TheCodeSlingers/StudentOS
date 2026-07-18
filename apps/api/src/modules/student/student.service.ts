@@ -7,7 +7,7 @@ import {
   IRevokeResult,
   IStudentProfileResult,
   IUpdateProfilePayload,
-} from "./student.interface";
+} from "@studentos/shared-types";
 
 export class StudentService {
   static async enrollStudent(

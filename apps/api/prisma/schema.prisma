@@ -65,19 +65,19 @@ enum HireStatus {
 }
 
 model User {
-  id            String        @id @default(cuid())
-  email         String        @unique
+  id            String   @id @default(cuid())
+  email         String   @unique
   name          String
   passwordHash  String?
   authProvider  String?
-  emailVerified Boolean       @default(false)
+  emailVerified Boolean  @default(false)
   image         String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  memberships   Membership[]
-  accounts      Account[]
-  authSessions  AuthSession[]
+  memberships  Membership[]
+  accounts     Account[]
+  authSessions AuthSession[]
 
   @@index([email])
 }
@@ -171,22 +171,22 @@ model StudentProfile {
   id           String @id @default(cuid())
   membershipId String @unique
 
-  phone        String?
-  address      String?
-  avatarUrl    String?
+  phone     String?
+  address   String?
+  avatarUrl String?
 
-  courseName         String?
-  specialization     String?
+  courseName     String?
+  specialization String?
 
-  skills       String[]
+  skills String[]
 
-  hireStatus         HireStatus          @default(STUDENT_ONLY)
-  jobType            JobType             @default(NOT_LOOKING)
+  hireStatus          HireStatus          @default(STUDENT_ONLY)
+  jobType             JobType             @default(NOT_LOOKING)
   workplacePreference WorkplacePreference @default(NO_PREFERENCE)
-  currentEmployer    String?
-  currentPosition    String?
-  portfolioUrl       String?
-  linkedinUrl        String?
+  currentEmployer     String?
+  currentPosition     String?
+  portfolioUrl        String?
+  linkedinUrl         String?
 
   updatedAt DateTime @updatedAt
 
@@ -198,20 +198,20 @@ model StudentProfile {
 }
 
 model Batch {
-  id                             String   @id @default(cuid())
+  id                             String    @id @default(cuid())
   workspaceId                    String
   name                           String
   startDate                      DateTime
   endDate                        DateTime?
   capacity                       Int?
   defaultMeetLink                String?
-  isArchived                     Boolean  @default(false)
+  isArchived                     Boolean   @default(false)
   lateThresholdMinsOverride      Int?
   attendanceDurationMinsOverride Int?
-  createdAt                      DateTime @default(now())
-  updatedAt                      DateTime @updatedAt
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
 
-  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace        Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   batchMemberships BatchMembership[]
   sessions         Session[]
   importJobs       StudentImportJob[]

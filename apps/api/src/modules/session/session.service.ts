@@ -15,7 +15,7 @@ import {
   ISessionUpdateResult,
   IOpenAttendanceResult,
   ICloseAttendanceResult,
-} from "./session.interface";
+} from "@studentos/shared-types";
 
 export class SessionService {
   // Route 1: Create Session

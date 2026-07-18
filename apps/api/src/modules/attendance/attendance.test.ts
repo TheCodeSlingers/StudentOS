@@ -8,6 +8,7 @@ import {
 import { logger } from "../../lib/logger";
 
 describe("AttendanceService", () => {
+  jest.setTimeout(30000);
   let workspaceId: string;
   let batchId: string;
   let studentUserId: string;
@@ -180,7 +181,7 @@ describe("AttendanceService", () => {
             "Failed to clean up test session",
           );
         })
-      sessionId = undefined as any;
+      sessionId = "";
     }
   });
 

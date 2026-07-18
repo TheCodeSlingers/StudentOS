@@ -10,7 +10,7 @@ import {
   ICreateBatchPayload,
   IUpdateBatchMembershipPayload,
   IUpdateBatchPayload,
-} from "./batch.interface";
+} from "@studentos/shared-types";
 
 export class BatchService {
   static async createBatch(

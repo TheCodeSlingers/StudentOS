@@ -1,5 +1,5 @@
 {
-  "name": "shared-types",
+  "name": "@studentos/shared-types",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
@@ -11,6 +11,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^7.8.0"
+  },
   "devDependencies": {
     "typescript": "^5.5.3"
   }
