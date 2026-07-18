@@ -194,7 +194,7 @@ export class BatchService {
     }
 
     try {
-      return prisma.batchMembership.create({
+      return await prisma.batchMembership.create({
         data: {
           batchId,
           membershipId: data.membershipId,
@@ -224,7 +224,7 @@ export class BatchService {
             );
           }
 
-          return prisma.batchMembership.update({
+          return await prisma.batchMembership.update({
             where: { id: existing.id },
             data: {
               revokedAt: null,

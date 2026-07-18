@@ -12,6 +12,12 @@ describe("BatchService", () => {
   let batchMembershipId: string;
 
   beforeAll(async () => {
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: ["batch-mentor@example.com", "batch-student@example.com"] },
+      },
+    });
+
     const ws = await prisma.workspace.create({
       data: {
         name: "Batch Test Workspace",
@@ -58,19 +64,20 @@ describe("BatchService", () => {
 
   afterAll(async () => {
     const idsToDelete = [batchMembershipId].filter(Boolean);
+    const mIdsToDelete = [mentorMembershipId, studentMembershipId].filter(Boolean);
 
     await prisma.$transaction([
       prisma.batchMembership.deleteMany({
         where: { id: { in: idsToDelete } },
       }),
       prisma.batch.deleteMany({
-        where: { workspaceId },
+        where: { workspaceId: workspaceId || "" },
       }),
       prisma.membership.deleteMany({
-        where: { id: { in: [mentorMembershipId, studentMembershipId] } },
+        where: { id: { in: mIdsToDelete } },
       }),
       prisma.workspace.deleteMany({
-        where: { id: workspaceId },
+        where: { id: workspaceId || "" },
       }),
       prisma.user.deleteMany({
         where: {
