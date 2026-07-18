@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { prisma } from "../lib/prisma";
 import { auth } from "../lib/auth";
 import { redis } from "../lib/redis";
+import { logger } from "../lib/logger";
 
 export async function authMiddleware(
   req: any,
@@ -29,7 +30,17 @@ export async function authMiddleware(
         if (cached) {
           membership = typeof cached === "string" ? JSON.parse(cached) : cached;
         }
-      } catch (err) {}
+      } catch (err) {
+        logger.warn(
+          {
+            err,
+            cacheKey,
+            userId: session.user.id,
+            operation: "authMiddleware.redis.get",
+          },
+          "Failed to fetch membership from Redis cache",
+        );
+      }
     }
 
     if (!membership) {
@@ -52,7 +63,17 @@ export async function authMiddleware(
       if (membership && redis) {
         try {
           await redis.set(cacheKey, JSON.stringify(membership), { ex: 60 });
-        } catch (err) {}
+        } catch (err) {
+          logger.warn(
+            {
+              err,
+              cacheKey,
+              userId: session.user.id,
+              operation: "authMiddleware.redis.set",
+            },
+            "Failed to cache membership in Redis",
+          );
+        }
       }
     }
 
