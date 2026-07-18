@@ -129,41 +129,6 @@ function patchJson<T>(path: string, body: unknown): Promise<T> {
   return request<T>("PATCH", path, body);
 }
 
-/** Like request(), but for multipart/form-data uploads — fetch must set its own boundary header. */
-async function postForm<T>(path: string, formData: FormData): Promise<T> {
-  const token = getStoredToken();
-  let response: Response;
-  try {
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
-      method: "POST",
-      headers,
-      body: formData,
-    });
-  } catch {
-    throw new ApiError("Could not reach the server. Check your connection and try again.", 0);
-  }
-
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      handleSessionExpired(Boolean(token));
-    }
-    throw new ApiError(
-      payload?.error?.message ?? "Something went wrong. Please try again.",
-      response.status,
-      payload?.error?.code
-    );
-  }
-
-  return payload?.data as T;
-}
-
 function deleteJson<T>(path: string): Promise<T> {
   return request<T>("DELETE", path);
 }
@@ -504,44 +469,6 @@ export interface MyBatch {
 /** The current user's own batch enrollments — used by student-facing pages. */
 export function getMyBatches(): Promise<MyBatch[]> {
   return getJson<MyBatch[]>("/workspace/my-batches");
-}
-
-export type ImportJobStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "COMPLETED_WITH_ERRORS";
-
-export interface ImportJobSummary {
-  id: string;
-  batchId: string;
-  status: ImportJobStatus;
-  totalRows: number;
-  successRows: number;
-  failedRows: number;
-  createdAt: string;
-  updatedAt: string;
-  queueProgress: number | null;
-}
-
-export type ImportRowStatus = "SUCCESS" | "FAILED" | "SKIPPED";
-
-export interface ImportJobRow {
-  id: string;
-  rowNumber: number;
-  email: string;
-  status: ImportRowStatus;
-  errorMessage: string | null;
-}
-
-export function importStudentRoster(batchId: string, file: File): Promise<ImportJobSummary> {
-  const formData = new FormData();
-  formData.append("file", file);
-  return postForm<ImportJobSummary>(`/batches/${batchId}/students/import`, formData);
-}
-
-export function getImportJobSummary(batchId: string, jobId: string): Promise<ImportJobSummary> {
-  return getJson<ImportJobSummary>(`/batches/${batchId}/students/import/${jobId}`);
-}
-
-export function getImportJobRows(batchId: string, jobId: string): Promise<ImportJobRow[]> {
-  return getJson<ImportJobRow[]>(`/batches/${batchId}/students/import/${jobId}/rows`);
 }
 
 export interface AttendanceHistoryItem {

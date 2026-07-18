@@ -4,12 +4,12 @@ import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import {
   ApiError,
-  ImportJobRow,
-  ImportJobSummary,
-  getImportJobRows,
-  getImportJobSummary,
-  importStudentRoster,
+  UpdateStudentProfilePayload,
+  enrollStudent,
+  inviteMember,
+  updateStudentProfile,
 } from "@/lib/api-client";
+import { StudentCsvRow, buildStudentCsvTemplate, parseStudentCsvFile } from "@/lib/csv";
 import styles from "./modal.module.css";
 import importStyles from "./import-modal.module.css";
 
@@ -20,7 +20,17 @@ interface ImportModalProps {
   onImported: () => void;
 }
 
-const POLL_INTERVAL_MS = 1500;
+type ProblemStatus = "FAILED" | "SKIPPED";
+
+interface ProblemRow {
+  rowNumber: number;
+  email: string;
+  status: ProblemStatus;
+  message: string;
+}
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 2000;
 
 function CloseIcon() {
   return (
@@ -30,71 +40,125 @@ function CloseIcon() {
   );
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Retries a request once or twice on 429 (rate limited) before giving up —
+ * bulk imports fire many sequential requests and shouldn't fail outright
+ * just because they briefly tripped the rate limiter. */
+async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429 && attempt < MAX_RETRIES) {
+        await sleep(RETRY_DELAY_MS * (attempt + 1));
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+function buildProfilePayload(row: StudentCsvRow): UpdateStudentProfilePayload {
+  const payload: UpdateStudentProfilePayload = {};
+  if (row.phone) payload.phone = row.phone;
+  if (row.courseName) payload.courseName = row.courseName;
+  if (row.specialization) payload.specialization = row.specialization;
+  if (row.skills && row.skills.length > 0) payload.skills = row.skills;
+  return payload;
+}
+
+function downloadTemplate() {
+  const blob = new Blob([buildStudentCsvTemplate()], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "student-import-template.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModalProps) {
   const [file, setFile] = useState<File | null>(null);
-  const [job, setJob] = useState<ImportJobSummary | null>(null);
-  const [rows, setRows] = useState<ImportJobRow[] | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isDone, setIsDone] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [processedCount, setProcessedCount] = useState(0);
+  const [successCount, setSuccessCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
+  const [skippedCount, setSkippedCount] = useState(0);
+  const [problemRows, setProblemRows] = useState<ProblemRow[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) return;
     setFile(null);
-    setJob(null);
-    setRows(null);
-    setIsUploading(false);
     setError(null);
+    setIsProcessing(false);
+    setIsDone(false);
+    setTotal(0);
+    setProcessedCount(0);
+    setSuccessCount(0);
+    setFailedCount(0);
+    setSkippedCount(0);
+    setProblemRows([]);
   }, [isOpen]);
-
-  useEffect(() => {
-    if (!job || (job.status !== "PENDING" && job.status !== "PROCESSING")) {
-      return;
-    }
-
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      getImportJobSummary(batchId, job.id)
-        .then((result) => {
-          if (!cancelled) setJob(result);
-        })
-        .catch((fetchError) => {
-          if (!cancelled) setError(fetchError instanceof ApiError ? fetchError.message : "Could not check import progress.");
-        });
-    }, POLL_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [job, batchId]);
-
-  useEffect(() => {
-    if (!job || job.status !== "COMPLETED_WITH_ERRORS") {
-      return;
-    }
-    let cancelled = false;
-    getImportJobRows(batchId, job.id)
-      .then((result) => {
-        if (!cancelled) setRows(result.filter((row) => row.status !== "SUCCESS"));
-      })
-      .catch(() => {
-        // Row-level detail is a bonus; the summary counts already tell the important story.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [job, batchId]);
 
   if (!isOpen) {
     return null;
   }
 
-  const isDone = job?.status === "COMPLETED" || job?.status === "COMPLETED_WITH_ERRORS";
-
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     setFile(event.target.files?.[0] ?? null);
     setError(null);
+  }
+
+  function recordFailure(row: StudentCsvRow, message: string) {
+    setFailedCount((count) => count + 1);
+    setProblemRows((current) => [...current, { rowNumber: row.rowNumber, email: row.email, status: "FAILED", message }]);
+  }
+
+  function recordSkipped(row: StudentCsvRow, message: string) {
+    setSkippedCount((count) => count + 1);
+    setProblemRows((current) => [...current, { rowNumber: row.rowNumber, email: row.email, status: "SKIPPED", message }]);
+  }
+
+  async function processRow(row: StudentCsvRow) {
+    if (row.validationError) {
+      recordFailure(row, row.validationError);
+      setProcessedCount((count) => count + 1);
+      return;
+    }
+
+    try {
+      const member = await withRetry(() => inviteMember({ name: row.name, email: row.email, role: "STUDENT" }));
+
+      try {
+        await withRetry(() => enrollStudent(batchId, member.id));
+      } catch (enrollError) {
+        if (enrollError instanceof ApiError && /already enrolled/i.test(enrollError.message)) {
+          recordSkipped(row, "Already enrolled in this batch.");
+          return;
+        }
+        throw enrollError;
+      }
+
+      const profilePayload = buildProfilePayload(row);
+      if (Object.keys(profilePayload).length > 0) {
+        await withRetry(() => updateStudentProfile(member.id, profilePayload)).catch(() => {
+          // Enrollment already succeeded — a missed profile detail isn't worth failing the row over.
+        });
+      }
+
+      setSuccessCount((count) => count + 1);
+    } catch (rowError) {
+      recordFailure(row, rowError instanceof ApiError ? rowError.message : "Could not enroll this student.");
+    } finally {
+      setProcessedCount((count) => count + 1);
+    }
   }
 
   async function handleUpload() {
@@ -102,27 +166,49 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
       setError("Choose a CSV file first.");
       return;
     }
+
     setError(null);
-    setIsUploading(true);
+    let rows: StudentCsvRow[];
     try {
-      const result = await importStudentRoster(batchId, file);
-      setJob(result);
-    } catch (uploadError) {
-      setError(uploadError instanceof ApiError ? uploadError.message : "Could not start the import.");
-    } finally {
-      setIsUploading(false);
+      rows = await parseStudentCsvFile(file);
+    } catch (parseError) {
+      setError(parseError instanceof Error ? parseError.message : "Could not read this CSV file.");
+      return;
     }
+
+    if (rows.length === 0) {
+      setError("This CSV file has no data rows.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setTotal(rows.length);
+    setProcessedCount(0);
+    setSuccessCount(0);
+    setFailedCount(0);
+    setSkippedCount(0);
+    setProblemRows([]);
+
+    // Sequential, not parallel — this fires 1-3 real requests per row, and
+    // staying sequential keeps a large roster well under the API's rate
+    // limit instead of bursting it all at once.
+    for (const row of rows) {
+      await processRow(row);
+    }
+
+    setIsProcessing(false);
+    setIsDone(true);
   }
 
   function handleDone() {
-    if (job && (job.successRows > 0 || job.status === "COMPLETED")) {
+    if (successCount > 0) {
       onImported();
     }
     onClose();
   }
 
   return (
-    <div className={styles.overlay} onClick={isUploading ? undefined : onClose}>
+    <div className={styles.overlay} onClick={isProcessing ? undefined : onClose}>
       <div
         className={styles.dialog}
         role="dialog"
@@ -137,7 +223,13 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
             </h2>
             <p className={styles.subtitle}>Bulk-enroll students into this batch from a CSV file.</p>
           </div>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close dialog">
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={isProcessing ? undefined : onClose}
+            aria-label="Close dialog"
+            disabled={isProcessing}
+          >
             <CloseIcon />
           </button>
         </div>
@@ -148,13 +240,17 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
           </div>
         ) : null}
 
-        {!job ? (
+        {!isProcessing && !isDone ? (
           <div className={styles.form}>
             <p className={styles.hint}>
               CSV must include <strong>email</strong> and <strong>name</strong> columns. <strong>phone</strong>,{" "}
-              <strong>courseName</strong>, <strong>specialization</strong>, and <strong>skills</strong> (comma-separated)
-              are optional.
+              <strong>courseName</strong>, <strong>specialization</strong>, and <strong>skills</strong> (comma-separated,
+              wrap in quotes) are optional.
             </p>
+
+            <button type="button" className={importStyles.templateLink} onClick={downloadTemplate}>
+              Download CSV template
+            </button>
 
             <input
               ref={fileInputRef}
@@ -169,7 +265,7 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
               <Button type="button" variant="secondary" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="button" onClick={handleUpload} isLoading={isUploading} disabled={!file}>
+              <Button type="button" onClick={handleUpload} disabled={!file}>
                 Upload
               </Button>
             </div>
@@ -180,24 +276,28 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
               <div className={importStyles.progress}>
                 <span className={importStyles.spinner} aria-hidden="true" />
                 <p>
-                  {job.status === "PENDING" ? "Queued…" : "Processing…"}
-                  {job.totalRows > 0 ? ` ${job.successRows + job.failedRows} of ${job.totalRows} rows` : null}
+                  Processing… {processedCount} of {total} rows ({successCount} enrolled
+                  {skippedCount > 0 ? `, ${skippedCount} skipped` : ""}
+                  {failedCount > 0 ? `, ${failedCount} failed` : ""})
                 </p>
               </div>
             ) : (
               <div className={importStyles.summary}>
                 <p>
-                  <strong>{job.successRows}</strong> of <strong>{job.totalRows}</strong> rows imported successfully.
-                  {job.failedRows > 0 ? ` ${job.failedRows} row${job.failedRows === 1 ? "" : "s"} failed.` : ""}
+                  <strong>{successCount}</strong> of <strong>{total}</strong> rows enrolled successfully.
+                  {skippedCount > 0 ? ` ${skippedCount} already enrolled (skipped).` : ""}
+                  {failedCount > 0 ? ` ${failedCount} row${failedCount === 1 ? "" : "s"} failed.` : ""}
                 </p>
 
-                {rows && rows.length > 0 ? (
+                {problemRows.length > 0 ? (
                   <ul className={importStyles.rowList}>
-                    {rows.map((row) => (
-                      <li key={row.id} className={importStyles.rowItem}>
+                    {problemRows.map((row) => (
+                      <li key={`${row.rowNumber}-${row.email}`} className={importStyles.rowItem}>
                         <span className={importStyles.rowNumber}>Row {row.rowNumber}</span>
-                        <span className={importStyles.rowEmail}>{row.email}</span>
-                        <span className={importStyles.rowError}>{row.errorMessage ?? row.status}</span>
+                        <span className={importStyles.rowEmail}>{row.email || "(no email)"}</span>
+                        <span className={importStyles.rowError} data-tone={row.status === "SKIPPED" ? "neutral" : "danger"}>
+                          {row.message}
+                        </span>
                       </li>
                     ))}
                   </ul>
