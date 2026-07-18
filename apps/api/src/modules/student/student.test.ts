@@ -1,5 +1,5 @@
 import request from "supertest";
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import studentRouter from "./student.routes";
 import { errorHandler } from "../../middleware/error";
 
@@ -10,7 +10,7 @@ app.use(errorHandler);
 
 // Mock authentication and permissions to focus on module logic
 jest.mock("../../middleware/auth", () => ({
-  authMiddleware: (req: any, res: any, next: any) => next(),
+  authMiddleware: (req: Request, res: Response, next: NextFunction) => next(),
 }));
 jest.mock("../../middleware/permission", () => ({
   requireRole: () => (req: any, res: any, next: any) => next(),

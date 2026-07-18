@@ -1,10 +1,10 @@
-import { NextFunction, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { BadRequestError } from "./errors";
 
 export class Validator {
   static assertRequired(
-    value: any,
+    value: unknown,
     message: string,
     code = "VALIDATION_ERROR",
   ): void {
@@ -25,8 +25,8 @@ export class Validator {
   }
 }
 
-export function validateRequest(schema: z.ZodObject<any>) {
-  return (req: any, res: Response, next: NextFunction): void => {
+export function validateRequest(schema: z.ZodTypeAny) {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse({
       body: req.body,
       query: req.query,

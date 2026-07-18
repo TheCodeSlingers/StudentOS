@@ -1,38 +1,20 @@
+import { Prisma, HireStatus, JobType, WorkplacePreference } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
-import { Prisma } from "@prisma/client";
 import { NotFoundError, BadRequestError } from "../../common/errors";
-
-type HireStatus = "EMPLOYED" | "JOB_SEEKING" | "FREELANCING" | "STUDENT_ONLY";
-type JobType =
-  | "FULL_TIME"
-  | "PART_TIME"
-  | "INTERNSHIP"
-  | "FREELANCE"
-  | "NOT_LOOKING";
-type WorkplacePreference = "REMOTE" | "ONSITE" | "HYBRID" | "NO_PREFERENCE";
-
-export interface UpdateProfileData {
-  phone?: string | null;
-  address?: string | null;
-  avatarUrl?: string | null;
-  courseName?: string | null;
-  specialization?: string | null;
-  skills?: string[];
-  hireStatus?: HireStatus;
-  jobType?: JobType;
-  workplacePreference?: WorkplacePreference;
-  currentEmployer?: string | null;
-  currentPosition?: string | null;
-  portfolioUrl?: string | null;
-  linkedinUrl?: string | null;
-}
+import {
+  IEnrollResult,
+  IEnrolledStudentsResult,
+  IRevokeResult,
+  IStudentProfileResult,
+  IUpdateProfilePayload,
+} from "./student.interface";
 
 export class StudentService {
   static async enrollStudent(
     batchId: string,
     membershipId: string,
     isCR: boolean = false,
-  ) {
+  ): Promise<IEnrollResult> {
     const [batch, membership] = await Promise.all([
       prisma.batch.findUnique({
         where: { id: batchId },
@@ -88,7 +70,7 @@ export class StudentService {
     batchId: string,
     page: number = 1,
     limit: number = 10,
-  ) {
+  ): Promise<IEnrolledStudentsResult> {
     const skip = (page - 1) * limit;
 
     const [students, total] = await Promise.all([
@@ -151,7 +133,7 @@ export class StudentService {
     };
   }
 
-  static async revokeEnrollment(batchId: string, batchMembershipId: string) {
+  static async revokeEnrollment(batchId: string, batchMembershipId: string): Promise<IRevokeResult> {
     const enrollment = await prisma.batchMembership.findUnique({
       where: { id: batchMembershipId },
     });
@@ -170,7 +152,7 @@ export class StudentService {
     });
   }
 
-  static async getStudentProfile(membershipId: string) {
+  static async getStudentProfile(membershipId: string): Promise<IStudentProfileResult> {
     const membership = await prisma.membership.findUnique({
       where: { id: membershipId },
       include: {
@@ -193,14 +175,14 @@ export class StudentService {
 
   static async updateStudentProfile(
     membershipId: string,
-    data: UpdateProfileData,
+    data: IUpdateProfilePayload,
   ) {
     try {
       return await prisma.studentProfile.upsert({
         where: { membershipId },
-        update: data as any,
+        update: data as Prisma.StudentProfileUpdateInput,
         create: {
-          ...(data as any),
+          ...(data as Prisma.StudentProfileUncheckedCreateInput),
           membershipId,
         },
       });
