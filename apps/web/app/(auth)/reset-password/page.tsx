@@ -5,38 +5,28 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+import { notify } from "@/lib/toast";
 import { ApiError, resetPassword } from "@/lib/api-client";
 import { getPasswordError } from "@/lib/validation";
 import styles from "../auth.module.css";
-
-interface FormErrors {
-  password?: string;
-  confirmPassword?: string;
-}
 
 function ResetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDone, setIsDone] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setApiError(null);
 
-    const nextErrors: FormErrors = {};
     const passwordError = getPasswordError(password);
     if (passwordError) {
-      nextErrors.password = passwordError;
+      notify.error(passwordError);
+      return;
     }
     if (confirmPassword !== password) {
-      nextErrors.confirmPassword = "Passwords do not match.";
-    }
-    setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) {
+      notify.error("Passwords do not match.");
       return;
     }
 
@@ -45,7 +35,7 @@ function ResetPasswordForm({ token }: { token: string }) {
       await resetPassword(token, password);
       setIsDone(true);
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
+      notify.error(error, "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -72,12 +62,6 @@ function ResetPasswordForm({ token }: { token: string }) {
         <p>Choose a new password for your account.</p>
       </div>
 
-      {apiError ? (
-        <div className={styles.banner} role="alert">
-          {apiError}
-        </div>
-      ) : null}
-
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <TextField
           label="New password"
@@ -86,7 +70,6 @@ function ResetPasswordForm({ token }: { token: string }) {
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          error={errors.password}
         />
         <TextField
           label="Confirm new password"
@@ -95,7 +78,6 @@ function ResetPasswordForm({ token }: { token: string }) {
           autoComplete="new-password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
-          error={errors.confirmPassword}
         />
 
         <Button type="submit" isLoading={isSubmitting}>

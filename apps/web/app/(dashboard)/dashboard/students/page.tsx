@@ -14,21 +14,19 @@ import {
   listMembers,
   removeStudent,
 } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
 
 export default function StudentsPage() {
   const isAuthorized = useRequireRole("MENTOR");
   const [batches, setBatches] = useState<Batch[] | null>(null);
-  const [batchesError, setBatchesError] = useState<string | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
   const [students, setStudents] = useState<BatchStudent[] | null>(null);
-  const [studentsError, setStudentsError] = useState<string | null>(null);
 
   const [members, setMembers] = useState<Member[] | null>(null);
   const [selectedMembershipId, setSelectedMembershipId] = useState("");
-  const [enrollError, setEnrollError] = useState<string | null>(null);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -44,7 +42,7 @@ export default function StudentsPage() {
         if (batchResult.length > 0) setSelectedBatchId(batchResult[0].id);
       })
       .catch((error) => {
-        if (!cancelled) setBatchesError(error instanceof ApiError ? error.message : "Could not load workspace data.");
+        if (!cancelled) notify.error(error, "Could not load workspace data.");
       });
     return () => {
       cancelled = true;
@@ -52,12 +50,16 @@ export default function StudentsPage() {
   }, [isAuthorized]);
 
   const refetchStudents = useCallback(() => {
-    if (!selectedBatchId) return;
-    setStudentsError(null);
+    if (!selectedBatchId) {
+      setStudents([]); // Clear students when no batch is selected
+      return;
+    }
+    setStudents(null); // Set to null to show loading state
     listBatchStudents(selectedBatchId)
       .then(setStudents)
       .catch((error) => {
-        setStudentsError(error instanceof ApiError ? error.message : "Could not load students.");
+        notify.error(error, "Could not load students for this batch.");
+        setStudents([]); // Set to empty array on error to stop loading
       });
   }, [selectedBatchId]);
 
@@ -70,18 +72,22 @@ export default function StudentsPage() {
   );
 
   async function handleEnroll() {
-    if (!selectedBatchId || !selectedMembershipId) {
-      setEnrollError("Choose a student to enroll.");
+    if (!selectedBatchId) {
+      notify.error("A batch must be selected.");
       return;
     }
-    setEnrollError(null);
+    if (!selectedMembershipId) {
+      notify.error("Choose a student to enroll.");
+      return;
+    }
     setIsEnrolling(true);
     try {
       const enrolled = await enrollStudent(selectedBatchId, selectedMembershipId);
       setStudents((current) => (current ? [...current, enrolled] : [enrolled]));
       setSelectedMembershipId("");
+      notify.success("Student enrolled successfully.");
     } catch (error) {
-      setEnrollError(error instanceof ApiError ? error.message : "Could not enroll this student.");
+      notify.error(error, "Could not enroll this student.");
     } finally {
       setIsEnrolling(false);
     }
@@ -92,9 +98,10 @@ export default function StudentsPage() {
     setRemovingId(batchMembershipId);
     try {
       await removeStudent(selectedBatchId, batchMembershipId);
-      setStudents((current) => current?.filter((student) => student.batchMembershipId !== batchMembershipId) ?? current);
+      setStudents((current) => current?.filter((student) => student.batchMembershipId !== batchMembershipId) ?? null);
+      notify.success("Student removed from batch.");
     } catch (error) {
-      setStudentsError(error instanceof ApiError ? error.message : "Could not remove this student.");
+      notify.error(error, "Could not remove this student.");
     } finally {
       setRemovingId(null);
     }
@@ -113,7 +120,9 @@ export default function StudentsPage() {
         </div>
 
         <div className={styles.selectGroup}>
-          {batches && batches.length > 0 ? (
+          {batches === null ? (
+            <p>Loading batches...</p>
+          ) : batches.length > 0 ? (
             <select
               className={styles.select}
               value={selectedBatchId ?? ""}
@@ -135,27 +144,20 @@ export default function StudentsPage() {
         </div>
       </div>
 
-      {batchesError ? (
-        <div className={styles.banner} role="alert">
-          {batchesError}
+      {batches && batches.length === 0 ? (
+        <div className={styles.card}>
+          <p className={styles.emptyState}>No batches created yet. Create a batch to enroll students.</p>
         </div>
-      ) : null}
-
-      {selectedBatchId ? (
+      ) : selectedBatchId ? (
         <div className={styles.card}>
           <p className={styles.sectionTitle}>Enroll a student</p>
-
-          {enrollError ? (
-            <div className={styles.banner} role="alert">
-              {enrollError}
-            </div>
-          ) : null}
 
           <div className={styles.inlineForm}>
             <select
               className={styles.select}
               value={selectedMembershipId}
               onChange={(event) => setSelectedMembershipId(event.target.value)}
+              disabled={availableMembers.length === 0}
             >
               <option value="">
                 {availableMembers.length === 0 ? "No available students" : "Select a student"}
@@ -171,17 +173,11 @@ export default function StudentsPage() {
             </Button>
           </div>
 
-          {studentsError ? (
-            <div className={styles.banner} role="alert">
-              {studentsError}
-            </div>
-          ) : null}
-
-          {students === null && !studentsError ? (
+          {students === null ? (
             <p className={styles.emptyState}>Loading roster…</p>
-          ) : students && students.length === 0 ? (
+          ) : students.length === 0 ? (
             <p className={styles.emptyState}>No students enrolled in this batch yet.</p>
-          ) : students ? (
+          ) : (
             <div className={styles.tableScroll}>
               <table className={styles.table}>
                 <thead>
@@ -227,7 +223,7 @@ export default function StudentsPage() {
                 </tbody>
               </table>
             </div>
-          ) : null}
+          )}
         </div>
       ) : null}
 

@@ -10,6 +10,7 @@ import {
   listBatchStudents,
   listBatches,
 } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
 
@@ -33,14 +34,12 @@ function statusTone(status: AttendanceHistoryItem["status"]): "success" | "warni
 export default function AttendanceOverviewPage() {
   const isAuthorized = useRequireRole("MENTOR");
   const [batches, setBatches] = useState<Batch[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
   const [students, setStudents] = useState<BatchStudent[] | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   const [history, setHistory] = useState<AttendanceHistoryItem[] | null>(null);
-  const [historyError, setHistoryError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -52,7 +51,7 @@ export default function AttendanceOverviewPage() {
         if (result.length > 0) setSelectedBatchId(result[0].id);
       })
       .catch((fetchError) => {
-        if (!cancelled) setError(fetchError instanceof ApiError ? fetchError.message : "Could not load batches.");
+        if (!cancelled) notify.error(fetchError, "Could not load batches.");
       });
     return () => {
       cancelled = true;
@@ -71,7 +70,7 @@ export default function AttendanceOverviewPage() {
         setSelectedStudentId(result[0]?.batchMembershipId ?? null);
       })
       .catch((fetchError) => {
-        if (!cancelled) setError(fetchError instanceof ApiError ? fetchError.message : "Could not load students.");
+        if (!cancelled) notify.error(fetchError, "Could not load students.");
       });
     return () => {
       cancelled = true;
@@ -84,13 +83,12 @@ export default function AttendanceOverviewPage() {
       return;
     }
     let cancelled = false;
-    setHistoryError(null);
     getStudentAttendanceHistory(selectedStudentId)
       .then((result) => {
         if (!cancelled) setHistory(result);
       })
       .catch((fetchError) => {
-        if (!cancelled) setHistoryError(fetchError instanceof ApiError ? fetchError.message : "Could not load attendance history.");
+        if (!cancelled) notify.error(fetchError, "Could not load attendance history.");
       });
     return () => {
       cancelled = true;
@@ -140,24 +138,16 @@ export default function AttendanceOverviewPage() {
         </div>
       </div>
 
-      {error ? (
-        <div className={styles.banner} role="alert">
-          {error}
-        </div>
-      ) : null}
-
       <div className={styles.card}>
-        {students && students.length === 0 ? (
+        {students === null && batches !== null && batches.length > 0 ? (
+          <p className={styles.emptyState}>Loading students...</p>
+        ) : students && students.length === 0 ? (
           <p className={styles.emptyState}>No students enrolled in this batch yet.</p>
-        ) : historyError ? (
-          <div className={styles.banner} role="alert">
-            {historyError}
-          </div>
-        ) : history === null ? (
+        ) : history === null && students && students.length > 0 ? (
           <p className={styles.emptyState}>Loading attendance history…</p>
-        ) : history.length === 0 ? (
+        ) : history && history.length === 0 ? (
           <p className={styles.emptyState}>No attendance recorded for this student yet.</p>
-        ) : (
+        ) : history ? (
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
@@ -186,7 +176,7 @@ export default function AttendanceOverviewPage() {
               </tbody>
             </table>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

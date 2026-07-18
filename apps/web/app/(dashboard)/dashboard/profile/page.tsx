@@ -7,6 +7,7 @@ import { TextField } from "@/components/ui/TextField";
 import { Button } from "@/components/ui/Button";
 import { IStudentProfile } from "./profile.interface";
 import { ApiError, getStudentProfile, updateStudentProfile } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useAuth } from "@/lib/auth-context";
 import { useRequireRole } from "@/lib/use-require-role";
 
@@ -47,10 +48,7 @@ export default function StudentProfilePage() {
   const { membershipId } = useAuth();
   const [profile, setProfile] = useState<IStudentProfile>(EMPTY_PROFILE);
   const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthorized || !membershipId) {
@@ -75,7 +73,7 @@ export default function StudentProfilePage() {
         });
       })
       .catch((error) => {
-        setLoadError(error instanceof ApiError ? error.message : "Could not load your profile.");
+        notify.error(error, "Could not load your profile.");
       })
       .finally(() => setIsLoading(false));
   }, [isAuthorized, membershipId]);
@@ -94,9 +92,6 @@ export default function StudentProfilePage() {
     }
 
     setIsSaving(true);
-    setSaveMessage(null);
-    setSaveError(null);
-
     try {
       await updateStudentProfile(membershipId, {
         phone: profile.phone || null,
@@ -115,10 +110,9 @@ export default function StudentProfilePage() {
         portfolioUrl: profile.portfolioUrl || null,
         linkedinUrl: profile.linkedinUrl || null,
       });
-      setSaveMessage("Profile updated successfully.");
-      setTimeout(() => setSaveMessage(null), 3000);
+      notify.success("Profile updated successfully.");
     } catch (error) {
-      setSaveError(error instanceof ApiError ? error.message : "Could not save your profile.");
+      notify.error(error, "Could not save your profile.");
     } finally {
       setIsSaving(false);
     }
@@ -145,14 +139,6 @@ export default function StudentProfilePage() {
     return (
       <div className={styles.card}>
         <p>Loading your profile…</p>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className={styles.card}>
-        <p>{loadError}</p>
       </div>
     );
   }
@@ -309,19 +295,9 @@ export default function StudentProfilePage() {
         </div>
 
         <motion.div className={styles.actions} variants={itemVariants}>
-          {saveError && <span className={styles.errorText}>{saveError}</span>}
-          {saveMessage && (
-            <motion.span
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={styles.successText}
-            >
-              {saveMessage}
-            </motion.span>
-          )}
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? "Syncing..." : "Save Preferences"}
+            <Button type="submit" isLoading={isSaving}>
+              Save Preferences
             </Button>
           </motion.div>
         </motion.div>

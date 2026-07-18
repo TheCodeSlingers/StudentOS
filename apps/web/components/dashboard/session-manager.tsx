@@ -12,6 +12,7 @@ import {
   listSessions,
   openAttendanceWindow,
 } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import styles from "./session-manager.module.css";
 
 const DEFAULT_ATTENDANCE_DURATION_MINS = 15;
@@ -116,7 +117,6 @@ interface CodeDisplayCardProps {
   onCancel: () => void;
   isActionLoading: boolean;
   isCancelling: boolean;
-  actionError: string | null;
 }
 
 function CodeDisplayCard({
@@ -130,7 +130,6 @@ function CodeDisplayCard({
   onCancel,
   isActionLoading,
   isCancelling,
-  actionError,
 }: CodeDisplayCardProps) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -166,12 +165,6 @@ function CodeDisplayCard({
             {formatTime(session.scheduledStart)} – {formatTime(session.scheduledEnd)}
           </p>
         </div>
-
-        {actionError ? (
-          <div className={styles.banner} role="alert">
-            {actionError}
-          </div>
-        ) : null}
 
         {session.status === "STARTED" && session.currentCode ? (
           <>
@@ -236,7 +229,7 @@ function CodeDisplayCard({
 interface SessionManagerProps {
   title?: string;
   batches: SessionManagerBatch[];
-  batchesError?: string | null;
+  batchesError?: string | null; // This prop is now unused but kept for parent component compatibility until it's refactored.
   emptyBatchesMessage?: string;
   /** Only mentors can create, edit, or cancel sessions — CRs can only run attendance for existing ones. */
   canManage?: boolean;
@@ -251,18 +244,15 @@ interface SessionManagerProps {
 export function SessionManager({
   title = "Sessions",
   batches,
-  batchesError = null,
   emptyBatchesMessage = "No active batches yet.",
   canManage = false,
 }: SessionManagerProps) {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
-  const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRosterOpen, setIsRosterOpen] = useState(false);
@@ -282,8 +272,6 @@ export function SessionManager({
     if (!selectedBatchId) return;
 
     setIsLoadingSessions(true);
-    setSessionsError(null);
-
     listSessions(selectedBatchId)
       .then((result) => {
         setSessions(result);
@@ -292,7 +280,7 @@ export function SessionManager({
         );
       })
       .catch((error) => {
-        setSessionsError(error instanceof ApiError ? error.message : "Could not load sessions.");
+        notify.error(error, "Could not load sessions.");
       })
       .finally(() => {
         setIsLoadingSessions(false);
@@ -310,18 +298,18 @@ export function SessionManager({
   const durationMins = selectedBatch?.attendanceDurationMinsOverride ?? DEFAULT_ATTENDANCE_DURATION_MINS;
 
   function mergeSession(updated: SessionSummary) {
-    setSessions((current) => current?.map((session) => (session.id === updated.id ? updated : session)) ?? current);
+    setSessions((current) => current?.map((session) => (session.id === updated.id ? updated : session)) ?? null);
   }
 
   async function handleOpenAttendance() {
     if (!selectedSessionId) return;
-    setActionError(null);
     setIsActionLoading(true);
     try {
       const updated = await openAttendanceWindow(selectedSessionId);
       mergeSession(updated);
+      notify.success("Attendance window opened.");
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : "Could not open attendance.");
+      notify.error(error, "Could not open attendance.");
     } finally {
       setIsActionLoading(false);
     }
@@ -329,13 +317,13 @@ export function SessionManager({
 
   async function handleCloseAttendance() {
     if (!selectedSessionId) return;
-    setActionError(null);
     setIsActionLoading(true);
     try {
       const updated = await closeAttendanceWindow(selectedSessionId);
       mergeSession(updated);
+      notify.success("Attendance window closed.");
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : "Could not close attendance.");
+      notify.error(error, "Could not close attendance.");
     } finally {
       setIsActionLoading(false);
     }
@@ -343,16 +331,16 @@ export function SessionManager({
 
   async function handleCancelSession() {
     if (!selectedSessionId) return;
-    setActionError(null);
     setIsCancelling(true);
     try {
       const result = await cancelSessionApi(selectedSessionId);
       setSessions((current) =>
         current?.map((session) => (session.id === result.id ? { ...session, status: result.status } : session)) ??
-        current
+        null
       );
+      notify.success("Session cancelled successfully.");
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : "Could not cancel this session.");
+      notify.error(error, "Could not cancel this session.");
     } finally {
       setIsCancelling(false);
     }
@@ -396,13 +384,7 @@ export function SessionManager({
         </div>
       </div>
 
-      {batchesError ? (
-        <div className={styles.banner} role="alert">
-          {batchesError}
-        </div>
-      ) : null}
-
-      {!batchesError && batches.length === 0 ? (
+      {batches.length === 0 ? (
         <div className={styles.card}>
           <p className={styles.emptyState}>{emptyBatchesMessage}</p>
         </div>
@@ -412,11 +394,7 @@ export function SessionManager({
         <div className={styles.layout}>
           <div className={styles.card}>
             <p className={styles.sectionTitle}>Calendar</p>
-            {sessionsError ? (
-              <div className={styles.banner} role="alert">
-                {sessionsError}
-              </div>
-            ) : isLoadingSessions && !sessions ? (
+            {isLoadingSessions && !sessions ? (
               <p className={styles.emptyState}>Loading sessions…</p>
             ) : (
               <CalendarView
@@ -438,7 +416,6 @@ export function SessionManager({
             onCancel={handleCancelSession}
             isActionLoading={isActionLoading}
             isCancelling={isCancelling}
-            actionError={actionError}
           />
         </div>
       ) : null}

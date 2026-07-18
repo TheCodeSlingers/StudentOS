@@ -11,6 +11,7 @@ import {
   signup as apiSignup,
 } from "./api-client";
 import { clearStoredToken, getStoredToken, setStoredToken } from "./session";
+import { notify } from "./toast";
 
 export type MembershipRole = "MENTOR" | "STUDENT";
 
@@ -100,9 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = useCallback(
     async (payload: SignupPayload) => {
-      const result = await apiSignup(payload);
-      setStoredToken(result.accessToken);
-      return refresh();
+      try {
+        const result = await apiSignup(payload);
+        setStoredToken(result.accessToken);
+        const next = await refresh();
+        notify.success("Account created successfully!");
+        return next;
+      } catch (error) {
+        notify.error(error, "Could not sign up.");
+        throw error;
+      }
     },
     [refresh]
   );

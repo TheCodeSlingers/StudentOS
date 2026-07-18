@@ -9,6 +9,7 @@ import {
   getSessionRoster,
   manualMarkAttendance,
 } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import styles from "./attendance-grid.module.css";
 
 const STATUS_OPTIONS: AttendanceStatus[] = ["PRESENT", "LATE", "ABSENT", "EXCUSED"];
@@ -17,8 +18,6 @@ interface RowState {
   status: AttendanceStatus | "";
   reason: string;
   isSaving: boolean;
-  error: string | null;
-  saved: boolean;
 }
 
 interface AttendanceGridProps {
@@ -37,7 +36,6 @@ function CloseIcon() {
 
 export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridProps) {
   const [roster, setRoster] = useState<AttendanceRosterItem[] | null>(null);
-  const [rosterError, setRosterError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [rows, setRows] = useState<Record<string, RowState>>({});
 
@@ -48,7 +46,6 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
 
     let cancelled = false;
     setIsLoading(true);
-    setRosterError(null);
 
     getSessionRoster(sessionId)
       .then((result) => {
@@ -62,8 +59,6 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                 status: item.attendance?.status ?? "",
                 reason: "",
                 isSaving: false,
-                error: null,
-                saved: false,
               } satisfies RowState,
             ])
           )
@@ -71,7 +66,7 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
       })
       .catch((error) => {
         if (cancelled) return;
-        setRosterError(error instanceof ApiError ? error.message : "Could not load the roster.");
+        notify.error(error, "Could not load the roster.");
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -96,15 +91,15 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
   async function handleSaveRow(studentBatchMembershipId: string) {
     const row = rows[studentBatchMembershipId];
     if (!row || !row.status) {
-      updateRow(studentBatchMembershipId, { error: "Choose a status before saving." });
+      notify.error("Choose a status before saving.");
       return;
     }
     if (!row.reason.trim()) {
-      updateRow(studentBatchMembershipId, { error: "A reason is required for a manual override." });
+      notify.error("A reason is required for a manual override.");
       return;
     }
 
-    updateRow(studentBatchMembershipId, { isSaving: true, error: null, saved: false });
+    updateRow(studentBatchMembershipId, { isSaving: true });
 
     try {
       const record = await manualMarkAttendance(sessionId, {
@@ -113,7 +108,7 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
         manualReason: row.reason.trim(),
       });
 
-      updateRow(studentBatchMembershipId, { isSaving: false, saved: true });
+      notify.success("Attendance override saved.");
       setRoster((current) =>
         current?.map((item) =>
           item.studentBatchMembershipId === studentBatchMembershipId
@@ -132,10 +127,9 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
         ) ?? current
       );
     } catch (error) {
-      updateRow(studentBatchMembershipId, {
-        isSaving: false,
-        error: error instanceof ApiError ? error.message : "Could not save this override.",
-      });
+      notify.error(error, "Could not save this override.");
+    } finally {
+      updateRow(studentBatchMembershipId, { isSaving: false });
     }
   }
 
@@ -159,12 +153,6 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
             <CloseIcon />
           </button>
         </div>
-
-        {rosterError ? (
-          <div className={styles.banner} role="alert">
-            {rosterError}
-          </div>
-        ) : null}
 
         <div className={styles.body}>
           {isLoading && !roster ? (
@@ -206,7 +194,6 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                           onChange={(event) =>
                             updateRow(item.studentBatchMembershipId, {
                               status: event.target.value as AttendanceStatus,
-                              saved: false,
                             })
                           }
                         >
@@ -225,7 +212,7 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                           placeholder="Reason for override"
                           value={row.reason}
                           onChange={(event) =>
-                            updateRow(item.studentBatchMembershipId, { reason: event.target.value, saved: false })
+                            updateRow(item.studentBatchMembershipId, { reason: event.target.value })
                           }
                         />
                       </td>
@@ -240,8 +227,6 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                           >
                             Save
                           </Button>
-                          {row.error ? <span className={styles.rowError}>{row.error}</span> : null}
-                          {row.saved && !row.error ? <span className={styles.rowSaved}>Saved</span> : null}
                         </div>
                       </td>
                     </tr>
