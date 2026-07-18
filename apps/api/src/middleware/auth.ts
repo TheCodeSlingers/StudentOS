@@ -1,6 +1,8 @@
-import { Response, NextFunction } from "express";
-import { prisma } from "../lib/prisma";
+import { NextFunction, Response } from "express";
+import { env } from "../config/env";
 import { auth } from "../lib/auth";
+import { logger } from "../lib/logger";
+import { prisma } from "../lib/prisma";
 import { redis } from "../lib/redis";
 
 export async function authMiddleware(
@@ -63,6 +65,15 @@ export async function authMiddleware(
           membership = typeof cached === "string" ? JSON.parse(cached) : cached;
         }
       } catch (err) {
+        logger.warn(
+          {
+            err,
+            cacheKey,
+            userId: session.user.id,
+            operation: "authMiddleware.redis.get",
+          },
+          "Failed to fetch membership from Redis cache",
+        );
       }
     }
 
@@ -85,8 +96,19 @@ export async function authMiddleware(
 
       if (membership && redis) {
         try {
-          await redis.set(cacheKey, JSON.stringify(membership), { ex: 60 });
+          await redis.set(cacheKey, JSON.stringify(membership), {
+            ex: env.MEMBERSHIP_CACHE_TTL_SECONDS,
+          });
         } catch (err) {
+          logger.warn(
+            {
+              err,
+              cacheKey,
+              userId: session.user.id,
+              operation: "authMiddleware.redis.set",
+            },
+            "Failed to store membership in Redis cache",
+          );
         }
       }
     }

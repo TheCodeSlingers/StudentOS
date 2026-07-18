@@ -1,8 +1,9 @@
-import { Worker, Job } from "bullmq";
+import { Job, Worker } from "bullmq";
+import { IMPORT } from "../config/constants";
 import { env } from "../config/env";
-import { prisma } from "../lib/prisma";
-import { parseCSV, CSVRow } from "../utils/csv-parser";
 import { logger } from "../lib/logger";
+import { prisma } from "../lib/prisma";
+import { CSVRow, parseCSV } from "../utils/csv-parser";
 
 export interface ImportJobData {
   jobId: string;
@@ -68,10 +69,14 @@ export function startImportWorker(): Worker | null {
       let failedCount = 0;
       const importRowsToCreate: any[] = [];
 
-      const chunkSize = 50;
+      const chunkSize = IMPORT.CHUNK_SIZE;
       let lastProgress = 0;
 
-      for (let chunkIndex = 0; chunkIndex < rows.length; chunkIndex += chunkSize) {
+      for (
+        let chunkIndex = 0;
+        chunkIndex < rows.length;
+        chunkIndex += chunkSize
+      ) {
         const chunk = rows.slice(chunkIndex, chunkIndex + chunkSize);
         const emails = chunk.map((r) => r.email).filter(Boolean);
 
@@ -104,7 +109,9 @@ export function startImportWorker(): Worker | null {
             where: { workspaceId, userId: { in: userIds } },
             select: { id: true, userId: true },
           });
-          const existingMembershipUserIds = new Set(existingMemberships.map((m) => m.userId));
+          const existingMembershipUserIds = new Set(
+            existingMemberships.map((m) => m.userId),
+          );
 
           const membershipsToCreate = userIds
             .filter((uid) => !existingMembershipUserIds.has(uid))
@@ -126,14 +133,18 @@ export function startImportWorker(): Worker | null {
             where: { workspaceId, userId: { in: userIds } },
             select: { id: true, userId: true },
           });
-          const membershipMap = new Map(chunkMemberships.map((m) => [m.userId, m.id]));
+          const membershipMap = new Map(
+            chunkMemberships.map((m) => [m.userId, m.id]),
+          );
 
           const membershipIds = Array.from(membershipMap.values());
           const existingBatchMembers = await prisma.batchMembership.findMany({
             where: { batchId, membershipId: { in: membershipIds } },
             select: { id: true, membershipId: true },
           });
-          const existingBatchMemberIds = new Set(existingBatchMembers.map((bm) => bm.membershipId));
+          const existingBatchMemberIds = new Set(
+            existingBatchMembers.map((bm) => bm.membershipId),
+          );
 
           const batchMembersToCreate = membershipIds
             .filter((mid) => !existingBatchMemberIds.has(mid))
@@ -154,7 +165,9 @@ export function startImportWorker(): Worker | null {
             where: { membershipId: { in: membershipIds } },
             select: { id: true, membershipId: true, skills: true },
           });
-          const existingProfileMap = new Map(existingProfiles.map((p) => [p.membershipId, p]));
+          const existingProfileMap = new Map(
+            existingProfiles.map((p) => [p.membershipId, p]),
+          );
 
           const profilesToCreate: any[] = [];
           const profilesToUpdate: any[] = [];
@@ -248,7 +261,10 @@ export function startImportWorker(): Worker | null {
             });
             failedCount++;
           }
-          logger.warn({ jobId, chunkIndex, err }, "Import chunk processing failed");
+          logger.warn(
+            { jobId, chunkIndex, err },
+            "Import chunk processing failed",
+          );
         }
 
         const currentProgress = Math.round(
@@ -284,7 +300,7 @@ export function startImportWorker(): Worker | null {
     },
     {
       connection: connectionOpts as any,
-      concurrency: 2,
+      concurrency: env.IMPORT_WORKER_CONCURRENCY,
     },
   );
 
