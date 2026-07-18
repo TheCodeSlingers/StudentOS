@@ -10,6 +10,7 @@ import {
   listMembersSchema,
   updateMemberSchema,
   batchParamSchema,
+  listBatchesSchema,
 } from "./batch.schema";
 
 const router = Router();
@@ -23,7 +24,11 @@ router.post(
   BatchController.createBatch,
 );
 
-router.get("/batches", BatchController.getListBatches);
+router.get(
+  "/batches",
+  validateRequest(listBatchesSchema),
+  BatchController.getListBatches,
+);
 
 router.get(
   "/batches/:batchId",

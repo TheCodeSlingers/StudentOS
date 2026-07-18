@@ -233,4 +233,22 @@ describe("BatchService", () => {
       expect(list.length).toBe(0);
     });
   });
+
+  describe("listBatches status filter", () => {
+    it("defaults to only active batches", async () => {
+      const list = await BatchService.getListBatchesFromDB(workspaceId);
+      expect(list.length).toBe(0);
+    });
+
+    it("returns only archived batches when status is 'archived'", async () => {
+      const list = await BatchService.getListBatchesFromDB(workspaceId, "archived");
+      expect(list.length).toBe(1);
+      expect(list[0].id).toBe(batchId);
+    });
+
+    it("returns every batch regardless of archived status when status is 'all'", async () => {
+      const list = await BatchService.getListBatchesFromDB(workspaceId, "all");
+      expect(list.length).toBe(1);
+    });
+  });
 });

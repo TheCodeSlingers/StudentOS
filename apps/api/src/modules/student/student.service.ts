@@ -27,6 +27,15 @@ export interface UpdateProfileData {
   linkedinUrl?: string | null;
 }
 
+export interface StudentEnrollmentSummary {
+  batchMembershipId: string;
+  membershipId: string;
+  userId: string;
+  name: string;
+  email: string;
+  isCR: boolean;
+}
+
 interface EnrollmentRecord {
   id: string;
   membershipId: string;
@@ -35,7 +44,7 @@ interface EnrollmentRecord {
 }
 
 /** Flattens a BatchMembership+Membership+User join into the shape the frontend's BatchStudent expects. */
-function flattenEnrollment(record: EnrollmentRecord) {
+function flattenEnrollment(record: EnrollmentRecord): StudentEnrollmentSummary {
   return {
     batchMembershipId: record.id,
     membershipId: record.membershipId,
@@ -51,7 +60,7 @@ export class StudentService {
     batchId: string,
     membershipId: string,
     isCR: boolean = false,
-  ) {
+  ): Promise<StudentEnrollmentSummary> {
     const [batch, membership] = await Promise.all([
       prisma.batch.findUnique({
         where: { id: batchId },
@@ -124,7 +133,10 @@ export class StudentService {
     batchId: string,
     page: number = 1,
     limit: number = 10,
-  ) {
+  ): Promise<{
+    data: StudentEnrollmentSummary[];
+    meta: { total: number; page: number; limit: number; totalPages: number };
+  }> {
     const skip = (page - 1) * limit;
 
     const [students, total] = await Promise.all([

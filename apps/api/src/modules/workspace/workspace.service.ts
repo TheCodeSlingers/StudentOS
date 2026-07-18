@@ -41,6 +41,16 @@ export interface ListMembersParams {
   limit: number;
 }
 
+export interface MyBatchResult {
+  batchMembershipId: string;
+  batchId: string;
+  batchName: string;
+  isCR: boolean;
+  startDate: Date;
+  endDate: Date | null;
+  isArchived: boolean;
+}
+
 export class WorkspaceService {
   static async getWorkspaceFromDB({
     workspaceId,
@@ -247,7 +257,7 @@ export class WorkspaceService {
     return { total, memberships };
   }
 
-  static async getMyBatchesFromDB(membershipId: string) {
+  static async getMyBatchesFromDB(membershipId: string): Promise<MyBatchResult[]> {
     const enrollments = await prisma.batchMembership.findMany({
       where: {
         membershipId,
