@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { ReactNode } from "react";
+import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { GlobalToaster } from "@/components/shared/GlobalToaster";
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={inter.variable}>
       <body>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
         <GlobalToaster />
       </body>
     </html>

@@ -1,7 +1,7 @@
 jest.mock("better-auth/node", () => ({
   toNodeHandler: jest
     .fn()
-    .mockImplementation(() => (req: any, res: any) => res.status(200).send()),
+    .mockImplementation(() => ((req: any, res: any) => res.status(200).send())),
 }));
 jest.mock("../../lib/auth", () => ({
   auth: {

@@ -1,5 +1,6 @@
-import { Request, Response, NextFunction } from "express";
 import { Ratelimit } from "@upstash/ratelimit";
+import { NextFunction, Request, Response } from "express";
+import { RATE_LIMITS } from "../config/constants";
 import { redis } from "../lib/redis";
 
 function createLimiter(
@@ -48,29 +49,29 @@ function createLimiter(
 }
 
 export const globalRateLimiter = createLimiter(
-  100,
-  60,
+  RATE_LIMITS.GLOBAL.REQUESTS,
+  RATE_LIMITS.GLOBAL.WINDOW_SECONDS,
   "ratelimit:global",
   (req) => req.ip ?? "unknown",
 );
 
 export const attendanceRateLimiter = createLimiter(
-  5,
-  60,
+  RATE_LIMITS.ATTENDANCE.REQUESTS,
+  RATE_LIMITS.ATTENDANCE.WINDOW_SECONDS,
   "ratelimit:attendance",
   (req) => (req as any).membershipId ?? req.ip ?? "unknown",
 );
 
 export const importRateLimiter = createLimiter(
-  3,
-  300,
+  RATE_LIMITS.IMPORT.REQUESTS,
+  RATE_LIMITS.IMPORT.WINDOW_SECONDS,
   "ratelimit:import",
   (req) => req.ip ?? "unknown",
 );
 
 export const authRateLimiter = createLimiter(
-  5,
-  60,
+  RATE_LIMITS.AUTH.REQUESTS,
+  RATE_LIMITS.AUTH.WINDOW_SECONDS,
   "ratelimit:auth",
   (req) => req.ip ?? "unknown",
 );

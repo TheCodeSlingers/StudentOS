@@ -1,0 +1,217 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.batchSelect {
+  height: 2.5rem;
+  padding: 0 var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.sectionTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-4);
+}
+
+.emptyState {
+  padding: var(--space-6) 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.dateGroup + .dateGroup {
+  margin-top: var(--space-5);
+}
+
+.dateHeading {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.sessionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.sessionRow:hover {
+  border-color: var(--color-border-strong);
+}
+
+.sessionRow[data-selected="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
+}
+
+.sessionTime {
+  flex-shrink: 0;
+  width: 4.5rem;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted);
+}
+
+.sessionMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.sessionTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.badge[data-status="SCHEDULED"] {
+  background: var(--color-neutral-100);
+  color: var(--color-text-muted);
+}
+
+.badge[data-status="STARTED"] {
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.badge[data-status="ENDED"] {
+  background: var(--color-neutral-100);
+  color: var(--color-text-muted);
+}
+
+.badge[data-status="CANCELLED"] {
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
+
+.codeCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.codeSessionTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.codeSessionTime {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.codeDisplay {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6) 0;
+  font-size: 2.5rem;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.35em;
+  font-family: var(--font-sans);
+  color: var(--color-primary);
+}
+
+.timeLeft {
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.timeLeft strong {
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.banner {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
+}
+
+.actionRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}

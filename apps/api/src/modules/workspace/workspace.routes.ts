@@ -10,22 +10,32 @@ import {
 
 const router = Router();
 
-router.get("/workspace", WorkspaceController.getWorkspace);
+router.get(
+  "/workspace",
+  WorkspaceController.getWorkspace
+);
+
 router.patch(
   "/workspace/settings",
   validateRequest(updateWorkspaceSettingsSchema),
   WorkspaceController.updateWorkspaceSettings,
 );
+
 router.post(
   "/workspace/members/invite",
   validateRequest(inviteMemberSchema),
   WorkspaceController.inviteMember,
 );
-router.get("/workspace/members", WorkspaceController.listMembers);
+
+router.get(
+  "/workspace/members",
+  WorkspaceController.getListMembers
+);
+
 router.delete(
   "/workspace/members/:membershipId",
   validateRequest(membershipIdParamSchema),
   WorkspaceController.deactivateMember,
 );
 
-export const WorkspaceRouter = router;
+export default router;

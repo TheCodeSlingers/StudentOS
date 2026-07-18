@@ -1,3 +1,5 @@
+import { PAGINATION } from "../config/constants";
+
 export interface PaginationMeta {
   page: number;
   limit: number;
@@ -12,12 +14,17 @@ export interface PaginationQuery {
 }
 
 export const parsePagination = (query: PaginationQuery) => {
-  const page = Number(query.page) || 1;
-  const limit = Number(query.limit) || 20;
+  const page = Number(query.page) || PAGINATION.DEFAULT_PAGE;
+  const limit = Number(query.limit) || PAGINATION.DEFAULT_LIMIT;
 
   return {
-    page: page < 1 ? 1 : page,
-    limit: limit < 1 ? 1 : limit > 100 ? 100 : limit,
+    page: page < 1 ? PAGINATION.DEFAULT_PAGE : page,
+    limit:
+      limit < 1
+        ? 1
+        : limit > PAGINATION.MAX_LIMIT
+          ? PAGINATION.MAX_LIMIT
+          : limit,
   };
 };
 

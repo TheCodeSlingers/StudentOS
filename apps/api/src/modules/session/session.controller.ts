@@ -9,7 +9,7 @@ export class SessionController {
     async (req: any, res: Response): Promise<void> => {
       const { batchId } = req.params;
       const workspaceId = req.membership.workspaceId;
-      const session = await SessionService.createSession(
+      const session = await SessionService.createSessionIntoDB(
         batchId,
         workspaceId,
         req.body
@@ -19,7 +19,7 @@ export class SessionController {
   );
 
   // Route 2: List Sessions (with pagination)
-  static listSessions = asyncHandler(
+  static getListSessions = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { batchId } = req.params;
       const workspaceId = req.membership.workspaceId;
@@ -27,7 +27,7 @@ export class SessionController {
       const role = req.membership.role;
       const { page, limit, status } = req.query;
 
-      const result = await SessionService.listSessions(
+      const result = await SessionService.getlistSessionsFromDB(
         batchId,
         workspaceId,
         userId,
@@ -48,7 +48,7 @@ export class SessionController {
       const workspaceId = req.membership.workspaceId;
       const userId = req.user.id;
       const role = req.membership.role;
-      const session = await SessionService.getSession(
+      const session = await SessionService.getSessionFromDB(
         sessionId,
         workspaceId,
         userId,
@@ -63,7 +63,7 @@ export class SessionController {
     async (req: any, res: Response): Promise<void> => {
       const { sessionId } = req.params;
       const workspaceId = req.membership.workspaceId;
-      const session = await SessionService.updateSession(
+      const session = await SessionService.updateSessionIntoDB(
         sessionId,
         workspaceId,
         req.body
@@ -77,7 +77,7 @@ export class SessionController {
     async (req: any, res: Response): Promise<void> => {
       const { sessionId } = req.params;
       const workspaceId = req.membership.workspaceId;
-      const session = await SessionService.cancelSession(
+      const session = await SessionService.cancelSessionIntoDB(
         sessionId,
         workspaceId
       );
@@ -86,14 +86,14 @@ export class SessionController {
   );
 
   // Route 6: Open Attendance Window
-  static openAttendance = asyncHandler(
+  static openAttendanceWindow = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { sessionId } = req.params;
       const workspaceId = req.membership.workspaceId;
       const membershipId = req.membership.id;
       const role = req.membership.role;
       const userId = req.user.id; // For rate limiting
-      const session = await SessionService.openAttendanceWindow(
+      const session = await SessionService.openAttendanceWindowIntoDB(
         sessionId,
         workspaceId,
         membershipId,
@@ -105,14 +105,14 @@ export class SessionController {
   );
 
   // Route 7: Close Attendance Window
-  static closeAttendance = asyncHandler(
+  static closeAttendanceWindow = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { sessionId } = req.params;
       const workspaceId = req.membership.workspaceId;
       const membershipId = req.membership.id;
       const role = req.membership.role;
       const userId = req.user.id; // For rate limiting
-      const session = await SessionService.closeAttendanceWindow(
+      const session = await SessionService.closeAttendanceWindowIntoDB(
         sessionId,
         workspaceId,
         membershipId,

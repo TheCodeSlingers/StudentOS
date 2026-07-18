@@ -1,56 +1,37 @@
 "use client";
 
-import { ReactNode, useState } from "react";
-import { Logo } from "@/components/brand/Logo";
-import { Sidebar } from "@/components/dashboard/sidebar";
-import { InviteModal } from "@/components/modals/invite-modal";
-import styles from "./layout.module.css";
-
-function MenuIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
+import { useRouter } from "next/navigation";
+import { ReactNode, useEffect } from "react";
+import { MentorLayout } from "@/components/dashboard/layouts/mentor-layout";
+import { StudentLayout } from "@/components/dashboard/layouts/student-layout";
+import { NoWorkspaceAccess } from "@/components/dashboard/no-workspace-access";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { useAuth } from "@/lib/auth-context";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const [isNavOpen, setIsNavOpen] = useState(false);
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const router = useRouter();
+  const { status, role } = useAuth();
 
-  return (
-    <div className={styles.shell}>
-      <Sidebar isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onInviteMember={() => setIsInviteOpen(true)} />
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
 
-      <div className={styles.main}>
-        <header className={styles.header}>
-          <button
-            type="button"
-            className={styles.menuButton}
-            onClick={() => setIsNavOpen(true)}
-            aria-label="Open navigation"
-          >
-            <MenuIcon />
-          </button>
+  if (status === "loading") {
+    return <LoadingScreen />;
+  }
 
-          <div className={styles.mobileBrand}>
-            <Logo variant="mark" size={24} />
-          </div>
+  if (status === "unauthenticated") {
+    return null;
+  }
 
-          <div className={styles.headerSpacer} />
+  // Authenticated, but zero active workspace memberships (e.g. a removed member) —
+  // there's no role to build a nav around, so don't guess. Show a dedicated dead-end
+  // instead of silently falling back into a Mentor shell that would 403 on every fetch.
+  if (!role) {
+    return <NoWorkspaceAccess />;
+  }
 
-          <span className={styles.avatar} aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M3.5 17c.6-3.5 2.9-5.5 6.5-5.5s5.9 2 6.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </span>
-        </header>
-
-        <main className={styles.content}>{children}</main>
-      </div>
-
-      <InviteModal isOpen={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
-    </div>
-  );
+  return role === "STUDENT" ? <StudentLayout>{children}</StudentLayout> : <MentorLayout>{children}</MentorLayout>;
 }

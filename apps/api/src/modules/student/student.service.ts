@@ -28,7 +28,7 @@ export interface UpdateProfileData {
 }
 
 export class StudentService {
-  static async enrollStudent(
+  static async enrollStudentIntoDB(
     batchId: string,
     membershipId: string,
     isCR: boolean = false,
@@ -84,7 +84,7 @@ export class StudentService {
     });
   }
 
-  static async getEnrolledStudents(
+  static async getEnrolledStudentsFromDB(
     batchId: string,
     page: number = 1,
     limit: number = 10,
@@ -151,7 +151,7 @@ export class StudentService {
     };
   }
 
-  static async revokeEnrollment(batchId: string, batchMembershipId: string) {
+  static async revokeEnrollmentIntoDB(batchId: string, batchMembershipId: string) {
     const enrollment = await prisma.batchMembership.findUnique({
       where: { id: batchMembershipId },
     });
@@ -170,7 +170,7 @@ export class StudentService {
     });
   }
 
-  static async getStudentProfile(membershipId: string) {
+  static async getStudentProfileFromDB(membershipId: string) {
     const membership = await prisma.membership.findUnique({
       where: { id: membershipId },
       include: {
@@ -191,7 +191,7 @@ export class StudentService {
     return membership;
   }
 
-  static async updateStudentProfile(
+  static async updateStudentProfileIntoDB(
     membershipId: string,
     data: UpdateProfileData,
   ) {

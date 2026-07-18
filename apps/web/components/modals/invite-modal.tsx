@@ -4,7 +4,12 @@ import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { notify } from "@/lib/toast";
-import { ApiError, MembershipRole, inviteMember } from "@/lib/api-client";
+import {
+  ApiError,
+  InviteMemberResult,
+  MembershipRole,
+  inviteMember,
+} from "@/lib/api-client";
 import { isValidEmail } from "@/lib/validation";
 import styles from "./invite-modal.module.css";
 
@@ -16,17 +21,29 @@ interface FormErrors {
 interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onInvited?: (result: InviteMemberResult) => void;
 }
 
 function CloseIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 5l10 10M15 5L5 15"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
-export function InviteModal({ isOpen, onClose }: InviteModalProps) {
+export function InviteModal({ isOpen, onClose, onInvited }: InviteModalProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MembershipRole>("STUDENT");
@@ -88,11 +105,16 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
     setIsSubmitting(true);
     try {
-      await inviteMember({ name: name.trim(), email: email.trim(), role });
+      const result = await inviteMember({
+        name: name.trim(),
+        email: email.trim(),
+        role,
+      });
       notify.success(`Invitation sent to ${email.trim()}.`);
       setName("");
       setEmail("");
       setRole("STUDENT");
+      onInvited?.(result);
     } catch (error) {
       notify.error(error, "Something went wrong. Please try again.");
     } finally {
@@ -114,9 +136,16 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
             <h2 id="invite-modal-title" className={styles.title}>
               Invite a member
             </h2>
-            <p className={styles.subtitle}>Add a mentor or student to this workspace.</p>
+            <p className={styles.subtitle}>
+              Add a mentor or student to this workspace.
+            </p>
           </div>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close dialog">
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
             <CloseIcon />
           </button>
         </div>
@@ -140,7 +169,11 @@ export function InviteModal({ isOpen, onClose }: InviteModalProps) {
 
           <div className={styles.roleGroup}>
             <span className={styles.roleLabel}>Role</span>
-            <div className={styles.roleOptions} role="radiogroup" aria-label="Member role">
+            <div
+              className={styles.roleOptions}
+              role="radiogroup"
+              aria-label="Member role"
+            >
               {(["STUDENT", "MENTOR"] as MembershipRole[]).map((option) => (
                 <button
                   key={option}

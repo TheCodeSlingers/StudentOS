@@ -1,5 +1,10 @@
-import { ReactNode } from "react";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { ReactNode, useEffect } from "react";
 import { Logo } from "@/components/brand/Logo";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { useAuth } from "@/lib/auth-context";
 import styles from "./layout.module.css";
 
 const FEATURES = [
@@ -18,6 +23,21 @@ function FeatureIcon() {
 }
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { status } = useAuth();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/dashboard");
+    }
+  }, [status, router]);
+
+  // Render the form only once we know for sure there's no active session — otherwise an
+  // already-logged-in user would see the login/signup form flash before the redirect fires.
+  if (status !== "unauthenticated") {
+    return status === "loading" ? <LoadingScreen /> : null;
+  }
+
   return (
     <div className={styles.shell}>
       <aside className={styles.marketingPanel}>

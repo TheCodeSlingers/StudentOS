@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, Variants } from "framer-motion";
-import styles from "@/app/(dashboard)/mentor/analytics/analytics.module.css";
+import styles from "@/app/(dashboard)/dashboard/analytics/analytics.module.css";
 
 interface StatCardProps {
   title: string;

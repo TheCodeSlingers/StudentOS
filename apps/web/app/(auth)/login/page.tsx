@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
+<<<<<<< HEAD
 import { notify } from "@/lib/toast";
 import { ApiError, login } from "@/lib/api-client";
+=======
+import { ApiError } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
+>>>>>>> main
 import { isValidEmail } from "@/lib/validation";
 import styles from "../auth.module.css";
 
@@ -15,8 +21,21 @@ interface FormErrors {
   password?: string;
 }
 
+function SessionExpiredBanner() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("reason") !== "session-expired") {
+    return null;
+  }
+  return (
+    <div className={styles.infoBanner} role="status">
+      Your session expired. Please log in again.
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
@@ -49,8 +68,12 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login({ email: email.trim(), password });
+<<<<<<< HEAD
       notify.success("Login successful!");
       router.push("/");
+=======
+      router.push("/dashboard");
+>>>>>>> main
     } catch (error) {
       notify.error(error, "Something went wrong. Please try again.");
     } finally {
@@ -65,6 +88,19 @@ export default function LoginPage() {
         <p>Log in to your StudentOS workspace.</p>
       </div>
 
+<<<<<<< HEAD
+=======
+      <Suspense fallback={null}>
+        <SessionExpiredBanner />
+      </Suspense>
+
+      {apiError ? (
+        <div className={styles.banner} role="alert">
+          {apiError}
+        </div>
+      ) : null}
+
+>>>>>>> main
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <TextField
           label="Email"
@@ -95,6 +131,10 @@ export default function LoginPage() {
         <Button type="submit" isLoading={isSubmitting}>
           Log in
         </Button>
+
+        <div className={styles.divider}>or</div>
+
+        <GoogleAuthButton />
       </form>
 
       <p className={styles.footer}>
