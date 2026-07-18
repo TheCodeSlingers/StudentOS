@@ -180,38 +180,24 @@ export class SessionService {
         status: true,
         scheduledStart: true,
         scheduledEnd: true,
+        meetLink: true,
+        attendanceOpenedAt: true,
+        attendanceClosedAt: true,
+        currentCode: true,
       },
       orderBy: { scheduledStart: "desc" },
       take: limit + 1, // +1 to detect hasMore
     });
 
     const hasMore = sessions.length > limit;
-    const data = hasMore ? sessions.slice(0, limit) : sessions;
-    const nextCursor = hasMore ? data[data.length - 1].scheduledStart.toISOString() : null;
-
-    const [sessions, total] = await Promise.all([
-      prisma.session.findMany({
-        where: whereClause,
-        select: {
-          id: true,
-          batchId: true,
-          title: true,
-          status: true,
-          scheduledStart: true,
-          scheduledEnd: true,
-          meetLink: true,
-          attendanceOpenedAt: true,
-          attendanceClosedAt: true,
-          currentCode: true,
-        },
-      };
-    }
+    const trimmed = hasMore ? sessions.slice(0, limit) : sessions;
+    const nextCursor = hasMore ? trimmed[trimmed.length - 1].scheduledStart.toISOString() : null;
 
     // Only MENTOR sees the live check-in code through the list — matches getSessionFromDB.
     const data =
       role === "MENTOR"
-        ? sessions
-        : sessions.map(({ currentCode, ...rest }) => rest);
+        ? trimmed
+        : trimmed.map(({ currentCode, ...rest }) => rest);
 
     return {
       data,

@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import {
-  ApiError,
   CreateSessionPayload,
   SessionSummary,
   SessionType,
@@ -91,7 +90,7 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
         })
         .catch((error) => {
           if (!cancelled) {
-            setApiError(error instanceof ApiError ? error.message : "Could not load this session's details.");
+            notify.error(error, "Could not load this session's details.");
           }
         })
         .finally(() => {

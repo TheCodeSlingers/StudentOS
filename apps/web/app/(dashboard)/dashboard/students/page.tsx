@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { EnrollStudentModal } from "@/components/modals/enroll-student-modal";
 import { ImportModal } from "@/components/modals/import-modal";
 import {
-  ApiError,
   Batch,
   BatchStudent,
   StudentProfile,
@@ -64,7 +63,6 @@ export default function StudentsPage() {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
   const [students, setStudents] = useState<BatchStudent[] | null>(null);
-  const [studentsError, setStudentsError] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<Record<string, StudentProfile>>({});
   const [attendanceRates, setAttendanceRates] = useState<Record<string, number | null>>({});
 
@@ -210,7 +208,6 @@ export default function StudentsPage() {
   async function handleToggleCR(student: BatchStudent) {
     if (!selectedBatchId) return;
     setUpdatingCRId(student.batchMembershipId);
-    setStudentsError(null);
     try {
       await setBatchMemberCR(selectedBatchId, student.batchMembershipId, !student.isCR);
       setStudents(
@@ -220,7 +217,7 @@ export default function StudentsPage() {
           ) ?? current
       );
     } catch (error) {
-      setStudentsError(error instanceof ApiError ? error.message : "Could not update Class Representative status.");
+      notify.error(error, "Could not update Class Representative status.");
     } finally {
       setUpdatingCRId(null);
     }
@@ -453,7 +450,7 @@ export default function StudentsPage() {
                 </tbody>
               </table>
             </div>
-          )}
+          ) : null}
         </div>
       ) : null}
 

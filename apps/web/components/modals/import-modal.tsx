@@ -164,7 +164,7 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
 
   async function handleUpload() {
     if (!file) {
-      notify.error("Choose a CSV file first.");
+      setError("Choose a CSV file first.");
       return;
     }
 

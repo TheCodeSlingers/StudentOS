@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { BatchFormModal } from "@/components/modals/batch-form-modal";
 import { Button } from "@/components/ui/Button";
-import { ApiError, Batch, BatchStatusFilter, archiveBatch, listBatches } from "@/lib/api-client";
+import { Batch, BatchStatusFilter, archiveBatch, listBatches } from "@/lib/api-client";
 import { notify } from "@/lib/toast";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
@@ -25,11 +25,10 @@ export default function BatchesPage() {
   const refetchBatches = useCallback(() => {
     if (!isAuthorized) return;
     setBatches(null);
-    setError(null);
     listBatches(statusFilter)
       .then(setBatches)
       .catch((fetchError) => {
-        setError(fetchError instanceof ApiError ? fetchError.message : "Could not load batches.");
+        notify.error(fetchError, "Could not load batches.");
       });
   }, [isAuthorized, statusFilter]);
 
@@ -38,17 +37,13 @@ export default function BatchesPage() {
   }, [refetchBatches]);
 
   async function handleArchiveToggle(batch: Batch) {
-    setActionError(null);
     setArchivingId(batch.id);
     try {
       await archiveBatch(batch.id);
       setBatches((current) => current?.filter((item) => item.id !== batch.id) ?? current);
+      notify.success(batch.isArchived ? "Batch unarchived successfully." : "Batch archived successfully.");
     } catch (archiveError) {
-      setActionError(
-        archiveError instanceof ApiError
-          ? archiveError.message
-          : `Could not ${batch.isArchived ? "unarchive" : "archive"} this batch.`
-      );
+      notify.error(archiveError, `Could not ${batch.isArchived ? "unarchive" : "archive"} this batch.`);
     } finally {
       setArchivingId(null);
     }
@@ -170,7 +165,7 @@ export default function BatchesPage() {
               </tbody>
             </table>
           </div>
-        )}
+        ) : null}
       </div>
 
       <BatchFormModal
