@@ -70,6 +70,7 @@
   --color-success-subtle: var(--color-success-50);
   --color-warning: var(--color-warning-500);
   --color-warning-subtle: var(--color-warning-50);
+  --color-neutral-subtle: var(--color-neutral-100);
 
   --color-focus-ring: var(--color-brand-400);
 
@@ -150,6 +151,7 @@
     --color-danger-subtle: rgb(220 38 38 / 0.14);
     --color-success-subtle: rgb(22 163 74 / 0.14);
     --color-warning-subtle: rgb(217 119 6 / 0.14);
+    --color-neutral-subtle: rgb(148 163 184 / 0.14);
   }
 }
 
@@ -175,6 +177,7 @@
   --color-danger-subtle: rgb(220 38 38 / 0.14);
   --color-success-subtle: rgb(22 163 74 / 0.14);
   --color-warning-subtle: rgb(217 119 6 / 0.14);
+  --color-neutral-subtle: rgb(148 163 184 / 0.14);
 }
 
 *,

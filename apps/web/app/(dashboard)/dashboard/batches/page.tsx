@@ -163,7 +163,7 @@ export default function BatchesPage() {
                         <button
                           type="button"
                           className={styles.textButton}
-                          data-tone="danger"
+                          data-tone="warning"
                           disabled={archivingId === batch.id}
                           onClick={() => handleArchiveToggle(batch)}
                         >
