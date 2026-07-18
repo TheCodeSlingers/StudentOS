@@ -9,17 +9,7 @@ import { compressionMiddleware } from "./middleware/compression";
 import { errorHandler } from "./middleware/error";
 import { globalRateLimiter } from "./middleware/rate-limit";
 import { requestIdMiddleware } from "./middleware/request-id";
-<<<<<<< HEAD
-import attendanceRouter from "./modules/attendance/attendance.routes";
-import authRouter from "./modules/auth/auth.routes";
-import batchRouter from "./modules/batch/batch.routes";
-import importRouter from "./modules/student-import/import.routes";
-import sessionRouter from "./modules/session/session.routes";
-import studentRouter from "./modules/student/student.routes";
-import { WorkspaceRouter } from "./modules/workspace/workspace.routes";
-=======
 import { apiRouter } from "./routes";
->>>>>>> main
 
 const app = express();
 
@@ -48,17 +38,7 @@ app.use(express.json({ limit: env.JSON_BODY_LIMIT }));
 
 setupSwagger(app);
 
-<<<<<<< HEAD
-app.use("/api/v1", authRouter);
-app.use("/api/v1", importRouter);
-app.use("/api/v1", studentRouter);
-app.use("/api/v1", attendanceRouter);
-app.use("/api/v1", batchRouter);
-app.use("/api/v1", WorkspaceRouter);
-app.use("/api/v1", sessionRouter);
-=======
 app.use("/api/v1", apiRouter);
->>>>>>> main
 
 app.get("/", (_req, res) => {
   res.status(200).json({
