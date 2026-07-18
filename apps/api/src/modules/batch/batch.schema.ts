@@ -96,8 +96,15 @@ export const batchParamSchema = z.object({
   }),
 });
 
+export const listBatchesSchema = z.object({
+  query: z.object({
+    status: z.enum(["active", "archived", "all"]).optional().default("active"),
+  }),
+});
+
 export type CreateBatchInput = z.infer<typeof createBatchSchema>;
 export type UpdateBatchInput = z.infer<typeof updateBatchSchema>;
 export type AllocateMemberInput = z.infer<typeof allocateMemberSchema>;
 export type ListMembersInput = z.infer<typeof listMembersSchema>;
 export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
+export type ListBatchesInput = z.infer<typeof listBatchesSchema>;

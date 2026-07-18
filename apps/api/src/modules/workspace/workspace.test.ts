@@ -1,0 +1,102 @@
+import { WorkspaceService } from "./workspace.service";
+import { prisma } from "../../lib/prisma";
+
+describe("WorkspaceService", () => {
+  let workspaceId: string;
+  let otherWorkspaceId: string;
+  let studentUserId: string;
+  let studentMembershipId: string;
+  let batchAId: string;
+  let batchBId: string;
+
+  beforeAll(async () => {
+    const ws = await prisma.workspace.create({
+      data: {
+        name: "Workspace Service Test Workspace",
+        settings: { create: { defaultAttendanceDurationMins: 15, lateThresholdMins: 10 } },
+      },
+    });
+    workspaceId = ws.id;
+
+    const otherWs = await prisma.workspace.create({
+      data: {
+        name: "Workspace Service Test — Other Workspace",
+        settings: { create: { defaultAttendanceDurationMins: 15, lateThresholdMins: 10 } },
+      },
+    });
+    otherWorkspaceId = otherWs.id;
+
+    const student = await prisma.user.create({
+      data: { email: "my-batches-test@example.com", name: "Mika Enrollee" },
+    });
+    studentUserId = student.id;
+
+    const membership = await prisma.membership.create({
+      data: { userId: studentUserId, workspaceId, role: "STUDENT", status: "ACTIVE" },
+    });
+    studentMembershipId = membership.id;
+
+    const batchA = await prisma.batch.create({
+      data: { workspaceId, name: "My Batches Test — Batch A", startDate: new Date() },
+    });
+    batchAId = batchA.id;
+
+    const batchB = await prisma.batch.create({
+      data: { workspaceId, name: "My Batches Test — Batch B", startDate: new Date() },
+    });
+    batchBId = batchB.id;
+
+    // A batch the student is NOT enrolled in — confirms it's excluded.
+    await prisma.batch.create({
+      data: { workspaceId, name: "My Batches Test — Not Enrolled", startDate: new Date() },
+    });
+
+    await prisma.batchMembership.create({
+      data: { membershipId: studentMembershipId, batchId: batchAId, isCR: true },
+    });
+    const revokedMembership = await prisma.batchMembership.create({
+      data: { membershipId: studentMembershipId, batchId: batchBId, isCR: false },
+    });
+    // Revoked enrollments should not appear in "my batches".
+    await prisma.batchMembership.update({
+      where: { id: revokedMembership.id },
+      data: { revokedAt: new Date() },
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.$transaction([
+      prisma.batchMembership.deleteMany({ where: { batchId: { in: [batchAId, batchBId] } } }),
+      prisma.batch.deleteMany({ where: { workspaceId } }),
+      prisma.membership.deleteMany({ where: { id: studentMembershipId } }),
+      prisma.workspace.deleteMany({ where: { id: { in: [workspaceId, otherWorkspaceId] } } }),
+      prisma.user.deleteMany({ where: { id: studentUserId } }),
+    ]);
+  });
+
+  describe("getMyBatchesFromDB", () => {
+    it("returns only the caller's own active enrollments, with the CR flag per batch", async () => {
+      const batches = await WorkspaceService.getMyBatchesFromDB(studentMembershipId);
+
+      expect(batches.length).toBe(1);
+      expect(batches[0].batchId).toBe(batchAId);
+      expect(batches[0].batchName).toBe("My Batches Test — Batch A");
+      expect(batches[0].isCR).toBe(true);
+    });
+
+    it("returns an empty list for a membership with no enrollments", async () => {
+      const otherStudent = await prisma.user.create({
+        data: { email: "no-batches-test@example.com", name: "No Batches" },
+      });
+      const otherMembership = await prisma.membership.create({
+        data: { userId: otherStudent.id, workspaceId: otherWorkspaceId, role: "STUDENT", status: "ACTIVE" },
+      });
+
+      const batches = await WorkspaceService.getMyBatchesFromDB(otherMembership.id);
+      expect(batches).toEqual([]);
+
+      await prisma.membership.delete({ where: { id: otherMembership.id } });
+      await prisma.user.delete({ where: { id: otherStudent.id } });
+    });
+  });
+});

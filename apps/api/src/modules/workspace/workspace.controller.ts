@@ -73,6 +73,14 @@ export class WorkspaceController {
     },
   );
 
+  static getMyBatches = asyncHandler(
+    async (req: any, res: Response): Promise<void> => {
+      const membershipId = req.membership.id;
+      const batches = await WorkspaceService.getMyBatchesFromDB(membershipId);
+      ApiResponse.success(res, batches, 200);
+    },
+  );
+
   static deactivateMember = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const membershipId = req.params.membershipId;

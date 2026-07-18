@@ -4,11 +4,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import {
-  ApiError,
   CreateSessionPayload,
   SessionSummary,
   SessionType,
   createSession,
+  getSession,
   updateSession,
 } from "@/lib/api-client";
 import { notify } from "@/lib/toast";
@@ -65,6 +65,7 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
   const [description, setDescription] = useState("");
   const [type, setType] = useState<SessionType>("REGULAR");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,6 +76,30 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
     setDescription("");
     setType("REGULAR");
     setIsSubmitting(false);
+
+    // The session list only carries summary fields — fetch the full detail so
+    // editing doesn't silently wipe the existing description/type on save.
+    if (session) {
+      let cancelled = false;
+      setIsLoadingDetail(true);
+      getSession(session.id)
+        .then((detail) => {
+          if (cancelled) return;
+          setDescription(detail.description ?? "");
+          setType(detail.type);
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            notify.error(error, "Could not load this session's details.");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setIsLoadingDetail(false);
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
   }, [isOpen, session]);
 
   if (!isOpen) {
@@ -225,7 +250,7 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" isLoading={isSubmitting}>
+            <Button type="submit" isLoading={isSubmitting} disabled={isLoadingDetail}>
               {isEditing ? "Save changes" : "Create session"}
             </Button>
           </div>

@@ -9,6 +9,21 @@
   color: var(--color-text);
 }
 
+.templateLink {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.templateLink:hover {
+  text-decoration: underline;
+}
+
 .progress {
   display: flex;
   align-items: center;
@@ -85,4 +100,8 @@
 .rowError {
   color: var(--color-danger);
   text-align: right;
+}
+
+.rowError[data-tone="neutral"] {
+  color: var(--color-text-muted);
 }

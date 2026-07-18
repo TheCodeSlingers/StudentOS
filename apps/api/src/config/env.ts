@@ -26,10 +26,10 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url().default("http://localhost:3000"),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
-  MEMBERSHIP_CACHE_TTL_SECONDS: z.number().int().positive().default(60),
-  SHUTDOWN_TIMEOUT_MS: z.number().int().positive().default(15_000),
+  MEMBERSHIP_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+  SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
   JSON_BODY_LIMIT: z.string().default("50kb"),
-  IMPORT_WORKER_CONCURRENCY: z.number().int().positive().default(2),
+  IMPORT_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(2),
 });
 
 const parsed = envSchema.safeParse(process.env);

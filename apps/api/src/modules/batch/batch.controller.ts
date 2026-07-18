@@ -14,7 +14,10 @@ export class BatchController {
 
   static getListBatches = asyncHandler(async (req: any, res: Response): Promise<void> => {
     const workspaceId = req.membership.workspaceId;
-    const result = await BatchService.getListBatchesFromDB(workspaceId);
+    // validateRequest only rejects invalid values, it doesn't write zod's
+    // parsed/defaulted result back onto req.query — default explicitly here.
+    const status = req.query.status ?? "active";
+    const result = await BatchService.getListBatchesFromDB(workspaceId, status);
     ApiResponse.success(res, result);
   });
 

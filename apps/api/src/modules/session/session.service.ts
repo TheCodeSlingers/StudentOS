@@ -180,26 +180,24 @@ export class SessionService {
         status: true,
         scheduledStart: true,
         scheduledEnd: true,
+        meetLink: true,
+        attendanceOpenedAt: true,
+        attendanceClosedAt: true,
+        currentCode: true,
       },
       orderBy: { scheduledStart: "desc" },
       take: limit + 1, // +1 to detect hasMore
     });
 
     const hasMore = sessions.length > limit;
-    const data = hasMore ? sessions.slice(0, limit) : sessions;
-    const nextCursor = hasMore ? data[data.length - 1].scheduledStart.toISOString() : null;
+    const trimmed = hasMore ? sessions.slice(0, limit) : sessions;
+    const nextCursor = hasMore ? trimmed[trimmed.length - 1].scheduledStart.toISOString() : null;
 
-    // Only run count for offset pagination (cursor pagination doesn't need it)
-    if (!cursor) {
-      const total = await prisma.session.count({ where: whereClause });
-      return {
-        data,
-        meta: {
-          ...buildPaginationMeta(page, limit, total),
-          nextCursor,
-        },
-      };
-    }
+    // Only MENTOR sees the live check-in code through the list — matches getSessionFromDB.
+    const data =
+      role === "MENTOR"
+        ? trimmed
+        : trimmed.map(({ currentCode, ...rest }) => rest);
 
     return {
       data,

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { SessionFormModal } from "@/components/modals/session-form-modal";
 import {
   ApiError,
+  AttendanceWindowResult,
   SessionSummary,
   cancelSession as cancelSessionApi,
   closeAttendanceWindow,
@@ -297,8 +298,23 @@ export function SessionManager({
   const selectedSession = sessions?.find((session) => session.id === selectedSessionId) ?? null;
   const durationMins = selectedBatch?.attendanceDurationMinsOverride ?? DEFAULT_ATTENDANCE_DURATION_MINS;
 
-  function mergeSession(updated: SessionSummary) {
-    setSessions((current) => current?.map((session) => (session.id === updated.id ? updated : session)) ?? null);
+  // The open/close endpoints only return the fields they touched, keyed by `sessionId`
+  // (not `id`), so merge the partial result into the existing session rather than replace it.
+  function mergeAttendanceWindow(updated: AttendanceWindowResult) {
+    setSessions(
+      (current) =>
+        current?.map((session) =>
+          session.id === updated.sessionId
+            ? {
+                ...session,
+                status: updated.status,
+                currentCode: updated.currentCode,
+                ...(updated.attendanceOpenedAt ? { attendanceOpenedAt: updated.attendanceOpenedAt } : {}),
+                ...(updated.attendanceClosedAt ? { attendanceClosedAt: updated.attendanceClosedAt } : {}),
+              }
+            : session
+        ) ?? current
+    );
   }
 
   async function handleOpenAttendance() {
@@ -306,8 +322,7 @@ export function SessionManager({
     setIsActionLoading(true);
     try {
       const updated = await openAttendanceWindow(selectedSessionId);
-      mergeSession(updated);
-      notify.success("Attendance window opened.");
+      mergeAttendanceWindow(updated);
     } catch (error) {
       notify.error(error, "Could not open attendance.");
     } finally {
@@ -320,8 +335,7 @@ export function SessionManager({
     setIsActionLoading(true);
     try {
       const updated = await closeAttendanceWindow(selectedSessionId);
-      mergeSession(updated);
-      notify.success("Attendance window closed.");
+      mergeAttendanceWindow(updated);
     } catch (error) {
       notify.error(error, "Could not close attendance.");
     } finally {
