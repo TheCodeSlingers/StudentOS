@@ -17,12 +17,36 @@ export interface IResetPasswordPayload {
 
 export type TAuthHeaders = Record<string, string | string[] | undefined>;
 
-export interface IAuthResult {
-  response: {
-    token: string;
+export interface ISignUpResult {
+  headers: Headers;
+  data: {
+    user: { id: string; email: string; name: string };
+    workspace: { id: string; name: string };
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+export interface ISignInResult {
+  headers: Headers;
+  data: {
+    accessToken: string;
+    refreshToken: string;
     user: { id: string; email: string; name: string };
   };
-  headers: {
-    forEach(callbackfn: (value: string, key: string) => void, thisArg?: unknown): void;
-  };
+}
+
+export interface IRefreshResult {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface IGetMeResult {
+  user: { id: string; email: string; name: string };
+  activeWorkspaceId: string | null;
+  memberships: Array<{
+    workspaceId: string;
+    workspaceName: string;
+    role: string;
+  }>;
 }

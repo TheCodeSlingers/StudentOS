@@ -137,7 +137,7 @@ export class BatchService {
     return prisma.batch.update({
       where: { id: batchId },
       data: updateData,
-    }) as unknown as IBatchResult;
+    });
   }
 
   static async archiveBatch(
@@ -161,7 +161,7 @@ export class BatchService {
       data: {
         isArchived: !batch.isArchived,
       },
-    }) as unknown as IBatchResult;
+    });
   }
 
   static async allocateMember(
@@ -200,7 +200,7 @@ export class BatchService {
           membershipId: data.membershipId,
           isCR: data.isCR ?? false,
         },
-      }) as unknown as IBatchMembershipResult;
+      });
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -231,7 +231,7 @@ export class BatchService {
               isCR: data.isCR ?? false,
               assignedAt: new Date(),
             },
-          }) as unknown as IBatchMembershipResult;
+          });
         }
       }
       throw error;
