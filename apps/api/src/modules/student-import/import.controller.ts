@@ -17,7 +17,7 @@ export class ImportController {
         );
       }
 
-      const jobId = await ImportService.startImport(batchId, file.buffer);
+      const jobId = await ImportService.startImportFromDB(batchId, file.buffer);
 
       ApiResponse.accepted(res, {
         jobId,
@@ -27,10 +27,10 @@ export class ImportController {
     },
   );
 
-  static getSummary = asyncHandler(
+  static getJobSummary = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { jobId } = req.params;
-      const job = await ImportService.getJobSummary(jobId);
+      const job = await ImportService.getJobSummaryFromDB(jobId);
 
       if (!job) {
         throw new NotFoundError(
@@ -43,10 +43,10 @@ export class ImportController {
     },
   );
 
-  static getRows = asyncHandler(
+  static getJobRows = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { jobId } = req.params;
-      const job = await ImportService.getJobSummary(jobId);
+      const job = await ImportService.getJobSummaryFromDB(jobId);
 
       if (!job) {
         throw new NotFoundError(
@@ -55,7 +55,7 @@ export class ImportController {
         );
       }
 
-      const rows = await ImportService.getJobRows(jobId);
+      const rows = await ImportService.getJobRowsFromDB(jobId);
       ApiResponse.success(res, rows);
     },
   );

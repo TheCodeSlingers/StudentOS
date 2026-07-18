@@ -11,10 +11,15 @@ import {
 import { StatCard } from "@/components/dashboard/StatCard";
 import { PlacementDonutChart } from "@/components/dashboard/PlacementDonutChart";
 import { SkillsBarChart } from "@/components/dashboard/SkillsBarChart";
-import { HireStatus } from "../../student/profile/profile.interface";
+import { useRequireRole } from "@/lib/use-require-role";
 
 // This enum is defined here for mock data purposes.
 // In a real app, it would be imported from a shared location.
+const HireStatus = {
+  ACTIVELY_LOOKING: "ACTIVELY_LOOKING",
+  EMPLOYED: "EMPLOYED",
+  STUDENT_ONLY: "STUDENT_ONLY",
+} as const;
 
 // --- MOCK DATA LAYER ---
 // This would be replaced by an API call
@@ -171,12 +176,14 @@ const CodeIcon = () => (
 );
 
 export default function MentorAnalyticsPage() {
+  const isAuthorized = useRequireRole("MENTOR");
   const [stats, setStats] = useState<TopLevelStats | null>(null);
   const [placementData, setPlacementData] = useState<PlacementMetric[]>([]);
   const [skillsData, setSkillsData] = useState<SkillMetric[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthorized) return;
     // Simulate fetching and processing data
     const timer = setTimeout(() => {
       const {
@@ -203,7 +210,11 @@ export default function MentorAnalyticsPage() {
     }, 800); // Simulate network delay
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [isAuthorized]);
+
+  if (!isAuthorized) {
+    return null;
+  }
 
   if (isLoading) {
     // A simple loading state

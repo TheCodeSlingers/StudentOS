@@ -79,7 +79,7 @@ export class AuthService {
     });
   }
 
-  static async refresh(headers: any) {
+  static async refreshToken(headers: any) {
     const session = await auth.api.getSession({ headers });
 
     if (!session) {
@@ -145,6 +145,7 @@ export class AuthService {
       },
       activeWorkspaceId: memberships[0]?.workspaceId ?? null,
       memberships: memberships.map((m) => ({
+        membershipId: m.id,
         workspaceId: m.workspaceId,
         workspaceName: m.workspace.name,
         role: m.role,

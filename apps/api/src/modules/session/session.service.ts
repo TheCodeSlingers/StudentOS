@@ -9,7 +9,7 @@ import { prisma } from "../../lib/prisma";
 
 export class SessionService {
   // Route 1: Create Session
-  static async createSession(
+  static async createSessionIntoDB(
     batchId: string,
     workspaceId: string,
     data: {
@@ -99,7 +99,7 @@ export class SessionService {
   }
 
   // Route 2: List Sessions (with pagination)
-  static async listSessions(
+  static async getlistSessionsFromDB(
     batchId: string,
     workspaceId: string,
     userId: string,
@@ -182,7 +182,7 @@ export class SessionService {
   }
 
   // Route 3: Get Session Details
-  static async getSession(
+  static async getSessionFromDB(
     sessionId: string,
     workspaceId: string,
     userId: string,
@@ -262,7 +262,7 @@ export class SessionService {
   }
 
   // Route 4: Update Session
-  static async updateSession(
+  static async updateSessionIntoDB(
     sessionId: string,
     workspaceId: string,
     data: {
@@ -428,7 +428,7 @@ export class SessionService {
   }
 
   // Route 5: Cancel Session
-  static async cancelSession(
+  static async cancelSessionIntoDB(
     sessionId: string,
     workspaceId: string,
   ): Promise<any> {
@@ -487,7 +487,7 @@ export class SessionService {
   }
 
   // Route 6: Open Attendance Window (with atomic update and rate limiting)
-  static async openAttendanceWindow(
+  static async openAttendanceWindowIntoDB(
     sessionId: string,
     workspaceId: string,
     membershipId: string,
@@ -585,7 +585,7 @@ export class SessionService {
   }
 
   // Route 7: Close Attendance Window (with atomic update and rate limiting)
-  static async closeAttendanceWindow(
+  static async closeAttendanceWindowIntoDB(
     sessionId: string,
     workspaceId: string,
     membershipId: string,

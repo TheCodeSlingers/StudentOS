@@ -4,32 +4,32 @@ import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
 
 export class BatchController {
-  static create = asyncHandler(
+  static createBatch = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
-      const result = await BatchService.createBatch(workspaceId, req.body);
+      const result = await BatchService.createBatchIntoDB(workspaceId, req.body);
       ApiResponse.created(res, result);
     },
   );
 
-  static list = asyncHandler(async (req: any, res: Response): Promise<void> => {
+  static getListBatches = asyncHandler(async (req: any, res: Response): Promise<void> => {
     const workspaceId = req.membership.workspaceId;
-    const result = await BatchService.listBatches(workspaceId);
+    const result = await BatchService.getListBatchesFromDB(workspaceId);
     ApiResponse.success(res, result);
   });
 
-  static get = asyncHandler(async (req: any, res: Response): Promise<void> => {
+  static getBatch = asyncHandler(async (req: any, res: Response): Promise<void> => {
     const workspaceId = req.membership.workspaceId;
     const { batchId } = req.params;
-    const result = await BatchService.getBatch(workspaceId, batchId);
+    const result = await BatchService.getBatchFromDB(workspaceId, batchId);
     ApiResponse.success(res, result);
   });
 
-  static update = asyncHandler(
+  static updateBatch = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const { batchId } = req.params;
-      const result = await BatchService.updateBatch(
+      const result = await BatchService.updateBatchIntoDB(
         workspaceId,
         batchId,
         req.body,
@@ -38,20 +38,20 @@ export class BatchController {
     },
   );
 
-  static archive = asyncHandler(
+  static archiveBatch = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const { batchId } = req.params;
-      const result = await BatchService.archiveBatch(workspaceId, batchId);
+      const result = await BatchService.archiveBatchIntoDB(workspaceId, batchId);
       ApiResponse.success(res, result);
     },
   );
 
-  static allocate = asyncHandler(
+  static allocateMember = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const { batchId } = req.params;
-      const result = await BatchService.allocateMember(
+      const result = await BatchService.allocateMemberIntoDB(
         workspaceId,
         batchId,
         req.body,
@@ -60,12 +60,12 @@ export class BatchController {
     },
   );
 
-  static listMembers = asyncHandler(
+  static getListBatchMembers = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const { batchId } = req.params;
       const { role } = req.query;
-      const result = await BatchService.listBatchMembers(
+      const result = await BatchService.getListBatchMembersFromDB(
         workspaceId,
         batchId,
         role,
@@ -74,11 +74,11 @@ export class BatchController {
     },
   );
 
-  static updateMember = asyncHandler(
+  static updateBatchMembership = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const workspaceId = req.membership.workspaceId;
       const { batchId, batchMembershipId } = req.params;
-      const result = await BatchService.updateBatchMembership(
+      const result = await BatchService.updateBatchMembershipIntoDB(
         workspaceId,
         batchId,
         batchMembershipId,

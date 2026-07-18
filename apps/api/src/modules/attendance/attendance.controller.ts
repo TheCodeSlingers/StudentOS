@@ -4,13 +4,13 @@ import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
 
 export class AttendanceController {
-  static submit = asyncHandler(
+  static submitAttendance = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { sessionId } = req.params;
       const { code } = req.body;
       const studentMembershipId = req.membership.id;
 
-      const result = await AttendanceService.submitAttendance(
+      const result = await AttendanceService.submitAttendanceIntoDB(
         sessionId,
         studentMembershipId,
         code,
@@ -19,13 +19,13 @@ export class AttendanceController {
     },
   );
 
-  static manualMark = asyncHandler(
+  static manualMarkAttendance = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { sessionId } = req.params;
       const actorMembershipId = req.membership.id;
       const actorRole = req.membership.role;
 
-      const result = await AttendanceService.manualMarkAttendance(
+      const result = await AttendanceService.manualMarkAttendanceIntoDB(
         sessionId,
         actorMembershipId,
         actorRole,
@@ -35,22 +35,22 @@ export class AttendanceController {
     },
   );
 
-  static getRoster = asyncHandler(
+  static getRosterAttendance = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { sessionId } = req.params;
       const roster =
-        await AttendanceService.getSessionAttendanceRoster(sessionId);
+        await AttendanceService.getSessionAttendanceRosterFromDB(sessionId);
       ApiResponse.success(res, roster);
     },
   );
 
-  static getHistory = asyncHandler(
+  static getHistoryAttendance = asyncHandler(
     async (req: any, res: Response): Promise<void> => {
       const { batchMembershipId } = req.params;
       const actorMembershipId = req.membership.id;
       const actorRole = req.membership.role;
 
-      const history = await AttendanceService.getStudentAttendanceHistory(
+      const history = await AttendanceService.getStudentAttendanceHistoryFromDB(
         batchMembershipId,
         actorMembershipId,
         actorRole,

@@ -12,6 +12,7 @@ import {
   listSessions,
   openAttendanceWindow,
 } from "@/lib/api-client";
+import { useRequireRole } from "@/lib/use-require-role";
 import styles from "./sessions.module.css";
 
 const DEFAULT_ATTENDANCE_DURATION_MINS = 15;
@@ -199,6 +200,7 @@ function CodeDisplayCard({
 }
 
 export default function MentorSessionsPage() {
+  const isAuthorized = useRequireRole("MENTOR");
   const [batches, setBatches] = useState<Batch[] | null>(null);
   const [batchesError, setBatchesError] = useState<string | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
@@ -213,6 +215,7 @@ export default function MentorSessionsPage() {
   const [isRosterOpen, setIsRosterOpen] = useState(false);
 
   useEffect(() => {
+    if (!isAuthorized) return;
     let cancelled = false;
 
     listBatches()
@@ -231,7 +234,7 @@ export default function MentorSessionsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthorized]);
 
   useEffect(() => {
     if (!selectedBatchId) {
@@ -295,6 +298,10 @@ export default function MentorSessionsPage() {
     } finally {
       setIsActionLoading(false);
     }
+  }
+
+  if (!isAuthorized) {
+    return null;
   }
 
   return (

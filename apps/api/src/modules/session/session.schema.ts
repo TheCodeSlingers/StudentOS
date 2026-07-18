@@ -23,7 +23,7 @@ export const createSessionSchema = z.object({
 });
 
 // Route 2: List Sessions (with pagination)
-export const listSessionsSchema = z.object({
+export const getListSessionsSchema = z.object({
   params: z.object({
     batchId: z.string().min(1, "Batch ID is required"),
   }),
@@ -96,7 +96,7 @@ export const closeAttendanceSchema = z.object({
 
 // Types
 export type CreateSessionInput = z.infer<typeof createSessionSchema>;
-export type ListSessionsInput = z.infer<typeof listSessionsSchema>;
+export type ListSessionsInput = z.infer<typeof getListSessionsSchema>;
 export type GetSessionInput = z.infer<typeof getSessionSchema>;
 export type UpdateSessionInput = z.infer<typeof updateSessionSchema>;
 export type CancelSessionInput = z.infer<typeof cancelSessionSchema>;
