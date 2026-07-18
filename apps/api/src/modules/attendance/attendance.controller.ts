@@ -1,12 +1,13 @@
 import { Response } from "express";
+import { AuthenticatedRequest } from "../../types/authenticated-request";
 import { AttendanceService } from "./attendance.service";
 import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
 
 export class AttendanceController {
   static submit = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { sessionId } = req.params;
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { sessionId } = req.params as { sessionId: string };
       const { code } = req.body;
       const studentMembershipId = req.membership.id;
 
@@ -20,8 +21,8 @@ export class AttendanceController {
   );
 
   static manualMark = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { sessionId } = req.params;
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { sessionId } = req.params as { sessionId: string };
       const actorMembershipId = req.membership.id;
       const actorRole = req.membership.role;
 
@@ -36,8 +37,8 @@ export class AttendanceController {
   );
 
   static getRoster = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { sessionId } = req.params;
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { sessionId } = req.params as { sessionId: string };
       const roster =
         await AttendanceService.getSessionAttendanceRoster(sessionId);
       ApiResponse.success(res, roster);
@@ -45,8 +46,8 @@ export class AttendanceController {
   );
 
   static getHistory = asyncHandler(
-    async (req: any, res: Response): Promise<void> => {
-      const { batchMembershipId } = req.params;
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+      const { batchMembershipId } = req.params as { batchMembershipId: string };
       const actorMembershipId = req.membership.id;
       const actorRole = req.membership.role;
 

@@ -1,5 +1,6 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { SessionStatus } from "@prisma/client";
+import { AuthenticatedRequest } from "../../types/authenticated-request";
 import { SessionService } from "./session.service";
 import { ApiResponse } from "../../common/api-response";
 import { asyncHandler } from "../../common/async-handler";
@@ -7,7 +8,7 @@ import { asyncHandler } from "../../common/async-handler";
 export class SessionController {
   // Route 1: Create Session
   static createSession = asyncHandler(
-    async (req: Request, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const batchId = req.params.batchId as string;
       const workspaceId = req.membership.workspaceId;
       const session = await SessionService.createSession(
@@ -21,7 +22,7 @@ export class SessionController {
 
   // Route 2: List Sessions (with pagination)
   static listSessions = asyncHandler(
-    async (req: Request, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const batchId = req.params.batchId as string;
       const workspaceId = req.membership.workspaceId;
       const userId = req.user.id;
@@ -46,7 +47,7 @@ export class SessionController {
 
   // Route 3: Get Session Details
   static getSession = asyncHandler(
-    async (req: Request, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const sessionId = req.params.sessionId as string;
       const workspaceId = req.membership.workspaceId;
       const userId = req.user.id;
@@ -63,7 +64,7 @@ export class SessionController {
 
   // Route 4: Update Session
   static updateSession = asyncHandler(
-    async (req: Request, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const sessionId = req.params.sessionId as string;
       const workspaceId = req.membership.workspaceId;
       const session = await SessionService.updateSession(
@@ -77,7 +78,7 @@ export class SessionController {
 
   // Route 5: Cancel Session
   static cancelSession = asyncHandler(
-    async (req: Request, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const sessionId = req.params.sessionId as string;
       const workspaceId = req.membership.workspaceId;
       const session = await SessionService.cancelSession(
@@ -90,7 +91,7 @@ export class SessionController {
 
   // Route 6: Open Attendance Window
   static openAttendance = asyncHandler(
-    async (req: Request, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const sessionId = req.params.sessionId as string;
       const workspaceId = req.membership.workspaceId;
       const membershipId = req.membership.id;
@@ -109,7 +110,7 @@ export class SessionController {
 
   // Route 7: Close Attendance Window
   static closeAttendance = asyncHandler(
-    async (req: Request, res: Response): Promise<void> => {
+    async (req: AuthenticatedRequest, res: Response): Promise<void> => {
       const sessionId = req.params.sessionId as string;
       const workspaceId = req.membership.workspaceId;
       const membershipId = req.membership.id;
