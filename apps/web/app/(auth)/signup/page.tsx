@@ -6,26 +6,10 @@ import { FormEvent, useState } from "react";
 import { GoogleAuthButton } from "@/components/auth/google-auth-button";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-<<<<<<< HEAD
 import { notify } from "@/lib/toast";
-import { ApiError, signup } from "@/lib/api-client";
-=======
-import { ApiError } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
->>>>>>> main
 import { getPasswordError, isValidEmail } from "@/lib/validation";
 import styles from "../auth.module.css";
-
-interface AccountErrors {
-  name?: string;
-  email?: string;
-  password?: string;
-  confirmPassword?: string;
-}
-
-interface WorkspaceErrors {
-  workspaceName?: string;
-}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -37,56 +21,37 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [workspaceName, setWorkspaceName] = useState("");
-
-  const [accountErrors, setAccountErrors] = useState<AccountErrors>({});
-<<<<<<< HEAD
-  const [organizationErrors, setOrganizationErrors] = useState<OrganizationErrors>({});
-=======
-  const [workspaceErrors, setWorkspaceErrors] = useState<WorkspaceErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
->>>>>>> main
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function validateAccountStep(): boolean {
-    const nextErrors: AccountErrors = {};
+  function handleContinue(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    let isValid = true;
 
     if (!name.trim()) {
-      nextErrors.name = "Full name is required.";
+      notify.error("Full name is required.");
+      isValid = false;
     }
 
     if (!email.trim()) {
-      nextErrors.email = "Email is required.";
+      notify.error("Email is required.");
+      isValid = false;
     } else if (!isValidEmail(email)) {
-      nextErrors.email = "Enter a valid email address.";
+      notify.error("Enter a valid email address.");
+      isValid = false;
     }
 
     const passwordError = getPasswordError(password);
     if (passwordError) {
-      nextErrors.password = passwordError;
+      notify.error(passwordError);
+      isValid = false;
     }
 
     if (confirmPassword !== password) {
-      nextErrors.confirmPassword = "Passwords do not match.";
+      notify.error("Passwords do not match.");
+      isValid = false;
     }
 
-    setAccountErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  }
-
-  function validateWorkspaceStep(): boolean {
-    const nextErrors: WorkspaceErrors = {};
-
-    if (!workspaceName.trim()) {
-      nextErrors.workspaceName = "Organization name is required.";
-    }
-
-    setWorkspaceErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  }
-
-  function handleContinue(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (validateAccountStep()) {
+    if (isValid) {
       setStep(2);
     }
   }
@@ -94,7 +59,8 @@ export default function SignupPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!validateWorkspaceStep()) {
+    if (!workspaceName.trim()) {
+      notify.error("Organization name is required.");
       return;
     }
 
@@ -106,12 +72,8 @@ export default function SignupPage() {
         password,
         workspaceName: workspaceName.trim(),
       });
-<<<<<<< HEAD
       notify.success("Account created successfully!");
-      router.push("/");
-=======
       router.push("/dashboard");
->>>>>>> main
     } catch (error) {
       notify.error(error, "Something went wrong. Please try again.");
     } finally {
@@ -151,7 +113,6 @@ export default function SignupPage() {
             autoComplete="name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            error={accountErrors.name}
           />
           <TextField
             label="Email"
@@ -159,7 +120,6 @@ export default function SignupPage() {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            error={accountErrors.email}
           />
           <TextField
             label="Password"
@@ -168,7 +128,6 @@ export default function SignupPage() {
             autoComplete="new-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            error={accountErrors.password}
           />
           <TextField
             label="Confirm password"
@@ -177,7 +136,6 @@ export default function SignupPage() {
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
-            error={accountErrors.confirmPassword}
           />
 
           <Button type="submit">Continue</Button>
@@ -190,7 +148,6 @@ export default function SignupPage() {
             autoComplete="organization"
             value={workspaceName}
             onChange={(event) => setWorkspaceName(event.target.value)}
-            error={workspaceErrors.workspaceName}
           />
 
           <div className={styles.actions}>

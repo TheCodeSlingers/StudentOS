@@ -12,12 +12,8 @@ import {
   listSessions,
   openAttendanceWindow,
 } from "@/lib/api-client";
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
 import { notify } from "@/lib/toast";
-import styles from "./sessions.module.css";
-=======
 import styles from "./session-manager.module.css";
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
 
 const DEFAULT_ATTENDANCE_DURATION_MINS = 15;
 
@@ -120,11 +116,7 @@ interface CodeDisplayCardProps {
   onEdit: () => void;
   onCancel: () => void;
   isActionLoading: boolean;
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-=======
   isCancelling: boolean;
-  actionError: string | null;
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
 }
 
 function CodeDisplayCard({
@@ -137,11 +129,7 @@ function CodeDisplayCard({
   onEdit,
   onCancel,
   isActionLoading,
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-=======
   isCancelling,
-  actionError,
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
 }: CodeDisplayCardProps) {
   const [now, setNow] = useState(() => Date.now());
 
@@ -238,14 +226,10 @@ function CodeDisplayCard({
   );
 }
 
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-export default function MentorSessionsPage() {
-  const [batches, setBatches] = useState<Batch[] | null>(null);
-=======
 interface SessionManagerProps {
   title?: string;
   batches: SessionManagerBatch[];
-  batchesError?: string | null;
+  batchesError?: string | null; // This prop is now unused but kept for parent component compatibility until it's refactored.
   emptyBatchesMessage?: string;
   /** Only mentors can create, edit, or cancel sessions — CRs can only run attendance for existing ones. */
   canManage?: boolean;
@@ -260,11 +244,9 @@ interface SessionManagerProps {
 export function SessionManager({
   title = "Sessions",
   batches,
-  batchesError = null,
   emptyBatchesMessage = "No active batches yet.",
   canManage = false,
 }: SessionManagerProps) {
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
@@ -286,26 +268,10 @@ export function SessionManager({
     });
   }, [batches]);
 
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-    listBatches()
-      .then((result) => {
-        if (cancelled) return;
-        setBatches(result);
-        if (result.length > 0) {
-          setSelectedBatchId(result[0].id);
-        }
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        notify.error(error, "Could not load batches.");
-      });
-=======
   const refetchSessions = useCallback(() => {
     if (!selectedBatchId) return;
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
 
     setIsLoadingSessions(true);
-
     listSessions(selectedBatchId)
       .then((result) => {
         setSessions(result);
@@ -314,12 +280,7 @@ export function SessionManager({
         );
       })
       .catch((error) => {
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-        if (cancelled) return;
         notify.error(error, "Could not load sessions.");
-=======
-        setSessionsError(error instanceof ApiError ? error.message : "Could not load sessions.");
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
       })
       .finally(() => {
         setIsLoadingSessions(false);
@@ -337,7 +298,7 @@ export function SessionManager({
   const durationMins = selectedBatch?.attendanceDurationMinsOverride ?? DEFAULT_ATTENDANCE_DURATION_MINS;
 
   function mergeSession(updated: SessionSummary) {
-    setSessions((current) => current?.map((session) => (session.id === updated.id ? updated : session)) ?? current);
+    setSessions((current) => current?.map((session) => (session.id === updated.id ? updated : session)) ?? null);
   }
 
   async function handleOpenAttendance() {
@@ -345,12 +306,8 @@ export function SessionManager({
     setIsActionLoading(true);
     try {
       const updated = await openAttendanceWindow(selectedSessionId);
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-      updateSession(updated);
-      notify.success("Attendance window opened.");
-=======
       mergeSession(updated);
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
+      notify.success("Attendance window opened.");
     } catch (error) {
       notify.error(error, "Could not open attendance.");
     } finally {
@@ -363,12 +320,8 @@ export function SessionManager({
     setIsActionLoading(true);
     try {
       const updated = await closeAttendanceWindow(selectedSessionId);
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-      updateSession(updated);
-      notify.success("Attendance window closed.");
-=======
       mergeSession(updated);
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
+      notify.success("Attendance window closed.");
     } catch (error) {
       notify.error(error, "Could not close attendance.");
     } finally {
@@ -378,16 +331,16 @@ export function SessionManager({
 
   async function handleCancelSession() {
     if (!selectedSessionId) return;
-    setActionError(null);
     setIsCancelling(true);
     try {
       const result = await cancelSessionApi(selectedSessionId);
       setSessions((current) =>
         current?.map((session) => (session.id === result.id ? { ...session, status: result.status } : session)) ??
-        current
+        null
       );
+      notify.success("Session cancelled successfully.");
     } catch (error) {
-      setActionError(error instanceof ApiError ? error.message : "Could not cancel this session.");
+      notify.error(error, "Could not cancel this session.");
     } finally {
       setIsCancelling(false);
     }
@@ -431,17 +384,7 @@ export function SessionManager({
         </div>
       </div>
 
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-      {batches && batches.length === 0 ? (
-=======
-      {batchesError ? (
-        <div className={styles.banner} role="alert">
-          {batchesError}
-        </div>
-      ) : null}
-
-      {!batchesError && batches.length === 0 ? (
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
+      {batches.length === 0 ? (
         <div className={styles.card}>
           <p className={styles.emptyState}>{emptyBatchesMessage}</p>
         </div>
@@ -472,11 +415,7 @@ export function SessionManager({
             onEdit={() => selectedSession && openEditForm(selectedSession)}
             onCancel={handleCancelSession}
             isActionLoading={isActionLoading}
-<<<<<<< HEAD:apps/web/app/(dashboard)/mentor/sessions/page.tsx
-=======
             isCancelling={isCancelling}
-            actionError={actionError}
->>>>>>> main:apps/web/components/dashboard/session-manager.tsx
           />
         </div>
       ) : null}

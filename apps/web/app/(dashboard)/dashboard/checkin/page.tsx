@@ -3,11 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, ClipboardEvent, KeyboardEvent, Suspense, useRef, useState } from "react";
 import { ApiError, AttendanceStatus, submitAttendance } from "@/lib/api-client";
-<<<<<<< HEAD:apps/web/app/(dashboard)/student/checkin/page.tsx
 import { notify } from "@/lib/toast";
-=======
 import { useRequireRole } from "@/lib/use-require-role";
->>>>>>> main:apps/web/app/(dashboard)/dashboard/checkin/page.tsx
 import styles from "./checkin.module.css";
 
 const CODE_LENGTH = 6;
@@ -40,7 +37,7 @@ function StudentCheckInCard({ sessionId }: { sessionId: string }) {
         notify.success("Attendance submitted successfully!");
       })
       .catch((submitError) => {
-        notify.error(submitError, "Something went wrong. Please try again.");
+        notify.error(submitError, "The code is invalid or has expired.");
         setDigits(Array(CODE_LENGTH).fill(""));
         focusInput(0);
       })

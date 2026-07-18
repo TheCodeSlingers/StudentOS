@@ -4,21 +4,19 @@ import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ApiError, Workspace, getWorkspace, updateWorkspaceSettings } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
 
 export default function SettingsPage() {
   const isAuthorized = useRequireRole("MENTOR");
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [timezone, setTimezone] = useState("");
   const [attendanceDuration, setAttendanceDuration] = useState("15");
   const [lateThreshold, setLateThreshold] = useState("10");
-
   const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -29,22 +27,23 @@ export default function SettingsPage() {
         setAttendanceDuration(String(result.settings.defaultAttendanceDurationMins));
         setLateThreshold(String(result.settings.lateThresholdMins));
       })
-      .catch((fetchError) => setError(fetchError instanceof ApiError ? fetchError.message : "Could not load workspace settings."));
+      .catch((fetchError) => {
+        notify.error(fetchError, "Could not load workspace settings.");
+      })
+      .finally(() => setIsLoading(false));
   }, [isAuthorized]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSaveError(null);
-    setSavedMessage(null);
 
     const duration = Number(attendanceDuration);
     const threshold = Number(lateThreshold);
     if (!Number.isInteger(duration) || duration <= 0) {
-      setSaveError("Attendance duration must be a positive number of minutes.");
+      notify.error("Attendance duration must be a positive number of minutes.");
       return;
     }
     if (!Number.isInteger(threshold) || threshold < 0) {
-      setSaveError("Late threshold must be zero or a positive number of minutes.");
+      notify.error("Late threshold must be zero or a positive number of minutes.");
       return;
     }
 
@@ -56,9 +55,9 @@ export default function SettingsPage() {
         lateThresholdMins: threshold,
       });
       setWorkspace(result);
-      setSavedMessage("Settings saved.");
+      notify.success("Settings saved.");
     } catch (submitError) {
-      setSaveError(submitError instanceof ApiError ? submitError.message : "Could not save settings.");
+      notify.error(submitError, "Could not save settings.");
     } finally {
       setIsSaving(false);
     }
@@ -77,26 +76,13 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {error ? (
-        <div className={styles.banner} role="alert">
-          {error}
+      {isLoading || !workspace ? (
+        <div className={styles.card}>
+          <p className={styles.emptyState}>Loading settings…</p>
         </div>
-      ) : null}
-
-      {workspace ? (
+      ) : (
         <div className={styles.card}>
           <p className={styles.sectionTitle}>{workspace.name}</p>
-
-          {saveError ? (
-            <div className={styles.banner} role="alert">
-              {saveError}
-            </div>
-          ) : null}
-          {savedMessage ? (
-            <div className={styles.successBanner} role="status">
-              {savedMessage}
-            </div>
-          ) : null}
 
           <form className={styles.form} onSubmit={handleSubmit}>
             <TextField
@@ -127,11 +113,7 @@ export default function SettingsPage() {
             </div>
           </form>
         </div>
-      ) : !error ? (
-        <div className={styles.card}>
-          <p className={styles.emptyState}>Loading settings…</p>
-        </div>
-      ) : null}
+      )}
     </div>
   );
 }

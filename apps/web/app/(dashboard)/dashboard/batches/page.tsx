@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { BatchFormModal } from "@/components/modals/batch-form-modal";
 import { Button } from "@/components/ui/Button";
 import { ApiError, Batch, archiveBatch, listBatches } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useRequireRole } from "@/lib/use-require-role";
 import styles from "../../shared.module.css";
 
@@ -15,9 +16,7 @@ function formatDate(iso: string | null): string {
 export default function BatchesPage() {
   const isAuthorized = useRequireRole("MENTOR");
   const [batches, setBatches] = useState<Batch[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
 
@@ -29,7 +28,7 @@ export default function BatchesPage() {
         if (!cancelled) setBatches(result);
       })
       .catch((fetchError) => {
-        if (!cancelled) setError(fetchError instanceof ApiError ? fetchError.message : "Could not load batches.");
+        if (!cancelled) notify.error(fetchError, "Could not load batches.");
       });
     return () => {
       cancelled = true;
@@ -37,13 +36,13 @@ export default function BatchesPage() {
   }, [isAuthorized]);
 
   async function handleArchive(batchId: string) {
-    setActionError(null);
     setArchivingId(batchId);
     try {
       await archiveBatch(batchId);
-      setBatches((current) => current?.filter((batch) => batch.id !== batchId) ?? current);
+      setBatches((current) => current?.filter((batch) => batch.id !== batchId) ?? null);
+      notify.success("Batch archived successfully.");
     } catch (archiveError) {
-      setActionError(archiveError instanceof ApiError ? archiveError.message : "Could not archive this batch.");
+      notify.error(archiveError, "Could not archive this batch.");
     } finally {
       setArchivingId(null);
     }
@@ -83,23 +82,12 @@ export default function BatchesPage() {
         </Button>
       </div>
 
-      {error ? (
-        <div className={styles.banner} role="alert">
-          {error}
-        </div>
-      ) : null}
-      {actionError ? (
-        <div className={styles.banner} role="alert">
-          {actionError}
-        </div>
-      ) : null}
-
       <div className={styles.card}>
-        {!error && batches === null ? (
+        {batches === null ? (
           <p className={styles.emptyState}>Loading batches…</p>
-        ) : batches && batches.length === 0 ? (
+        ) : batches.length === 0 ? (
           <p className={styles.emptyState}>No active batches yet.</p>
-        ) : batches ? (
+        ) : (
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <thead>
@@ -139,7 +127,7 @@ export default function BatchesPage() {
               </tbody>
             </table>
           </div>
-        ) : null}
+        )}
       </div>
 
       <BatchFormModal

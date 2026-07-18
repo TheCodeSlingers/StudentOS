@@ -13,11 +13,6 @@ import {
 import { isValidEmail } from "@/lib/validation";
 import styles from "./invite-modal.module.css";
 
-interface FormErrors {
-  name?: string;
-  email?: string;
-}
-
 interface InviteModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -47,7 +42,6 @@ export function InviteModal({ isOpen, onClose, onInvited }: InviteModalProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<MembershipRole>("STUDENT");
-  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -70,7 +64,6 @@ export function InviteModal({ isOpen, onClose, onInvited }: InviteModalProps) {
       setName("");
       setEmail("");
       setRole("STUDENT");
-      setErrors({});
       setIsSubmitting(false);
     }
   }, [isOpen]);
@@ -79,27 +72,19 @@ export function InviteModal({ isOpen, onClose, onInvited }: InviteModalProps) {
     return null;
   }
 
-  function validate(): boolean {
-    const nextErrors: FormErrors = {};
-
-    if (!name.trim()) {
-      nextErrors.name = "Name is required.";
-    }
-
-    if (!email.trim()) {
-      nextErrors.email = "Email is required.";
-    } else if (!isValidEmail(email)) {
-      nextErrors.email = "Enter a valid email address.";
-    }
-
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!validate()) {
+    if (!name.trim()) {
+      notify.error("Name is required.");
+      return;
+    }
+    if (!email.trim()) {
+      notify.error("Email is required.");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      notify.error("Enter a valid email address.");
       return;
     }
 
@@ -111,6 +96,7 @@ export function InviteModal({ isOpen, onClose, onInvited }: InviteModalProps) {
         role,
       });
       notify.success(`Invitation sent to ${email.trim()}.`);
+      // Reset form for the next invite
       setName("");
       setEmail("");
       setRole("STUDENT");
@@ -156,7 +142,6 @@ export function InviteModal({ isOpen, onClose, onInvited }: InviteModalProps) {
             autoComplete="name"
             value={name}
             onChange={(event) => setName(event.target.value)}
-            error={errors.name}
           />
           <TextField
             label="Email"
@@ -164,7 +149,6 @@ export function InviteModal({ isOpen, onClose, onInvited }: InviteModalProps) {
             autoComplete="email"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            error={errors.email}
           />
 
           <div className={styles.roleGroup}>

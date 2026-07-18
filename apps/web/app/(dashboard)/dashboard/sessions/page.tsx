@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SessionManager, SessionManagerBatch } from "@/components/dashboard/session-manager";
-import { ApiError, Batch, listBatches } from "@/lib/api-client";
+import { Batch, listBatches } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import { useRequireRole } from "@/lib/use-require-role";
 
 export default function MentorSessionsPage() {
   const isAuthorized = useRequireRole("MENTOR");
   const [batches, setBatches] = useState<Batch[] | null>(null);
-  const [batchesError, setBatchesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -19,7 +19,7 @@ export default function MentorSessionsPage() {
         if (!cancelled) setBatches(result);
       })
       .catch((error) => {
-        if (!cancelled) setBatchesError(error instanceof ApiError ? error.message : "Could not load batches.");
+        if (!cancelled) notify.error(error, "Could not load batches.");
       });
 
     return () => {
@@ -41,10 +41,19 @@ export default function MentorSessionsPage() {
     return null;
   }
 
+  // Render a loading state until batches are fetched
+  if (batches === null) {
+    return (
+      <div className="p-8">
+        <h1 className="text-2xl font-bold">Sessions</h1>
+        <p>Loading batches...</p>
+      </div>
+    );
+  }
+
   return (
     <SessionManager
       batches={sessionManagerBatches}
-      batchesError={batchesError}
       emptyBatchesMessage="No active batches yet. Create a batch to start scheduling sessions."
       canManage
     />

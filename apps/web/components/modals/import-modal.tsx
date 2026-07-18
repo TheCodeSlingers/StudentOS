@@ -10,6 +10,7 @@ import {
   getImportJobSummary,
   importStudentRoster,
 } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import styles from "./modal.module.css";
 import importStyles from "./import-modal.module.css";
 
@@ -35,16 +36,15 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
   const [job, setJob] = useState<ImportJobSummary | null>(null);
   const [rows, setRows] = useState<ImportJobRow[] | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) return;
+    // Reset state when modal closes
     setFile(null);
     setJob(null);
     setRows(null);
     setIsUploading(false);
-    setError(null);
   }, [isOpen]);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
           if (!cancelled) setJob(result);
         })
         .catch((fetchError) => {
-          if (!cancelled) setError(fetchError instanceof ApiError ? fetchError.message : "Could not check import progress.");
+          if (!cancelled) notify.error(fetchError, "Could not check import progress.");
         });
     }, POLL_INTERVAL_MS);
 
@@ -94,21 +94,19 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     setFile(event.target.files?.[0] ?? null);
-    setError(null);
   }
 
   async function handleUpload() {
     if (!file) {
-      setError("Choose a CSV file first.");
+      notify.error("Choose a CSV file first.");
       return;
     }
-    setError(null);
     setIsUploading(true);
     try {
       const result = await importStudentRoster(batchId, file);
       setJob(result);
     } catch (uploadError) {
-      setError(uploadError instanceof ApiError ? uploadError.message : "Could not start the import.");
+      notify.error(uploadError, "Could not start the import.");
     } finally {
       setIsUploading(false);
     }
@@ -141,12 +139,6 @@ export function ImportModal({ isOpen, onClose, batchId, onImported }: ImportModa
             <CloseIcon />
           </button>
         </div>
-
-        {error ? (
-          <div className={styles.banner} role="alert">
-            {error}
-          </div>
-        ) : null}
 
         {!job ? (
           <div className={styles.form}>

@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ApiError, Batch, BatchPayload, createBatch, updateBatch } from "@/lib/api-client";
+import { notify } from "@/lib/toast";
 import styles from "./modal.module.css";
 
 interface BatchFormModalProps {
@@ -12,11 +13,6 @@ interface BatchFormModalProps {
   /** When provided, the modal edits this batch instead of creating a new one. */
   batch?: Batch | null;
   onSaved: (batch: Batch) => void;
-}
-
-interface FormErrors {
-  name?: string;
-  startDate?: string;
 }
 
 function CloseIcon() {
@@ -38,8 +34,6 @@ export function BatchFormModal({ isOpen, onClose, batch, onSaved }: BatchFormMod
   const [endDate, setEndDate] = useState("");
   const [lateThreshold, setLateThreshold] = useState("");
   const [attendanceDuration, setAttendanceDuration] = useState("");
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -51,8 +45,6 @@ export function BatchFormModal({ isOpen, onClose, batch, onSaved }: BatchFormMod
     setAttendanceDuration(
       batch?.attendanceDurationMinsOverride != null ? String(batch.attendanceDurationMinsOverride) : ""
     );
-    setErrors({});
-    setApiError(null);
     setIsSubmitting(false);
   }, [isOpen, batch]);
 
@@ -60,18 +52,16 @@ export function BatchFormModal({ isOpen, onClose, batch, onSaved }: BatchFormMod
     return null;
   }
 
-  function validate(): boolean {
-    const nextErrors: FormErrors = {};
-    if (!name.trim()) nextErrors.name = "Name is required.";
-    if (!startDate) nextErrors.startDate = "Start date is required.";
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setApiError(null);
-    if (!validate()) return;
+    if (!name.trim()) {
+      notify.error("Name is required.");
+      return;
+    }
+    if (!startDate) {
+      notify.error("Start date is required.");
+      return;
+    }
 
     const payload: BatchPayload = {
       name: name.trim(),
@@ -84,10 +74,11 @@ export function BatchFormModal({ isOpen, onClose, batch, onSaved }: BatchFormMod
     setIsSubmitting(true);
     try {
       const result = isEditing && batch ? await updateBatch(batch.id, payload) : await createBatch(payload);
+      notify.success(isEditing ? "Batch updated successfully." : "Batch created successfully.");
       onSaved(result);
       onClose();
     } catch (error) {
-      setApiError(error instanceof ApiError ? error.message : "Could not save this batch.");
+      notify.error(error, "Could not save this batch.");
     } finally {
       setIsSubmitting(false);
     }
@@ -116,14 +107,8 @@ export function BatchFormModal({ isOpen, onClose, batch, onSaved }: BatchFormMod
           </button>
         </div>
 
-        {apiError ? (
-          <div className={styles.banner} role="alert">
-            {apiError}
-          </div>
-        ) : null}
-
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
-          <TextField label="Batch name" value={name} onChange={(event) => setName(event.target.value)} error={errors.name} />
+          <TextField label="Batch name" value={name} onChange={(event) => setName(event.target.value)} />
 
           <div className={styles.fieldRow}>
             <TextField
@@ -131,7 +116,6 @@ export function BatchFormModal({ isOpen, onClose, batch, onSaved }: BatchFormMod
               type="date"
               value={startDate}
               onChange={(event) => setStartDate(event.target.value)}
-              error={errors.startDate}
             />
             <TextField
               label="End date (optional)"
