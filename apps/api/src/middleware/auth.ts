@@ -1,8 +1,9 @@
-import { Response, NextFunction } from "express";
-import { prisma } from "../lib/prisma";
+import { NextFunction, Response } from "express";
+import { env } from "../config/env";
 import { auth } from "../lib/auth";
-import { redis } from "../lib/redis";
 import { logger } from "../lib/logger";
+import { prisma } from "../lib/prisma";
+import { redis } from "../lib/redis";
 
 export async function authMiddleware(
   req: any,
@@ -62,7 +63,9 @@ export async function authMiddleware(
 
       if (membership && redis) {
         try {
-          await redis.set(cacheKey, JSON.stringify(membership), { ex: 60 });
+          await redis.set(cacheKey, JSON.stringify(membership), {
+            ex: env.MEMBERSHIP_CACHE_TTL_SECONDS,
+          });
         } catch (err) {
           logger.warn(
             {

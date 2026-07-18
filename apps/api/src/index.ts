@@ -23,7 +23,7 @@ async function shutdown(signal: string): Promise<void> {
 
   setTimeout(() => {
     process.exit(1);
-  }, 15_000);
+  }, env.SHUTDOWN_TIMEOUT_MS);
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));
