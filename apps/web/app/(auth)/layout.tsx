@@ -1,5 +1,9 @@
-import { ReactNode } from "react";
+"use client";
+
+import { useRouter } from "next/navigation";
+import { ReactNode, useEffect } from "react";
 import { Logo } from "@/components/brand/Logo";
+import { useAuth } from "@/lib/auth-context";
 import styles from "./layout.module.css";
 
 const FEATURES = [
@@ -18,6 +22,19 @@ function FeatureIcon() {
 }
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { status } = useAuth();
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.replace("/dashboard");
+    }
+  }, [status, router]);
+
+  if (status === "authenticated") {
+    return null;
+  }
+
   return (
     <div className={styles.shell}>
       <aside className={styles.marketingPanel}>

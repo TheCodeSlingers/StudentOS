@@ -10,8 +10,8 @@ import {
   CartesianGrid,
 } from "recharts";
 
-import styles from "@/app/(dashboard)/mentor/analytics/analytics.module.css";
-import { SkillMetric } from "@/app/(dashboard)/mentor/analytics/analytics.interface";
+import styles from "@/app/(dashboard)/dashboard/analytics/analytics.module.css";
+import { SkillMetric } from "@/app/(dashboard)/dashboard/analytics/analytics.interface";
 
 interface SkillsBarChartProps {
   data: SkillMetric[];

@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { ApiError, signup } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { getPasswordError, isValidEmail } from "@/lib/validation";
 import styles from "../auth.module.css";
 
@@ -16,22 +17,23 @@ interface AccountErrors {
   confirmPassword?: string;
 }
 
-interface OrganizationErrors {
-  organizationName?: string;
+interface WorkspaceErrors {
+  workspaceName?: string;
 }
 
 export default function SignupPage() {
   const router = useRouter();
+  const { signup } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [organizationName, setOrganizationName] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("");
 
   const [accountErrors, setAccountErrors] = useState<AccountErrors>({});
-  const [organizationErrors, setOrganizationErrors] = useState<OrganizationErrors>({});
+  const [workspaceErrors, setWorkspaceErrors] = useState<WorkspaceErrors>({});
   const [apiError, setApiError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -61,14 +63,14 @@ export default function SignupPage() {
     return Object.keys(nextErrors).length === 0;
   }
 
-  function validateOrganizationStep(): boolean {
-    const nextErrors: OrganizationErrors = {};
+  function validateWorkspaceStep(): boolean {
+    const nextErrors: WorkspaceErrors = {};
 
-    if (!organizationName.trim()) {
-      nextErrors.organizationName = "Organization name is required.";
+    if (!workspaceName.trim()) {
+      nextErrors.workspaceName = "Organization name is required.";
     }
 
-    setOrganizationErrors(nextErrors);
+    setWorkspaceErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   }
 
@@ -83,7 +85,7 @@ export default function SignupPage() {
     event.preventDefault();
     setApiError(null);
 
-    if (!validateOrganizationStep()) {
+    if (!validateWorkspaceStep()) {
       return;
     }
 
@@ -93,9 +95,9 @@ export default function SignupPage() {
         name: name.trim(),
         email: email.trim(),
         password,
-        organizationName: organizationName.trim(),
+        workspaceName: workspaceName.trim(),
       });
-      router.push("/");
+      router.push("/dashboard");
     } catch (error) {
       setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
     } finally {
@@ -174,9 +176,9 @@ export default function SignupPage() {
             label="Organization name"
             placeholder="e.g. Horizon Coaching Center"
             autoComplete="organization"
-            value={organizationName}
-            onChange={(event) => setOrganizationName(event.target.value)}
-            error={organizationErrors.organizationName}
+            value={workspaceName}
+            onChange={(event) => setWorkspaceName(event.target.value)}
+            error={workspaceErrors.workspaceName}
           />
 
           <div className={styles.actions}>

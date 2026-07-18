@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
-import { ApiError, login } from "@/lib/api-client";
+import { ApiError } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { isValidEmail } from "@/lib/validation";
 import styles from "../auth.module.css";
 
@@ -16,6 +17,7 @@ interface FormErrors {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
@@ -50,7 +52,7 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       await login({ email: email.trim(), password });
-      router.push("/");
+      router.push("/dashboard");
     } catch (error) {
       setApiError(error instanceof ApiError ? error.message : "Something went wrong. Please try again.");
     } finally {

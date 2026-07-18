@@ -1,9 +1,11 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ReactNode, useEffect, useState } from "react";
 import { Logo } from "@/components/brand/Logo";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { InviteModal } from "@/components/modals/invite-modal";
+import { useAuth } from "@/lib/auth-context";
 import styles from "./layout.module.css";
 
 function MenuIcon() {
@@ -14,13 +16,37 @@ function MenuIcon() {
   );
 }
 
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  const first = parts[0]?.[0] ?? "";
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+  return (first + last).toUpperCase();
+}
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { status, user, role, workspaceName } = useAuth();
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
 
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login");
+    }
+  }, [status, router]);
+
+  if (status !== "authenticated") {
+    return null;
+  }
+
   return (
     <div className={styles.shell}>
-      <Sidebar isOpen={isNavOpen} onClose={() => setIsNavOpen(false)} onInviteMember={() => setIsInviteOpen(true)} />
+      <Sidebar
+        isOpen={isNavOpen}
+        onClose={() => setIsNavOpen(false)}
+        onInviteMember={() => setIsInviteOpen(true)}
+        role={role}
+      />
 
       <div className={styles.main}>
         <header className={styles.header}>
@@ -37,14 +63,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Logo variant="mark" size={24} />
           </div>
 
+          {workspaceName ? <span className={styles.workspaceName}>{workspaceName}</span> : null}
+
           <div className={styles.headerSpacer} />
 
-          <span className={styles.avatar} aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="none">
-              <circle cx="10" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.6" />
-              <path d="M3.5 17c.6-3.5 2.9-5.5 6.5-5.5s5.9 2 6.5 5.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
-          </span>
+          {user ? (
+            <span className={styles.avatar} title={user.name}>
+              {initials(user.name)}
+            </span>
+          ) : null}
         </header>
 
         <main className={styles.content}>{children}</main>

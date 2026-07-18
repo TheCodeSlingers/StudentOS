@@ -1,34 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, Variants } from "framer-motion";
 import styles from "./profile.module.css";
 import { TextField } from "@/components/ui/TextField";
 import { Button } from "@/components/ui/Button";
-import {
-  IStudentProfile,
-  HireStatus,
-  JobType,
-  WorkplacePreference,
-} from "./profile.interface";
+import { IStudentProfile } from "./profile.interface";
+import { ApiError, getStudentProfile, updateStudentProfile } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
+import { useRequireRole } from "@/lib/use-require-role";
 
-// 1. Mock Data mapped to the new schema
-const mockInitialData: IStudentProfile = {
-  phone: "+880 1711-000000",
-  address: "Dhaka, Bangladesh",
-  courseName: "BSc in Computer Science",
-  specialization: "Software Engineering",
-  skills: "Next.js, TypeScript, PostgreSQL",
-  hireStatus: HireStatus.ACTIVELY_LOOKING,
-  jobType: JobType.FULL_TIME,
-  workplacePreference: WorkplacePreference.REMOTE,
+const EMPTY_PROFILE: IStudentProfile = {
+  phone: "",
+  address: "",
+  courseName: "",
+  specialization: "",
+  skills: "",
+  hireStatus: "STUDENT_ONLY",
+  jobType: "NOT_LOOKING",
+  workplacePreference: "NO_PREFERENCE",
   currentEmployer: "",
   currentPosition: "",
-  portfolioUrl: "https://github.com/",
-  linkedinUrl: "https://linkedin.com/in/",
+  portfolioUrl: "",
+  linkedinUrl: "",
 };
 
-// 2. Framer Motion Animation Variants
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -47,9 +43,42 @@ const itemVariants: Variants = {
 };
 
 export default function StudentProfilePage() {
-  const [profile, setProfile] = useState<IStudentProfile>(mockInitialData);
+  const isAuthorized = useRequireRole("STUDENT");
+  const { membershipId } = useAuth();
+  const [profile, setProfile] = useState<IStudentProfile>(EMPTY_PROFILE);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthorized || !membershipId) {
+      return;
+    }
+
+    getStudentProfile(membershipId)
+      .then((result) => {
+        setProfile({
+          phone: result.phone ?? "",
+          address: result.address ?? "",
+          courseName: result.courseName ?? "",
+          specialization: result.specialization ?? "",
+          skills: result.skills.join(", "),
+          hireStatus: result.hireStatus,
+          jobType: result.jobType,
+          workplacePreference: result.workplacePreference,
+          currentEmployer: result.currentEmployer ?? "",
+          currentPosition: result.currentPosition ?? "",
+          portfolioUrl: result.portfolioUrl ?? "",
+          linkedinUrl: result.linkedinUrl ?? "",
+        });
+      })
+      .catch((error) => {
+        setLoadError(error instanceof ApiError ? error.message : "Could not load your profile.");
+      })
+      .finally(() => setIsLoading(false));
+  }, [isAuthorized, membershipId]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -60,17 +89,39 @@ export default function StudentProfilePage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!membershipId) {
+      return;
+    }
+
     setIsSaving(true);
     setSaveMessage(null);
+    setSaveError(null);
 
-    // Simulate Network Request
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    console.log("Saving payload:", profile);
-
-    setIsSaving(false);
-    setSaveMessage("Profile updated successfully.");
-    setTimeout(() => setSaveMessage(null), 3000);
+    try {
+      await updateStudentProfile(membershipId, {
+        phone: profile.phone || null,
+        address: profile.address || null,
+        courseName: profile.courseName || null,
+        specialization: profile.specialization || null,
+        skills: profile.skills
+          .split(",")
+          .map((skill) => skill.trim())
+          .filter(Boolean),
+        hireStatus: profile.hireStatus,
+        jobType: profile.jobType,
+        workplacePreference: profile.workplacePreference,
+        currentEmployer: profile.currentEmployer || null,
+        currentPosition: profile.currentPosition || null,
+        portfolioUrl: profile.portfolioUrl || null,
+        linkedinUrl: profile.linkedinUrl || null,
+      });
+      setSaveMessage("Profile updated successfully.");
+      setTimeout(() => setSaveMessage(null), 3000);
+    } catch (error) {
+      setSaveError(error instanceof ApiError ? error.message : "Could not save your profile.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const InputField = ({
@@ -80,11 +131,31 @@ export default function StudentProfilePage() {
     label: string;
     children: React.ReactNode;
   }) => (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-slate-700">{label}</label>
+    <div className={styles.inputField}>
+      <label>{label}</label>
       {children}
     </div>
   );
+
+  if (!isAuthorized) {
+    return null;
+  }
+
+  if (isLoading) {
+    return (
+      <div className={styles.card}>
+        <p>Loading your profile…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className={styles.card}>
+        <p>{loadError}</p>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -93,14 +164,12 @@ export default function StudentProfilePage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-      {/* UPGRADED HEADER WITH AVATAR */}
       <div className={styles.headerContent}>
         <motion.div
           className={styles.avatarContainer}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          {/* Fallback to a placeholder if no avatarUrl exists */}
           <img
             src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=e2e8f0"
             alt="Profile Avatar"
@@ -134,14 +203,12 @@ export default function StudentProfilePage() {
         animate="visible"
       >
         <div className={styles.formGrid}>
-          {/* --- Contact & Academics --- */}
           <motion.div variants={itemVariants}>
             <TextField
               label="Phone Number"
               name="phone"
               value={profile.phone}
               onChange={handleChange}
-              required
             />
           </motion.div>
 
@@ -172,7 +239,6 @@ export default function StudentProfilePage() {
             />
           </motion.div>
 
-          {/* --- UPGRADED CAREER PREFERENCES --- */}
           <motion.div variants={itemVariants}>
             <InputField label="Hire Status">
               <select
@@ -181,11 +247,10 @@ export default function StudentProfilePage() {
                 onChange={handleChange}
                 className={styles.select}
               >
-                <option value={HireStatus.STUDENT_ONLY}>Student Only</option>
-                <option value={HireStatus.ACTIVELY_LOOKING}>
-                  Actively Looking
-                </option>
-                <option value={HireStatus.EMPLOYED}>Employed</option>
+                <option value="STUDENT_ONLY">Student Only</option>
+                <option value="JOB_SEEKING">Actively Looking</option>
+                <option value="EMPLOYED">Employed</option>
+                <option value="FREELANCING">Freelancing</option>
               </select>
             </InputField>
           </motion.div>
@@ -198,10 +263,11 @@ export default function StudentProfilePage() {
                 onChange={handleChange}
                 className={styles.select}
               >
-                <option value={JobType.NOT_LOOKING}>Not Looking</option>
-                <option value={JobType.INTERNSHIP}>Internship</option>
-                <option value={JobType.PART_TIME}>Part-Time</option>
-                <option value={JobType.FULL_TIME}>Full-Time</option>
+                <option value="NOT_LOOKING">Not Looking</option>
+                <option value="INTERNSHIP">Internship</option>
+                <option value="PART_TIME">Part-Time</option>
+                <option value="FULL_TIME">Full-Time</option>
+                <option value="FREELANCE">Freelance</option>
               </select>
             </InputField>
           </motion.div>
@@ -214,12 +280,10 @@ export default function StudentProfilePage() {
                 onChange={handleChange}
                 className={styles.select}
               >
-                <option value={WorkplacePreference.NO_PREFERENCE}>
-                  No Preference
-                </option>
-                <option value={WorkplacePreference.REMOTE}>Remote</option>
-                <option value={WorkplacePreference.HYBRID}>Hybrid</option>
-                <option value={WorkplacePreference.ON_SITE}>On-Site</option>
+                <option value="NO_PREFERENCE">No Preference</option>
+                <option value="REMOTE">Remote</option>
+                <option value="HYBRID">Hybrid</option>
+                <option value="ONSITE">On-Site</option>
               </select>
             </InputField>
           </motion.div>
@@ -244,13 +308,13 @@ export default function StudentProfilePage() {
           </motion.div>
         </div>
 
-        {/* --- Action Footer --- */}
         <motion.div className={styles.actions} variants={itemVariants}>
+          {saveError && <span className={styles.errorText}>{saveError}</span>}
           {saveMessage && (
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-green-600 text-sm flex items-center mr-4 font-medium"
+              className={styles.successText}
             >
               {saveMessage}
             </motion.span>
