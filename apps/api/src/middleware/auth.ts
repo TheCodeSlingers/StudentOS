@@ -107,7 +107,7 @@ export async function authMiddleware(
               userId: session.user.id,
               operation: "authMiddleware.redis.set",
             },
-            "Failed to store membership in Redis cache",
+            "Failed to cache membership in Redis",
           );
         }
       }

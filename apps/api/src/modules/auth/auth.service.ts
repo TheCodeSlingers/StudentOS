@@ -1,6 +1,7 @@
 import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { UnauthorizedError } from "../../common/errors";
+import { logger } from "../../lib/logger";
 
 export class AuthService {
   static async signUp(payload: any) {
@@ -67,7 +68,15 @@ export class AuthService {
   }
 
   static async signOut(headers: any) {
-    await auth.api.signOut({ headers }).catch(() => {});
+    await auth.api.signOut({ headers }).catch((err) => {
+      logger.warn(
+        {
+          err,
+          operation: "signOut",
+        },
+        "Failed to sign out user",
+      );
+    });
   }
 
   static async refresh(headers: any) {
@@ -94,7 +103,16 @@ export class AuthService {
           redirectTo: `${process.env.BETTER_AUTH_URL ?? ""}/auth/reset-password`,
         },
       })
-      .catch(() => {});
+      .catch((err) => {
+        logger.warn(
+          {
+            err,
+            email,
+            operation: "forgotPassword",
+          },
+          "Password reset request failed",
+        );
+      });
   }
 
   static async resetPassword(payload: any) {
