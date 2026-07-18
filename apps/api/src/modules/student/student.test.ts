@@ -19,30 +19,30 @@ jest.mock("../../middleware/permission", () => ({
 // Mock the service to avoid hitting the actual database during these tests
 jest.mock("./student.service", () => ({
   StudentService: {
-    enrollStudent: jest
+    enrollStudentIntoDB: jest
       .fn()
       .mockResolvedValue({
         id: "enrollment_1",
         batchId: "b1",
         membershipId: "m1",
       }),
-    getEnrolledStudents: jest
+    getEnrolledStudentsFromDB: jest
       .fn()
       .mockResolvedValue({
         data: [],
         meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
       }),
-    revokeEnrollment: jest
+    revokeEnrollmentIntoDB: jest
       .fn()
       .mockResolvedValue({ id: "enrollment_1", revokedAt: new Date() }),
-    getStudentProfile: jest
+    getStudentProfileFromDB: jest
       .fn()
       .mockResolvedValue({
         id: "m1",
         user: { name: "Test" },
         studentProfile: {},
       }),
-    updateStudentProfile: jest
+    updateStudentProfileIntoDB: jest
       .fn()
       .mockResolvedValue({ id: "profile_1", hireStatus: "EMPLOYED" }),
   },

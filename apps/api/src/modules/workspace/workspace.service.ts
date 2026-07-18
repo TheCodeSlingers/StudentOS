@@ -42,7 +42,7 @@ export interface ListMembersParams {
 }
 
 export class WorkspaceService {
-  static async getWorkspace({
+  static async getWorkspaceFromDB({
     workspaceId,
   }: {
     workspaceId: string;
@@ -77,7 +77,7 @@ export class WorkspaceService {
     };
   }
 
-  static async updateWorkspaceSettings(
+  static async updateWorkspaceSettingsIntoDB(
     workspaceId: string,
     timezone?: string,
     defaultAttendanceDurationMins?: number,
@@ -145,7 +145,7 @@ export class WorkspaceService {
     };
   }
 
-  static async inviteMember(
+  static async inviteMemberIntoDB(
     workspaceId: string,
     payload: InviteMemberPayload,
   ): Promise<MemberResult> {
@@ -207,7 +207,7 @@ export class WorkspaceService {
     return membership;
   }
 
-  static async listMembers(
+  static async getListMembersFromDB(
     params: ListMembersParams,
   ): Promise<ListMembersResult> {
     const skip = (params.page - 1) * params.limit;
@@ -247,7 +247,7 @@ export class WorkspaceService {
     return { total, memberships };
   }
 
-  static async deactivateMember(membershipId: string): Promise<MemberResult> {
+  static async deactivateMemberIntoDB(membershipId: string): Promise<MemberResult> {
     const membership = await prisma.membership.update({
       where: {
         id: membershipId,

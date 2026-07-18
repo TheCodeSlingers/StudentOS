@@ -24,7 +24,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR"]),
   validateRequest(getSummarySchema),
-  ImportController.getSummary,
+  ImportController.getJobSummary,
 );
 
 router.get(
@@ -32,7 +32,7 @@ router.get(
   authMiddleware,
   requireRole(["MENTOR"]),
   validateRequest(getSummarySchema),
-  ImportController.getRows,
+  ImportController.getJobRows,
 );
 
 export default router;

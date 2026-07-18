@@ -27,9 +27,16 @@ router.post(
   AuthController.signIn,
 );
 
-router.post("/auth/logout", AuthController.signOut);
+router.post(
+  "/auth/logout",
+  AuthController.signOut
+);
 
-router.post("/auth/refresh", authRateLimiter, AuthController.refresh);
+router.post(
+  "/auth/refresh",
+  authRateLimiter,
+  AuthController.refresh
+);
 
 router.post(
   "/auth/forgot-password",
@@ -45,12 +52,20 @@ router.post(
   AuthController.resetPassword,
 );
 
-router.get("/auth/me", AuthController.me);
+router.get(
+  "/auth/me",
+  AuthController.me
+);
 
-router.get("/auth/google", (_req, res) => {
-  res.redirect("/api/v1/auth/login/oauth2/google");
-});
+router.get(
+  "/auth/google",
+  (_req, res) => {
+    res.redirect("/api/v1/auth/login/oauth2/google");
+  });
 
-router.all("/auth/*any", toNodeHandler(auth));
+router.all(
+  "/auth/*any",
+  toNodeHandler(auth)
+);
 
 export default router;

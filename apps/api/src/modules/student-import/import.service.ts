@@ -24,7 +24,7 @@ export interface ImportJobRowReport {
 }
 
 export class ImportService {
-  static async startImport(
+  static async startImportFromDB(
     batchId: string,
     fileBuffer: Buffer,
   ): Promise<string> {
@@ -62,7 +62,7 @@ export class ImportService {
     return job.id;
   }
 
-  static async getJobSummary(jobId: string): Promise<ImportJobSummary | null> {
+  static async getJobSummaryFromDB(jobId: string): Promise<ImportJobSummary | null> {
     const [job, bullJob] = await Promise.all([
       prisma.studentImportJob.findUnique({
         where: { id: jobId },
@@ -101,7 +101,7 @@ export class ImportService {
     };
   }
 
-  static async getJobRows(jobId: string): Promise<ImportJobRowReport[]> {
+  static async getJobRowsFromDB(jobId: string): Promise<ImportJobRowReport[]> {
     const rows = await prisma.studentImportRow.findMany({
       where: { jobId },
       orderBy: { rowNumber: "asc" },

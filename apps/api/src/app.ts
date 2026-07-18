@@ -14,8 +14,8 @@ import authRouter from "./modules/auth/auth.routes";
 import batchRouter from "./modules/batch/batch.routes";
 import importRouter from "./modules/student-import/import.routes";
 import studentRouter from "./modules/student/student.routes";
-import sessionRouter from "./modules/session/session.route";
-import WorkspaceRouter from "./modules/workspace/workspace.route";
+import sessionRouter from "./modules/session/session.routes";
+import WorkspaceRouter from "./modules/workspace/workspace.routes";
 
 const app = express();
 

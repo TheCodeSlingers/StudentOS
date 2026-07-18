@@ -186,7 +186,7 @@ describe("AttendanceService", () => {
 
   describe("submitAttendance", () => {
     it("should submit attendance successfully and mark status PRESENT if within threshold", async () => {
-      const result = await AttendanceService.submitAttendance(
+      const result = await AttendanceService.submitAttendanceIntoDB(
         sessionId,
         studentMembershipId,
         "123456",
@@ -204,7 +204,7 @@ describe("AttendanceService", () => {
         },
       });
 
-      const result = await AttendanceService.submitAttendance(
+      const result = await AttendanceService.submitAttendanceIntoDB(
         sessionId,
         studentMembershipId,
         "123456",
@@ -214,7 +214,7 @@ describe("AttendanceService", () => {
 
     it("should throw NotFoundError if session does not exist", async () => {
       await expect(
-        AttendanceService.submitAttendance(
+        AttendanceService.submitAttendanceIntoDB(
           "non-existent-session-id",
           studentMembershipId,
           "123456",
@@ -229,7 +229,7 @@ describe("AttendanceService", () => {
       });
 
       await expect(
-        AttendanceService.submitAttendance(
+        AttendanceService.submitAttendanceIntoDB(
           sessionId,
           studentMembershipId,
           "123456",
@@ -239,7 +239,7 @@ describe("AttendanceService", () => {
 
     it("should throw BadRequestError if check-in code does not match", async () => {
       await expect(
-        AttendanceService.submitAttendance(
+        AttendanceService.submitAttendanceIntoDB(
           sessionId,
           studentMembershipId,
           "wrong-code",
@@ -256,7 +256,7 @@ describe("AttendanceService", () => {
       });
 
       await expect(
-        AttendanceService.submitAttendance(sessionId, anotherMem.id, "123456"),
+        AttendanceService.submitAttendanceIntoDB(sessionId, anotherMem.id, "123456"),
       ).rejects.toThrow(ForbiddenError);
 
       await prisma.membership.delete({ where: { id: anotherMem.id } });
@@ -264,13 +264,13 @@ describe("AttendanceService", () => {
     });
 
     it("should throw BadRequestError if student checks in twice", async () => {
-      await AttendanceService.submitAttendance(
+      await AttendanceService.submitAttendanceIntoDB(
         sessionId,
         studentMembershipId,
         "123456",
       );
       await expect(
-        AttendanceService.submitAttendance(
+        AttendanceService.submitAttendanceIntoDB(
           sessionId,
           studentMembershipId,
           "123456",
@@ -281,7 +281,7 @@ describe("AttendanceService", () => {
 
   describe("manualMarkAttendance", () => {
     it("should allow a MENTOR to manually mark attendance", async () => {
-      const record = await AttendanceService.manualMarkAttendance(
+      const record = await AttendanceService.manualMarkAttendanceIntoDB(
         sessionId,
         mentorMembershipId,
         "MENTOR",
@@ -302,7 +302,7 @@ describe("AttendanceService", () => {
     });
 
     it("should allow a STUDENT who is a CR to manually mark attendance", async () => {
-      const record = await AttendanceService.manualMarkAttendance(
+      const record = await AttendanceService.manualMarkAttendanceIntoDB(
         sessionId,
         crMembershipId,
         "STUDENT",
@@ -320,7 +320,7 @@ describe("AttendanceService", () => {
 
     it("should throw ForbiddenError if a normal student attempts to manually mark attendance", async () => {
       await expect(
-        AttendanceService.manualMarkAttendance(
+        AttendanceService.manualMarkAttendanceIntoDB(
           sessionId,
           studentMembershipId,
           "STUDENT",
@@ -336,13 +336,13 @@ describe("AttendanceService", () => {
 
   describe("getSessionAttendanceRoster", () => {
     it("should return the full batch roster with attendance mappings", async () => {
-      await AttendanceService.submitAttendance(
+      await AttendanceService.submitAttendanceIntoDB(
         sessionId,
         studentMembershipId,
         "123456",
       );
       const roster =
-        await AttendanceService.getSessionAttendanceRoster(sessionId);
+        await AttendanceService.getSessionAttendanceRosterFromDB(sessionId);
 
       expect(roster.length).toBe(2);
       const studentItem = roster.find(
@@ -362,12 +362,12 @@ describe("AttendanceService", () => {
 
   describe("getStudentAttendanceHistory", () => {
     it("should return logs for the student's historical attendance", async () => {
-      await AttendanceService.submitAttendance(
+      await AttendanceService.submitAttendanceIntoDB(
         sessionId,
         studentMembershipId,
         "123456",
       );
-      const history = await AttendanceService.getStudentAttendanceHistory(
+      const history = await AttendanceService.getStudentAttendanceHistoryFromDB(
         studentBatchMembershipId,
         studentMembershipId,
         "STUDENT",
@@ -378,12 +378,12 @@ describe("AttendanceService", () => {
     });
 
     it("should allow a mentor to view student history", async () => {
-      await AttendanceService.submitAttendance(
+      await AttendanceService.submitAttendanceIntoDB(
         sessionId,
         studentMembershipId,
         "123456",
       );
-      const history = await AttendanceService.getStudentAttendanceHistory(
+      const history = await AttendanceService.getStudentAttendanceHistoryFromDB(
         studentBatchMembershipId,
         mentorMembershipId,
         "MENTOR",
@@ -394,7 +394,7 @@ describe("AttendanceService", () => {
 
     it("should throw ForbiddenError if a student tries to view another student's history", async () => {
       await expect(
-        AttendanceService.getStudentAttendanceHistory(
+        AttendanceService.getStudentAttendanceHistoryFromDB(
           studentBatchMembershipId,
           crMembershipId,
           "STUDENT",
