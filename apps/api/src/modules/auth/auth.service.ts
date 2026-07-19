@@ -2,9 +2,15 @@ import { auth } from "../../lib/auth";
 import { prisma } from "../../lib/prisma";
 import { UnauthorizedError } from "../../common/errors";
 import { logger } from "../../lib/logger";
+import {
+  ISignUpPayload,
+  ISignInPayload,
+  IResetPasswordPayload,
+  TAuthHeaders,
+} from "@studentos/shared-types";
 
 export class AuthService {
-  static async signUp(payload: any) {
+  static async signUp(payload: ISignUpPayload) {
     const { email, password, name, workspaceName } = payload;
 
     const result = (await auth.api.signUpEmail({
@@ -45,7 +51,7 @@ export class AuthService {
     };
   }
 
-  static async signIn(payload: any) {
+  static async signIn(payload: ISignInPayload) {
     const { email, password } = payload;
 
     const result = (await auth.api.signInEmail({
@@ -67,7 +73,7 @@ export class AuthService {
     };
   }
 
-  static async signOut(headers: any) {
+  static async signOut(headers: TAuthHeaders) {
     await auth.api.signOut({ headers }).catch((err) => {
       logger.warn(
         {
@@ -79,7 +85,7 @@ export class AuthService {
     });
   }
 
-  static async refreshToken(headers: any) {
+  static async refreshToken(headers: TAuthHeaders) {
     const session = await auth.api.getSession({ headers });
 
     if (!session) {
@@ -115,13 +121,13 @@ export class AuthService {
       });
   }
 
-  static async resetPassword(payload: any) {
+  static async resetPassword(payload: IResetPasswordPayload) {
     await auth.api.resetPassword({
       body: { newPassword: payload.newPassword, token: payload.token },
     });
   }
 
-  static async getMe(headers: any) {
+  static async getMe(headers: TAuthHeaders) {
     const session = await auth.api.getSession({ headers });
 
     if (!session) {

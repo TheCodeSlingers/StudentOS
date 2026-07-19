@@ -3,26 +3,10 @@ import { logger } from "../../lib/logger";
 import { prisma } from "../../lib/prisma";
 import { importQueue } from "../../lib/queue";
 
-export interface ImportJobSummary {
-  id: string;
-  batchId: string;
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "COMPLETED_WITH_ERRORS";
-  totalRows: number;
-  successRows: number;
-  failedRows: number;
-  createdAt: Date;
-  updatedAt: Date;
-  queueProgress?: number | null;
-}
-
-export interface ImportJobRowReport {
-  id: string;
-  rowNumber: number;
-  email: string;
-  status: "SUCCESS" | "FAILED" | "SKIPPED";
-  errorMessage: string | null;
-}
-
+import {
+  IImportJobSummary,
+  IImportJobRowReport,
+} from "@studentos/shared-types";
 export class ImportService {
   static async startImportFromDB(
     batchId: string,
@@ -62,7 +46,7 @@ export class ImportService {
     return job.id;
   }
 
-  static async getJobSummaryFromDB(jobId: string): Promise<ImportJobSummary | null> {
+  static async getJobSummaryFromDB(jobId: string): Promise<IImportJobSummary | null> {
     const [job, bullJob] = await Promise.all([
       prisma.studentImportJob.findUnique({
         where: { id: jobId },
@@ -91,7 +75,7 @@ export class ImportService {
     return {
       id: job.id,
       batchId: job.batchId,
-      status: job.status as any,
+      status: job.status as IImportJobSummary["status"],
       totalRows: job.totalRows,
       successRows: job.successRows,
       failedRows: job.failedRows,
@@ -101,17 +85,17 @@ export class ImportService {
     };
   }
 
-  static async getJobRowsFromDB(jobId: string): Promise<ImportJobRowReport[]> {
+  static async getJobRowsFromDB(jobId: string): Promise<IImportJobRowReport[]> {
     const rows = await prisma.studentImportRow.findMany({
       where: { jobId },
       orderBy: { rowNumber: "asc" },
     });
 
-    return rows.map((r: any) => ({
+    return rows.map((r) => ({
       id: r.id,
       rowNumber: r.rowNumber,
       email: r.email,
-      status: r.status as any,
+      status: r.status as IImportJobRowReport["status"],
       errorMessage: r.errorMessage,
     }));
   }

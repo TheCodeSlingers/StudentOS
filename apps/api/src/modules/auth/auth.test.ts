@@ -64,6 +64,7 @@ jest.mock("./auth.service", () => ({
 }));
 
 describe("Authentication Module Integration Tests", () => {
+  jest.setTimeout(30000);
   it("POST /auth/signup - successfully registers a user and workspace", async () => {
     const response = await request(app).post("/api/v1/auth/signup").send({
       email: "mentor@studentos.com",

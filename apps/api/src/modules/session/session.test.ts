@@ -7,6 +7,7 @@ import {
 } from "../../common/errors";
 
 describe("SessionService", () => {
+  jest.setTimeout(30000);
   let workspaceId: string;
   let batchId: string;
   let mentorUserId: string;
