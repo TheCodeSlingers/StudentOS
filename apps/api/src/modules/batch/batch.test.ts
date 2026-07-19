@@ -60,27 +60,30 @@ describe("BatchService", () => {
   afterAll(async () => {
     const idsToDelete = [batchMembershipId].filter(Boolean);
 
-    await prisma.$transaction([
-prisma.batchMembership.deleteMany({
-        where: { id: { in: idsToDelete } },
-      }),
-      prisma.batch.deleteMany({
-        where: { workspaceId },
-      }),
-      prisma.membership.deleteMany({
-        where: { id: { in: [mentorMembershipId, studentMembershipId] } },
-      }),
-      prisma.workspace.deleteMany({
-        where: { id: workspaceId },
-      }),
-      prisma.user.deleteMany({
-        where: {
-          email: {
-            in: ["batch-mentor@example.com", "batch-student@example.com"],
+    await prisma.$transaction(
+      [
+        prisma.batchMembership.deleteMany({
+          where: { id: { in: idsToDelete } },
+        }),
+        prisma.batch.deleteMany({
+          where: { workspaceId },
+        }),
+        prisma.membership.deleteMany({
+          where: { id: { in: [mentorMembershipId, studentMembershipId] } },
+        }),
+        prisma.workspace.deleteMany({
+          where: { id: workspaceId },
+        }),
+        prisma.user.deleteMany({
+          where: {
+            email: {
+              in: ["batch-mentor@example.com", "batch-student@example.com"],
+            },
           },
-        },
-      }),
-], { timeout: 30000 });
+        }),
+      ],
+      { timeout: 30000 },
+    );
   });
 
   describe("createBatch", () => {

@@ -112,39 +112,42 @@ describe("AttendanceService", () => {
       mentorMembershipId,
     ].filter(Boolean);
 
-    await prisma.$transaction([
-prisma.attendance.deleteMany({
-        where: {
-          studentBatchMembershipId: { in: idsToDelete },
-        },
-      }),
-      prisma.session.deleteMany({
-        where: { batchId: batchId || "non-existent" },
-      }),
-      prisma.batchMembership.deleteMany({
-        where: { id: { in: idsToDelete } },
-      }),
-      prisma.membership.deleteMany({
-        where: { id: { in: mIdsToDelete } },
-      }),
-      prisma.batch.deleteMany({
-        where: { id: batchId || "non-existent" },
-      }),
-      prisma.workspace.deleteMany({
-        where: { id: workspaceId || "non-existent" },
-      }),
-      prisma.user.deleteMany({
-        where: {
-          email: {
-            in: [
-              "test-mentor@example.com",
-              "test-student@example.com",
-              "test-cr@example.com",
-            ],
+    await prisma.$transaction(
+      [
+        prisma.attendance.deleteMany({
+          where: {
+            studentBatchMembershipId: { in: idsToDelete },
           },
-        },
-      }),
-], { timeout: 30000 });
+        }),
+        prisma.session.deleteMany({
+          where: { batchId: batchId || "non-existent" },
+        }),
+        prisma.batchMembership.deleteMany({
+          where: { id: { in: idsToDelete } },
+        }),
+        prisma.membership.deleteMany({
+          where: { id: { in: mIdsToDelete } },
+        }),
+        prisma.batch.deleteMany({
+          where: { id: batchId || "non-existent" },
+        }),
+        prisma.workspace.deleteMany({
+          where: { id: workspaceId || "non-existent" },
+        }),
+        prisma.user.deleteMany({
+          where: {
+            email: {
+              in: [
+                "test-mentor@example.com",
+                "test-student@example.com",
+                "test-cr@example.com",
+              ],
+            },
+          },
+        }),
+      ],
+      { timeout: 30000 },
+    );
   });
 
   beforeEach(async () => {
@@ -180,7 +183,7 @@ prisma.attendance.deleteMany({
             },
             "Failed to clean up test session",
           );
-        })
+        });
       sessionId = undefined as any;
     }
   });
