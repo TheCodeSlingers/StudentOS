@@ -19,3 +19,10 @@ export type PermissionAction =
   | "attendance.view_session_roster"
   | "attendance.view_history"
   | "*";
+
+export * from "./interfaces/auth.interface";
+export * from "./interfaces/batch.interface";
+export * from "./interfaces/session.interface";
+export * from "./interfaces/workspace.interface";
+export * from "./interfaces/student.interface";
+export * from "./interfaces/import.interface";

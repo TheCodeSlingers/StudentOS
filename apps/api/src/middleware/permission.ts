@@ -1,7 +1,8 @@
-import { Response, NextFunction } from "express";
+import { Response, NextFunction, Request } from "express";
+import { AuthenticatedRequest } from "../types/authenticated-request";
 
 export function requireRole(allowedRoles: ("MENTOR" | "STUDENT")[]) {
-  return (req: any, res: Response, next: NextFunction) => {
+  return (req: Request | AuthenticatedRequest, res: Response, next: NextFunction) => {
     const membership = req.membership;
     if (!membership) {
       return res.status(401).json({

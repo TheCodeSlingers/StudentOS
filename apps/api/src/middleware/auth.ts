@@ -1,12 +1,13 @@
-import { NextFunction, Response } from "express";
+import { NextFunction, Response, Request } from "express";
 import { env } from "../config/env";
 import { auth } from "../lib/auth";
 import { logger } from "../lib/logger";
 import { prisma } from "../lib/prisma";
 import { redis } from "../lib/redis";
+import { AuthenticatedRequest } from "../types/authenticated-request";
 
 export async function authMiddleware(
-  req: any,
+  req: Request | AuthenticatedRequest,
   res: Response,
   next: NextFunction,
 ) {
@@ -23,7 +24,7 @@ export async function authMiddleware(
     }
 
     const cacheKey = `user:membership:${session.user.id}`;
-    let membership: any = null;
+    let membership: { id: string; workspaceId: string; role: any } | null = null;
 
     if (redis) {
       try {

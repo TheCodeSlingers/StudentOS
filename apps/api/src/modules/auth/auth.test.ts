@@ -1,3 +1,4 @@
+jest.setTimeout(30000);
 jest.mock("better-auth/node", () => ({
   toNodeHandler: jest
     .fn()

@@ -254,9 +254,9 @@ export class StudentService {
     try {
       return await prisma.studentProfile.upsert({
         where: { membershipId },
-        update: data as any,
+        update: data as Prisma.StudentProfileUpdateInput,
         create: {
-          ...(data as any),
+          ...(data as Prisma.StudentProfileUncheckedCreateInput),
           membershipId,
         },
       });

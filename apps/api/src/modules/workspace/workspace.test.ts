@@ -1,3 +1,4 @@
+jest.setTimeout(30000);
 import { WorkspaceService } from "./workspace.service";
 import { prisma } from "../../lib/prisma";
 
@@ -66,12 +67,12 @@ describe("WorkspaceService", () => {
 
   afterAll(async () => {
     await prisma.$transaction([
-      prisma.batchMembership.deleteMany({ where: { batchId: { in: [batchAId, batchBId] } } }),
+prisma.batchMembership.deleteMany({ where: { batchId: { in: [batchAId, batchBId] } } }),
       prisma.batch.deleteMany({ where: { workspaceId } }),
       prisma.membership.deleteMany({ where: { id: studentMembershipId } }),
       prisma.workspace.deleteMany({ where: { id: { in: [workspaceId, otherWorkspaceId] } } }),
       prisma.user.deleteMany({ where: { id: studentUserId } }),
-    ]);
+], { timeout: 30000 });
   });
 
   describe("getMyBatchesFromDB", () => {

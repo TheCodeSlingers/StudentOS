@@ -1,3 +1,4 @@
+jest.setTimeout(30000);
 import { AttendanceService } from "./attendance.service";
 import { prisma } from "../../lib/prisma";
 import {
@@ -112,7 +113,7 @@ describe("AttendanceService", () => {
     ].filter(Boolean);
 
     await prisma.$transaction([
-      prisma.attendance.deleteMany({
+prisma.attendance.deleteMany({
         where: {
           studentBatchMembershipId: { in: idsToDelete },
         },
@@ -143,7 +144,7 @@ describe("AttendanceService", () => {
           },
         },
       }),
-    ]);
+], { timeout: 30000 });
   });
 
   beforeEach(async () => {

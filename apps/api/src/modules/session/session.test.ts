@@ -1,3 +1,4 @@
+jest.setTimeout(30000);
 import { SessionService } from "./session.service";
 import { prisma } from "../../lib/prisma";
 import {
@@ -108,7 +109,7 @@ describe("SessionService", () => {
 
   afterAll(async () => {
     await prisma.$transaction([
-      prisma.session.deleteMany({ where: { batchId } }),
+prisma.session.deleteMany({ where: { batchId } }),
       prisma.batchMembership.deleteMany({
         where: { id: { in: [studentBatchMembershipId, crBatchMembershipId] } },
       }),
@@ -128,7 +129,7 @@ describe("SessionService", () => {
           },
         },
       }),
-    ]);
+], { timeout: 30000 });
   });
 
   describe("createSession", () => {

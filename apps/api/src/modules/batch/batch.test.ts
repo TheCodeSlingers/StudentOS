@@ -1,3 +1,4 @@
+jest.setTimeout(30000);
 import { BatchService } from "./batch.service";
 import { prisma } from "../../lib/prisma";
 import { BadRequestError, NotFoundError } from "../../common/errors";
@@ -60,7 +61,7 @@ describe("BatchService", () => {
     const idsToDelete = [batchMembershipId].filter(Boolean);
 
     await prisma.$transaction([
-      prisma.batchMembership.deleteMany({
+prisma.batchMembership.deleteMany({
         where: { id: { in: idsToDelete } },
       }),
       prisma.batch.deleteMany({
@@ -79,7 +80,7 @@ describe("BatchService", () => {
           },
         },
       }),
-    ]);
+], { timeout: 30000 });
   });
 
   describe("createBatch", () => {

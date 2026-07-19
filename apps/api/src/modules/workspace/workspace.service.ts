@@ -1,62 +1,21 @@
 import { MembershipRole, MembershipStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 
-export interface WorkspaceResult {
-  id: string;
-  name: string;
-  timezone: string;
-  settings: {
-    defaultAttendanceDurationMins: number;
-    lateThresholdMins: number;
-  };
-}
-
-export interface MemberResult {
-  id: string;
-  userId: string;
-  workspaceId: string;
-  role: MembershipRole;
-  status: MembershipStatus;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  };
-}
-
-export interface ListMembersResult {
-  total: number;
-  memberships: MemberResult[];
-}
-
-export interface InviteMemberPayload {
-  email: string;
-  name: string;
-  role: MembershipRole;
-}
-
-export interface ListMembersParams {
-  workspaceId: string;
-  page: number;
-  limit: number;
-}
-
-export interface MyBatchResult {
-  batchMembershipId: string;
-  batchId: string;
-  batchName: string;
-  isCR: boolean;
-  startDate: Date;
-  endDate: Date | null;
-  isArchived: boolean;
-}
+import {
+  IWorkspaceResult,
+  IMemberResult,
+  IListMembersResult,
+  IInviteMemberPayload,
+  IListMembersParams,
+  IMyBatchResult,
+} from "@studentos/shared-types";
 
 export class WorkspaceService {
   static async getWorkspaceFromDB({
     workspaceId,
   }: {
     workspaceId: string;
-  }): Promise<WorkspaceResult> {
+  }): Promise<IWorkspaceResult> {
     const workspace = await prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: {
@@ -92,9 +51,9 @@ export class WorkspaceService {
     timezone?: string,
     defaultAttendanceDurationMins?: number,
     lateThresholdMins?: number,
-  ): Promise<WorkspaceResult> {
-    const data: any = {};
-    const settingsData: any = {};
+  ): Promise<IWorkspaceResult> {
+    const data: import("@prisma/client").Prisma.WorkspaceUpdateInput = {};
+    const settingsData: import("@prisma/client").Prisma.WorkspaceSettingsUpdateInput = {};
 
     if (timezone !== undefined) {
       data.timezone = timezone;
@@ -157,8 +116,8 @@ export class WorkspaceService {
 
   static async inviteMemberIntoDB(
     workspaceId: string,
-    payload: InviteMemberPayload,
-  ): Promise<MemberResult> {
+    payload: IInviteMemberPayload,
+  ): Promise<IMemberResult> {
     const user = await prisma.user.upsert({
       where: { email: payload.email },
       update: { name: payload.name },
@@ -218,8 +177,8 @@ export class WorkspaceService {
   }
 
   static async getListMembersFromDB(
-    params: ListMembersParams,
-  ): Promise<ListMembersResult> {
+    params: IListMembersParams,
+  ): Promise<IListMembersResult> {
     const skip = (params.page - 1) * params.limit;
 
     const [total, memberships] = await Promise.all([
@@ -257,7 +216,7 @@ export class WorkspaceService {
     return { total, memberships };
   }
 
-  static async getMyBatchesFromDB(membershipId: string): Promise<MyBatchResult[]> {
+  static async getMyBatchesFromDB(membershipId: string): Promise<IMyBatchResult[]> {
     const enrollments = await prisma.batchMembership.findMany({
       where: {
         membershipId,
@@ -292,7 +251,7 @@ export class WorkspaceService {
     }));
   }
 
-  static async deactivateMemberIntoDB(membershipId: string): Promise<MemberResult> {
+  static async deactivateMemberIntoDB(membershipId: string): Promise<IMemberResult> {
     const membership = await prisma.membership.update({
       where: {
         id: membershipId,

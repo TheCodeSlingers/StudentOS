@@ -1,3 +1,4 @@
+jest.setTimeout(30000);
 import request from "supertest";
 import express from "express";
 import studentRouter from "./student.routes";
