@@ -81,15 +81,21 @@ export async function parseStudentCsvFile(file: File): Promise<StudentCsvRow[]> 
   // The real header row isn't always the first line — spreadsheet exports
   // (like an attendance sheet with a title banner on row 1) often have
   // extra rows above the actual columns. Scan for the row that actually
-  // contains an "email" column instead of assuming it's row one.
-  const headerRowIndex = cleanRows.findIndex((row) => row.some((cell) => cell.trim().toLowerCase() === "email"));
+  // contains an email-like column instead of assuming it's row one.
+  const findEmailCol = (row: string[]) =>
+    row.findIndex((cell) => /email/.test(cell.trim().toLowerCase()));
+  const headerRowIndex = cleanRows.findIndex((row) => findEmailCol(row) !== -1);
   if (headerRowIndex === -1) {
     throw new Error("CSV is missing required headers: email, name.");
   }
 
   const headers = cleanRows[headerRowIndex].map((h) => h.trim().toLowerCase());
-  const emailIdx = headers.indexOf("email");
-  const nameIdx = headers.indexOf("name");
+  // Real-world exports rarely use the exact column names "email"/"name" —
+  // Google Forms roster/attendance sheets commonly say "Your Name", "Email
+  // Address", etc. Match exactly first, then fall back to any column whose
+  // header contains the word.
+  const emailIdx = headers.indexOf("email") !== -1 ? headers.indexOf("email") : findEmailCol(cleanRows[headerRowIndex]);
+  const nameIdx = headers.indexOf("name") !== -1 ? headers.indexOf("name") : headers.findIndex((h) => h.includes("name"));
   if (nameIdx === -1) {
     throw new Error("CSV is missing required headers: email, name.");
   }
