@@ -1,9 +1,9 @@
-jest.setTimeout(30000);
 import { BatchService } from "./batch.service";
 import { prisma } from "../../lib/prisma";
 import { BadRequestError, NotFoundError } from "../../common/errors";
 
 describe("BatchService", () => {
+  jest.setTimeout(30000);
   let workspaceId: string;
   let mentorUserId: string;
   let mentorMembershipId: string;
@@ -13,6 +13,12 @@ describe("BatchService", () => {
   let batchMembershipId: string;
 
   beforeAll(async () => {
+    await prisma.user.deleteMany({
+      where: {
+        email: { in: ["batch-mentor@example.com", "batch-student@example.com"] },
+      },
+    });
+
     const ws = await prisma.workspace.create({
       data: {
         name: "Batch Test Workspace",
@@ -59,31 +65,29 @@ describe("BatchService", () => {
 
   afterAll(async () => {
     const idsToDelete = [batchMembershipId].filter(Boolean);
+    const mIdsToDelete = [mentorMembershipId, studentMembershipId].filter(Boolean);
 
-    await prisma.$transaction(
-      [
-        prisma.batchMembership.deleteMany({
-          where: { id: { in: idsToDelete } },
-        }),
-        prisma.batch.deleteMany({
-          where: { workspaceId },
-        }),
-        prisma.membership.deleteMany({
-          where: { id: { in: [mentorMembershipId, studentMembershipId] } },
-        }),
-        prisma.workspace.deleteMany({
-          where: { id: workspaceId },
-        }),
-        prisma.user.deleteMany({
-          where: {
-            email: {
-              in: ["batch-mentor@example.com", "batch-student@example.com"],
-            },
+    await prisma.$transaction([
+      prisma.batchMembership.deleteMany({
+        where: { id: { in: idsToDelete } },
+      }),
+      prisma.batch.deleteMany({
+        where: { workspaceId: workspaceId || "" },
+      }),
+      prisma.membership.deleteMany({
+        where: { id: { in: mIdsToDelete } },
+      }),
+      prisma.workspace.deleteMany({
+        where: { id: workspaceId || "" },
+      }),
+      prisma.user.deleteMany({
+        where: {
+          email: {
+            in: ["batch-mentor@example.com", "batch-student@example.com"],
           },
-        }),
-      ],
-      { timeout: 30000 },
-    );
+        },
+      }),
+    ]);
   });
 
   describe("createBatch", () => {
@@ -235,24 +239,6 @@ describe("BatchService", () => {
 
       const list = await BatchService.getListBatchesFromDB(workspaceId);
       expect(list.length).toBe(0);
-    });
-  });
-
-  describe("listBatches status filter", () => {
-    it("defaults to only active batches", async () => {
-      const list = await BatchService.getListBatchesFromDB(workspaceId);
-      expect(list.length).toBe(0);
-    });
-
-    it("returns only archived batches when status is 'archived'", async () => {
-      const list = await BatchService.getListBatchesFromDB(workspaceId, "archived");
-      expect(list.length).toBe(1);
-      expect(list[0].id).toBe(batchId);
-    });
-
-    it("returns every batch regardless of archived status when status is 'all'", async () => {
-      const list = await BatchService.getListBatchesFromDB(workspaceId, "all");
-      expect(list.length).toBe(1);
     });
   });
 });

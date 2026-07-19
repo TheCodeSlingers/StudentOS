@@ -1,4 +1,3 @@
-jest.setTimeout(30000);
 import { AttendanceService } from "./attendance.service";
 import { prisma } from "../../lib/prisma";
 import {
@@ -9,6 +8,7 @@ import {
 import { logger } from "../../lib/logger";
 
 describe("AttendanceService", () => {
+  jest.setTimeout(30000);
   let workspaceId: string;
   let batchId: string;
   let studentUserId: string;
@@ -112,42 +112,39 @@ describe("AttendanceService", () => {
       mentorMembershipId,
     ].filter(Boolean);
 
-    await prisma.$transaction(
-      [
-        prisma.attendance.deleteMany({
-          where: {
-            studentBatchMembershipId: { in: idsToDelete },
+    await prisma.$transaction([
+      prisma.attendance.deleteMany({
+        where: {
+          studentBatchMembershipId: { in: idsToDelete },
+        },
+      }),
+      prisma.session.deleteMany({
+        where: { batchId: batchId || "non-existent" },
+      }),
+      prisma.batchMembership.deleteMany({
+        where: { id: { in: idsToDelete } },
+      }),
+      prisma.membership.deleteMany({
+        where: { id: { in: mIdsToDelete } },
+      }),
+      prisma.batch.deleteMany({
+        where: { id: batchId || "non-existent" },
+      }),
+      prisma.workspace.deleteMany({
+        where: { id: workspaceId || "non-existent" },
+      }),
+      prisma.user.deleteMany({
+        where: {
+          email: {
+            in: [
+              "test-mentor@example.com",
+              "test-student@example.com",
+              "test-cr@example.com",
+            ],
           },
-        }),
-        prisma.session.deleteMany({
-          where: { batchId: batchId || "non-existent" },
-        }),
-        prisma.batchMembership.deleteMany({
-          where: { id: { in: idsToDelete } },
-        }),
-        prisma.membership.deleteMany({
-          where: { id: { in: mIdsToDelete } },
-        }),
-        prisma.batch.deleteMany({
-          where: { id: batchId || "non-existent" },
-        }),
-        prisma.workspace.deleteMany({
-          where: { id: workspaceId || "non-existent" },
-        }),
-        prisma.user.deleteMany({
-          where: {
-            email: {
-              in: [
-                "test-mentor@example.com",
-                "test-student@example.com",
-                "test-cr@example.com",
-              ],
-            },
-          },
-        }),
-      ],
-      { timeout: 30000 },
-    );
+        },
+      }),
+    ]);
   });
 
   beforeEach(async () => {
@@ -183,8 +180,8 @@ describe("AttendanceService", () => {
             },
             "Failed to clean up test session",
           );
-        });
-      sessionId = undefined as any;
+        })
+      sessionId = "";
     }
   });
 

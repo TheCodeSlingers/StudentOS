@@ -1,6 +1,5 @@
-jest.setTimeout(30000);
 import request from "supertest";
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import studentRouter from "./student.routes";
 import { errorHandler } from "../../middleware/error";
 
@@ -9,15 +8,13 @@ app.use(express.json());
 app.use("/api/v1", studentRouter);
 app.use(errorHandler);
 
-// Mock authentication and permissions to focus on module logic
 jest.mock("../../middleware/auth", () => ({
-  authMiddleware: (req: any, res: any, next: any) => next(),
+  authMiddleware: (req: Request, res: Response, next: NextFunction) => next(),
 }));
 jest.mock("../../middleware/permission", () => ({
-  requireRole: () => (req: any, res: any, next: any) => next(),
+  requireRole: () => (req: Request, res: Response, next: NextFunction) => next(),
 }));
 
-// Mock the service to avoid hitting the actual database during these tests
 jest.mock("./student.service", () => ({
   StudentService: {
     enrollStudentIntoDB: jest
