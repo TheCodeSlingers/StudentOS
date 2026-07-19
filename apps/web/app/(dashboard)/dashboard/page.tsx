@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { motion, Variants } from "framer-motion";
 import {
   Batch,
   Member,
@@ -12,7 +13,7 @@ import {
 } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { notify } from "@/lib/toast";
-import { avatarColor } from "@/lib/avatar";
+import { avatarColor, initials } from "@/lib/avatar";
 import {
   AttendanceIcon,
   BatchesIcon,
@@ -21,6 +22,24 @@ import {
   StudentsIcon,
 } from "@/components/dashboard/nav/icons";
 import styles from "./dashboard.module.css";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+};
+
+const itemVariants: Variants = {
+  hidden: { y: 16, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 26 } },
+};
+
+function ArrowIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M7 4l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function ArchiveIcon({ className }: { className?: string }) {
   return (
@@ -59,7 +78,11 @@ interface StatProps {
 function StatCard({ label, value, icon }: StatProps) {
   const tone = avatarColor(label);
   return (
-    <div className={styles.statCard}>
+    <motion.div
+      className={styles.statCard}
+      variants={itemVariants}
+      style={{ "--stat-accent": tone.fg } as React.CSSProperties}
+    >
       <span className={styles.statIcon} style={{ background: tone.bg, color: tone.fg }}>
         {icon}
       </span>
@@ -67,7 +90,30 @@ function StatCard({ label, value, icon }: StatProps) {
         <p className={styles.statValue}>{value}</p>
         <p className={styles.statLabel}>{label}</p>
       </div>
-    </div>
+    </motion.div>
+  );
+}
+
+interface BatchCardProps {
+  href: string;
+  name: string;
+  dateRange: string;
+  badge?: React.ReactNode;
+}
+
+function BatchCard({ href, name, dateRange, badge }: BatchCardProps) {
+  const tone = avatarColor(name);
+  return (
+    <motion.div variants={itemVariants}>
+      <Link href={href} className={styles.batchCard} style={{ "--batch-accent": tone.fg } as React.CSSProperties}>
+        <div className={styles.batchCardHeader}>
+          <span className={styles.batchCardName}>{name}</span>
+          <ArrowIcon className={styles.batchCardArrow} />
+        </div>
+        <span className={styles.batchCardDates}>{dateRange}</span>
+        {badge}
+      </Link>
+    </motion.div>
   );
 }
 
@@ -106,16 +152,28 @@ function MentorDashboard() {
   return (
     <div className={styles.page}>
       <div className={styles.welcome}>
-        <div>
+        <span className={styles.welcomeAvatar}>{initials(user?.name)}</span>
+        <div className={styles.welcomeBody}>
           <h1 className={styles.welcomeTitle}>Welcome back, {firstName(user?.name)}</h1>
           <p className={styles.welcomeSubtitle}>Here&apos;s what&apos;s happening in {workspaceName ?? "your workspace"}.</p>
         </div>
       </div>
 
       {isLoading ? (
-        <p className={styles.emptyState}>Loading your dashboard…</p>
-      ) : (
         <>
+          <div className={styles.statsGrid}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className={styles.skeletonStat} />
+            ))}
+          </div>
+          <div className={styles.batchGrid}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className={styles.skeletonCard} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <motion.div className={styles.page} variants={containerVariants} initial="hidden" animate="visible">
           <div className={styles.statsGrid}>
             <StatCard label="Total students" value={totalStudents} icon={<StudentsIcon />} />
             <StatCard label="Active batches" value={activeBatches.length} icon={<BatchesIcon />} />
@@ -135,14 +193,12 @@ function MentorDashboard() {
             ) : (
               <div className={styles.batchGrid}>
                 {recentBatches.map((batch) => (
-                  <Link key={batch.id} href={`/dashboard/batches/${batch.id}`} className={styles.batchCard}>
-                    <div className={styles.batchCardHeader}>
-                      <span className={styles.batchCardName}>{batch.name}</span>
-                    </div>
-                    <span className={styles.batchCardDates}>
-                      {formatDate(batch.startDate)} – {formatDate(batch.endDate)}
-                    </span>
-                  </Link>
+                  <BatchCard
+                    key={batch.id}
+                    href={`/dashboard/batches/${batch.id}`}
+                    name={batch.name}
+                    dateRange={`${formatDate(batch.startDate)} – ${formatDate(batch.endDate)}`}
+                  />
                 ))}
               </div>
             )}
@@ -179,7 +235,7 @@ function MentorDashboard() {
               </Link>
             </div>
           </div>
-        </>
+        </motion.div>
       )}
     </div>
   );
@@ -208,16 +264,28 @@ function StudentDashboard() {
   return (
     <div className={styles.page}>
       <div className={styles.welcome}>
-        <div>
+        <span className={styles.welcomeAvatar}>{initials(user?.name)}</span>
+        <div className={styles.welcomeBody}>
           <h1 className={styles.welcomeTitle}>Welcome back, {firstName(user?.name)}</h1>
           <p className={styles.welcomeSubtitle}>Here&apos;s an overview of your batches and attendance.</p>
         </div>
       </div>
 
       {isLoading ? (
-        <p className={styles.emptyState}>Loading your dashboard…</p>
-      ) : (
         <>
+          <div className={styles.statsGrid}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className={styles.skeletonStat} />
+            ))}
+          </div>
+          <div className={styles.batchGrid}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className={styles.skeletonCard} />
+            ))}
+          </div>
+        </>
+      ) : (
+        <motion.div className={styles.page} variants={containerVariants} initial="hidden" animate="visible">
           <div className={styles.statsGrid}>
             <StatCard label="Enrolled batches" value={batches?.length ?? 0} icon={<BatchesIcon />} />
             <StatCard label="Active batches" value={activeBatches.length} icon={<AttendanceIcon />} />
@@ -236,18 +304,19 @@ function StudentDashboard() {
             ) : (
               <div className={styles.batchGrid}>
                 {batches.slice(0, 6).map((batch) => (
-                  <Link
+                  <BatchCard
                     key={batch.batchMembershipId}
                     href={`/dashboard/my-attendance?batch=${batch.batchId}`}
-                    className={styles.batchCard}
-                  >
-                    <div className={styles.batchCardHeader}>
-                      <span className={styles.batchCardName}>{batch.batchName}</span>
-                    </div>
-                    <span className={styles.batchCardDates}>
-                      {formatDate(batch.startDate)} – {formatDate(batch.endDate)}
-                    </span>
-                  </Link>
+                    name={batch.batchName}
+                    dateRange={`${formatDate(batch.startDate)} – ${formatDate(batch.endDate)}`}
+                    badge={
+                      batch.isCR ? (
+                        <span className={styles.batchCardBadge} data-tone="success">
+                          CR
+                        </span>
+                      ) : undefined
+                    }
+                  />
                 ))}
               </div>
             )}
@@ -286,7 +355,7 @@ function StudentDashboard() {
               ) : null}
             </div>
           </div>
-        </>
+        </motion.div>
       )}
     </div>
   );
