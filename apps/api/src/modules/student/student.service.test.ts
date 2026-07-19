@@ -1,9 +1,9 @@
-jest.setTimeout(30000);
 import { StudentService } from "./student.service";
 import { prisma } from "../../lib/prisma";
 import { BadRequestError } from "../../common/errors";
 
 describe("StudentService", () => {
+  jest.setTimeout(30000);
   let workspaceId: string;
   let studentUserId: string;
   let studentMembershipId: string;
@@ -51,12 +51,12 @@ describe("StudentService", () => {
 
   afterAll(async () => {
     await prisma.$transaction([
-prisma.batchMembership.deleteMany({ where: { batchId } }),
+      prisma.batchMembership.deleteMany({ where: { batchId } }),
       prisma.batch.deleteMany({ where: { workspaceId } }),
       prisma.membership.deleteMany({ where: { id: studentMembershipId } }),
       prisma.workspace.deleteMany({ where: { id: workspaceId } }),
       prisma.user.deleteMany({ where: { id: studentUserId } }),
-], { timeout: 30000 });
+    ]);
   });
 
   describe("enrollStudentIntoDB", () => {
