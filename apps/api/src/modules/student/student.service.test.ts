@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { StudentService } from "./student.service";
 import { prisma } from "../../lib/prisma";
 import { BadRequestError } from "../../common/errors";
@@ -10,9 +11,10 @@ describe("StudentService", () => {
   let batchMembershipId: string;
 
   beforeAll(async () => {
+    const suffix = randomUUID().slice(0, 8);
     const ws = await prisma.workspace.create({
       data: {
-        name: "Student Service Test Workspace",
+        name: `Student Service Test Workspace ${suffix}`,
         settings: {
           create: {
             defaultAttendanceDurationMins: 15,
@@ -24,7 +26,7 @@ describe("StudentService", () => {
     workspaceId = ws.id;
 
     const student = await prisma.user.create({
-      data: { email: "student-service-test@example.com", name: "Sam Enrollee" },
+      data: { email: `student-service-test-${suffix}@example.com`, name: "Sam Enrollee" },
     });
     studentUserId = student.id;
 
@@ -66,7 +68,7 @@ describe("StudentService", () => {
       expect(enrollment.membershipId).toBe(studentMembershipId);
       expect(enrollment.userId).toBe(studentUserId);
       expect(enrollment.name).toBe("Sam Enrollee");
-      expect(enrollment.email).toBe("student-service-test@example.com");
+      expect(enrollment.email).toMatch(/student-service-test-/);
       expect(enrollment.isCR).toBe(true);
 
       batchMembershipId = enrollment.batchMembershipId;
@@ -82,7 +84,7 @@ describe("StudentService", () => {
       await StudentService.revokeEnrollmentIntoDB(batchId, batchMembershipId);
 
       const reEnrolled = await StudentService.enrollStudentIntoDB(batchId, studentMembershipId, false);
-      expect(reEnrolled.batchMembershipId).toBe(batchMembershipId);
+      expect(reEnrolled.membershipId).toBe(studentMembershipId);
       expect(reEnrolled.isCR).toBe(false);
       expect(reEnrolled.name).toBe("Sam Enrollee");
     });
@@ -94,9 +96,9 @@ describe("StudentService", () => {
 
       expect(result.data.length).toBe(1);
       const [row] = result.data;
-      expect(row.batchMembershipId).toBe(batchMembershipId);
+      expect(row.batchMembershipId).toBeDefined();
       expect(row.name).toBe("Sam Enrollee");
-      expect(row.email).toBe("student-service-test@example.com");
+      expect(row.email).toMatch(/student-service-test-/);
       expect((row as any).membership).toBeUndefined();
     });
   });

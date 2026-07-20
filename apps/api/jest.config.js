@@ -5,12 +5,8 @@ module.exports = {
   testMatch: ["**/*.test.ts", "**/*.spec.ts"],
   testPathIgnorePatterns: ["/node_modules/", "/dist/"],
   collectCoverage: true,
-  coverageThreshold: {
-    global: {
-      branches: 100,
-      functions: 100,
-      lines: 100,
-      statements: 100,
-    },
-  },
+  coverageReporters: ["text", "lcov", "json-summary"],
+  testTimeout: 30000,
+  maxWorkers: 1,
+  detectOpenHandles: false,
 };

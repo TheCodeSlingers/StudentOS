@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { WorkspaceService } from "./workspace.service";
 import { prisma } from "../../lib/prisma";
 
@@ -10,9 +11,10 @@ describe("WorkspaceService", () => {
   let batchBId: string;
 
   beforeAll(async () => {
+    const suffix = randomUUID().slice(0, 8);
     const ws = await prisma.workspace.create({
       data: {
-        name: "Workspace Service Test Workspace",
+        name: `Workspace Service Test Workspace ${suffix}`,
         settings: { create: { defaultAttendanceDurationMins: 15, lateThresholdMins: 10 } },
       },
     });
@@ -20,14 +22,14 @@ describe("WorkspaceService", () => {
 
     const otherWs = await prisma.workspace.create({
       data: {
-        name: "Workspace Service Test — Other Workspace",
+        name: `Workspace Service Test — Other Workspace ${suffix}`,
         settings: { create: { defaultAttendanceDurationMins: 15, lateThresholdMins: 10 } },
       },
     });
     otherWorkspaceId = otherWs.id;
 
     const student = await prisma.user.create({
-      data: { email: "my-batches-test@example.com", name: "Mika Enrollee" },
+      data: { email: `my-batches-test-${suffix}@example.com`, name: "Mika Enrollee" },
     });
     studentUserId = student.id;
 
@@ -65,8 +67,9 @@ describe("WorkspaceService", () => {
   });
 
   afterAll(async () => {
+    const batchIds = [batchAId, batchBId].filter(Boolean);
     await prisma.$transaction([
-      prisma.batchMembership.deleteMany({ where: { batchId: { in: [batchAId, batchBId] } } }),
+      prisma.batchMembership.deleteMany({ where: { batchId: { in: batchIds } } }),
       prisma.batch.deleteMany({ where: { workspaceId } }),
       prisma.membership.deleteMany({ where: { id: studentMembershipId } }),
       prisma.workspace.deleteMany({ where: { id: { in: [workspaceId, otherWorkspaceId] } } }),
@@ -86,7 +89,7 @@ describe("WorkspaceService", () => {
 
     it("returns an empty list for a membership with no enrollments", async () => {
       const otherStudent = await prisma.user.create({
-        data: { email: "no-batches-test@example.com", name: "No Batches" },
+        data: { email: `no-batches-test-${randomUUID().slice(0, 8)}@example.com`, name: "No Batches" },
       });
       const otherMembership = await prisma.membership.create({
         data: { userId: otherStudent.id, workspaceId: otherWorkspaceId, role: "STUDENT", status: "ACTIVE" },
