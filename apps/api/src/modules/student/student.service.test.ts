@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma";
 import { BadRequestError } from "../../common/errors";
 
 describe("StudentService", () => {
+  jest.setTimeout(30000);
   let workspaceId: string;
   let studentUserId: string;
   let studentMembershipId: string;

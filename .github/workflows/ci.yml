@@ -44,6 +44,9 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate --schema=apps/api/prisma/schema.prisma
 
+      - name: Build Shared Types
+        run: npm run build --workspace=@studentos/shared-types
+
       - name: Push Database Schema
         run: npx prisma db push --schema=apps/api/prisma/schema.prisma --url "$DATABASE_URL" --accept-data-loss
 

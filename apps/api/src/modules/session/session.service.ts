@@ -7,6 +7,13 @@ import {
 import { ATTENDANCE_CODE } from "../../config/constants";
 import { prisma } from "../../lib/prisma";
 import { buildPaginationMeta } from "../../utils/pagination";
+import { Prisma } from "@prisma/client";
+import {
+  ISessionDetail,
+  ISessionUpdateResult,
+  IOpenAttendanceResult,
+  ICloseAttendanceResult,
+} from "@studentos/shared-types";
 
 // Shared select fragments — avoids duplication, keeps queries consistent
 const SESSION_SELECT = {
@@ -44,7 +51,14 @@ export class SessionService {
       description?: string;
       type?: "REGULAR" | "MAKEUP" | "EXAM";
     },
-  ): Promise<any> {
+  ): Promise<{
+    id: string;
+    batchId: string;
+    title: string;
+    status: import("@prisma/client").SessionStatus;
+    scheduledStart: Date;
+    scheduledEnd: Date;
+  }> {
     // 1. Validate batch exists and belongs to workspace (select only needed fields)
     const batch = await prisma.batch.findUnique({
       where: { id: batchId },
@@ -161,7 +175,7 @@ export class SessionService {
     }
 
     // 3. Build where clause
-    const whereClause: any = { batchId };
+    const whereClause: Prisma.SessionWhereInput = { batchId };
     if (status) {
       whereClause.status = status;
     }
@@ -215,7 +229,7 @@ export class SessionService {
     workspaceId: string,
     userId: string,
     role: "MENTOR" | "STUDENT",
-  ): Promise<any> {
+  ): Promise<ISessionDetail> {
     // 1. Find session with batch workspace check (1 query for both)
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -252,7 +266,7 @@ export class SessionService {
     }
 
     // 4. Return session details (exclude currentCode for students)
-    const result: any = {
+    const result: ISessionDetail = {
       id: session.id,
       batchId: session.batchId,
       title: session.title,
@@ -286,7 +300,7 @@ export class SessionService {
       description?: string | null;
       type?: "REGULAR" | "MAKEUP" | "EXAM";
     },
-  ): Promise<any> {
+  ): Promise<ISessionUpdateResult> {
     // 1. Find session with batch info
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -344,7 +358,7 @@ export class SessionService {
     }
 
     // 5. Build update data
-    const updateData: any = {};
+    const updateData: Prisma.SessionUpdateInput = {};
 
     if (data.title !== undefined) updateData.title = data.title;
     if (data.meetLink !== undefined) updateData.meetLink = data.meetLink;
@@ -438,7 +452,7 @@ export class SessionService {
   static async cancelSessionIntoDB(
     sessionId: string,
     workspaceId: string,
-  ): Promise<any> {
+  ): Promise<{ id: string; status: "CANCELLED" }> {
     // 1. Find session
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -490,7 +504,7 @@ export class SessionService {
         id: true,
         status: true,
       },
-    });
+    }) as unknown as Promise<{ id: string; status: "CANCELLED" }>;
   }
 
   // Route 6: Open Attendance Window (with atomic update and rate limiting)
@@ -500,7 +514,7 @@ export class SessionService {
     membershipId: string,
     role: "MENTOR" | "STUDENT",
     userId: string,
-  ): Promise<any> {
+  ): Promise<IOpenAttendanceResult> {
     // 1. Find session with batch info
     const session = await prisma.session.findUnique({
       where: { id: sessionId },
@@ -598,7 +612,7 @@ export class SessionService {
     membershipId: string,
     role: "MENTOR" | "STUDENT",
     userId: string,
-  ): Promise<any> {
+  ): Promise<ICloseAttendanceResult> {
     // 1. Find session with batch info
     const session = await prisma.session.findUnique({
       where: { id: sessionId },

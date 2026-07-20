@@ -2,22 +2,10 @@ import { prisma } from "../../lib/prisma";
 import { Prisma } from "@prisma/client";
 import { BadRequestError, NotFoundError } from "../../common/errors";
 
-export interface BatchMetrics {
-  totalStudents: number;
-  totalCRs: number;
-  totalSessions: number;
-}
-
-export interface BatchDetails {
-  id: string;
-  name: string;
-  startDate: Date;
-  endDate: Date | null;
-  isArchived: boolean;
-  lateThresholdMinsOverride: number | null;
-  attendanceDurationMinsOverride: number | null;
-  metrics: BatchMetrics;
-}
+import {
+  IBatchMetrics,
+  IBatchDetails,
+} from "@studentos/shared-types";
 
 export class BatchService {
   static async createBatchIntoDB(
@@ -29,7 +17,7 @@ export class BatchService {
       lateThresholdMinsOverride?: number | null;
       attendanceDurationMinsOverride?: number | null;
     },
-  ): Promise<any> {
+  ): Promise<Prisma.BatchGetPayload<{}>> {
     return prisma.batch.create({
       data: {
         workspaceId,
@@ -46,7 +34,7 @@ export class BatchService {
   static async getListBatchesFromDB(
     workspaceId: string,
     status: "active" | "archived" | "all" = "active",
-  ): Promise<any[]> {
+  ): Promise<Prisma.BatchGetPayload<{}>[]> {
     return prisma.batch.findMany({
       where: {
         workspaceId,
@@ -65,7 +53,7 @@ export class BatchService {
   static async getBatchFromDB(
     workspaceId: string,
     batchId: string,
-  ): Promise<BatchDetails> {
+  ): Promise<IBatchDetails> {
     const [batch, totalStudents, totalCRs, totalSessions] = await Promise.all([
       prisma.batch.findFirst({
         where: { id: batchId, workspaceId },
@@ -135,7 +123,7 @@ export class BatchService {
       lateThresholdMinsOverride?: number | null;
       attendanceDurationMinsOverride?: number | null;
     },
-  ): Promise<any> {
+  ): Promise<Prisma.BatchGetPayload<{}>> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
       select: { id: true },
@@ -148,7 +136,7 @@ export class BatchService {
       );
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.BatchUpdateInput = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.startDate !== undefined)
       updateData.startDate = new Date(data.startDate);
@@ -169,7 +157,7 @@ export class BatchService {
   static async archiveBatchIntoDB(
     workspaceId: string,
     batchId: string,
-  ): Promise<any> {
+  ): Promise<Prisma.BatchGetPayload<{}>> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
       select: { id: true, isArchived: true },
@@ -197,7 +185,7 @@ export class BatchService {
       membershipId: string;
       isCR?: boolean;
     },
-  ): Promise<any> {
+  ): Promise<Prisma.BatchMembershipGetPayload<{}>> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
       select: { id: true },
@@ -271,7 +259,18 @@ export class BatchService {
     workspaceId: string,
     batchId: string,
     roleFilter?: "MENTOR" | "STUDENT",
-  ): Promise<any[]> {
+  ): Promise<
+    {
+      batchMembershipId: string;
+      membershipId: string;
+      userId: string;
+      name: string;
+      email: string;
+      role: string;
+      isCR: boolean;
+      assignedAt: Date;
+    }[]
+  > {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
     });
@@ -283,7 +282,7 @@ export class BatchService {
       );
     }
 
-    const whereClause: any = {
+    const whereClause: Prisma.BatchMembershipWhereInput = {
       batchId,
       revokedAt: null,
     };
@@ -334,7 +333,7 @@ export class BatchService {
       isCR?: boolean;
       revokedAt?: string | null;
     },
-  ): Promise<any> {
+  ): Promise<Prisma.BatchMembershipGetPayload<{}>> {
     const batch = await prisma.batch.findFirst({
       where: { id: batchId, workspaceId },
     });
@@ -357,7 +356,7 @@ export class BatchService {
       );
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.BatchMembershipUpdateInput = {};
     if (data.isCR !== undefined) updateData.isCR = data.isCR;
     if (data.revokedAt !== undefined) {
       updateData.revokedAt = data.revokedAt ? new Date(data.revokedAt) : null;

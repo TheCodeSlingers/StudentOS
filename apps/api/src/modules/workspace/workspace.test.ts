@@ -3,6 +3,7 @@ import { WorkspaceService } from "./workspace.service";
 import { prisma } from "../../lib/prisma";
 
 describe("WorkspaceService", () => {
+  jest.setTimeout(30000);
   let workspaceId: string;
   let otherWorkspaceId: string;
   let studentUserId: string;

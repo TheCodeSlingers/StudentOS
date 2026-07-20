@@ -229,7 +229,8 @@ export default function StudentsPage() {
     const query = searchQuery.trim().toLowerCase();
     const filtered = query
       ? students.filter(
-          (student) => student.name.toLowerCase().includes(query) || student.email.toLowerCase().includes(query)
+          (student) =>
+            (student.name ?? "").toLowerCase().includes(query) || (student.email ?? "").toLowerCase().includes(query)
         )
       : students;
 
@@ -237,9 +238,9 @@ export default function StudentsPage() {
     const sorted = [...filtered].sort((a, b) => {
       switch (sortField) {
         case "name":
-          return direction * a.name.localeCompare(b.name);
+          return direction * compareNullable(a.name, b.name, (x, y) => x.localeCompare(y));
         case "email":
-          return direction * a.email.localeCompare(b.email);
+          return direction * compareNullable(a.email, b.email, (x, y) => x.localeCompare(y));
         case "isCR":
           return direction * (Number(b.isCR) - Number(a.isCR));
         case "attendance":

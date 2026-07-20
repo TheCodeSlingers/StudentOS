@@ -9,8 +9,8 @@ const AVATAR_PALETTE: { bg: string; fg: string }[] = [
   { bg: "rgb(20 184 166 / 0.18)", fg: "#0d9488" },
 ];
 
-export function initials(name: string): string {
-  const parts = name.split(" ").filter(Boolean);
+export function initials(name: string | null | undefined): string {
+  const parts = (name ?? "").split(" ").filter(Boolean);
   const chars = parts.slice(0, 2).map((part) => part[0]?.toUpperCase() ?? "");
   return chars.join("") || "?";
 }

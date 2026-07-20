@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, Variants } from "framer-motion";
 import styles from "./analytics.module.css";
+import sharedStyles from "../../shared.module.css";
 import {
   PlacementMetric,
   SkillMetric,
@@ -216,62 +217,70 @@ export default function MentorAnalyticsPage() {
     return null;
   }
 
-  if (isLoading) {
-    // A simple loading state
-    return <div className="p-8">Loading analytics dashboard...</div>;
-  }
-
   return (
-    <motion.div
-      className={styles.grid}
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <div className={styles.statsGrid}>
-        <StatCard
-          title="Total Students"
-          value={stats?.totalStudents ?? 0}
-          icon={<UsersIcon />}
-          variants={itemVariants}
-        />
-        <StatCard
-          title="Actively Looking"
-          value={stats?.activelyLooking ?? 0}
-          icon={<SearchIcon />}
-          variants={itemVariants}
-        />
-        <StatCard
-          title="Already Employed"
-          value={stats?.employed ?? 0}
-          icon={<BriefcaseIcon />}
-          variants={itemVariants}
-        />
-        <StatCard
-          title="Avg. Skills Listed"
-          value={stats?.avgSkills ?? 0}
-          icon={<CodeIcon />}
-          variants={itemVariants}
-        />
+    <div className={sharedStyles.page}>
+      <div className={sharedStyles.header}>
+        <div>
+          <h1 className={sharedStyles.title}>Analytics</h1>
+          <p className={sharedStyles.subtitle}>Placement outcomes and skills across your students.</p>
+        </div>
       </div>
 
-      <div className={styles.chartsGrid}>
-        <motion.div className={styles.chartCard} variants={itemVariants}>
-          <div className={styles.chartHeader}>
-            <h2>Placement Status</h2>
-            <p>Distribution of students by current hiring status.</p>
+      {isLoading ? (
+        <p className={sharedStyles.emptyState}>Loading analytics…</p>
+      ) : (
+        <motion.div
+          className={styles.grid}
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <div className={styles.statsGrid}>
+            <StatCard
+              title="Total Students"
+              value={stats?.totalStudents ?? 0}
+              icon={<UsersIcon />}
+              variants={itemVariants}
+            />
+            <StatCard
+              title="Actively Looking"
+              value={stats?.activelyLooking ?? 0}
+              icon={<SearchIcon />}
+              variants={itemVariants}
+            />
+            <StatCard
+              title="Already Employed"
+              value={stats?.employed ?? 0}
+              icon={<BriefcaseIcon />}
+              variants={itemVariants}
+            />
+            <StatCard
+              title="Avg. Skills Listed"
+              value={stats?.avgSkills ?? 0}
+              icon={<CodeIcon />}
+              variants={itemVariants}
+            />
           </div>
-          <PlacementDonutChart data={placementData} />
-        </motion.div>
 
-        <motion.div className={styles.chartCard} variants={itemVariants}>
-          <div className={styles.chartHeader}>
-            <h2>Top 7 Technical Skills</h2>
-            <p>Most frequently listed skills across all student profiles.</p>
+          <div className={styles.chartsGrid}>
+            <motion.div className={styles.chartCard} variants={itemVariants}>
+              <div className={styles.chartHeader}>
+                <h2>Placement Status</h2>
+                <p>Distribution of students by current hiring status.</p>
+              </div>
+              <PlacementDonutChart data={placementData} />
+            </motion.div>
+
+            <motion.div className={styles.chartCard} variants={itemVariants}>
+              <div className={styles.chartHeader}>
+                <h2>Top 7 Technical Skills</h2>
+                <p>Most frequently listed skills across all student profiles.</p>
+              </div>
+              <SkillsBarChart data={skillsData} />
+            </motion.div>
           </div>
-          <SkillsBarChart data={skillsData} />
         </motion.div>
-      </div>
-    </motion.div>
+      )}
+    </div>
   );
 }

@@ -169,7 +169,6 @@
 }
 
 .primaryCell {
-  display: inline-block;
   font-weight: var(--font-weight-medium);
 }
 
