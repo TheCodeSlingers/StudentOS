@@ -1,4 +1,4 @@
-import { isValidEmail } from "./validation";
+import { isValidEmail } from './validation';
 
 /**
  * RFC-4180-ish CSV parser: handles quoted fields (with embedded commas and
@@ -12,7 +12,7 @@ import { isValidEmail } from "./validation";
 export function parseCsv(text: string): string[][] {
   const rows: string[][] = [];
   let currentRow: string[] = [];
-  let currentVal = "";
+  let currentVal = '';
   let inQuotes = false;
 
   for (let i = 0; i < text.length; i++) {
@@ -26,20 +26,20 @@ export function parseCsv(text: string): string[][] {
       } else {
         inQuotes = !inQuotes;
       }
-    } else if (char === "," && !inQuotes) {
+    } else if (char === ',' && !inQuotes) {
       currentRow.push(currentVal);
-      currentVal = "";
-    } else if (char === "\n" && !inQuotes) {
-      currentRow.push(currentVal);
-      rows.push(currentRow);
-      currentRow = [];
-      currentVal = "";
-    } else if (char === "\r" && !inQuotes) {
-      if (nextChar === "\n") i++;
+      currentVal = '';
+    } else if (char === '\n' && !inQuotes) {
       currentRow.push(currentVal);
       rows.push(currentRow);
       currentRow = [];
-      currentVal = "";
+      currentVal = '';
+    } else if (char === '\r' && !inQuotes) {
+      if (nextChar === '\n') i++;
+      currentRow.push(currentVal);
+      rows.push(currentRow);
+      currentRow = [];
+      currentVal = '';
     } else {
       currentVal += char;
     }
@@ -50,6 +50,18 @@ export function parseCsv(text: string): string[][] {
   }
 
   return rows.filter((row) => row.some((cell) => cell.trim().length > 0));
+}
+
+/** Finds the header row of a CSV — scans for the row containing an
+ * "email"-like cell instead of assuming row one, since real-world exports
+ * often have a title/banner row above the actual columns (see
+ * `parseStudentCsvFile` below). Returns the raw header labels, trimmed, for
+ * display in a column picker. */
+export function detectCsvHeaders(text: string): string[] {
+  const rows = parseCsv(text);
+  const headerRowIndex = rows.findIndex((row) => row.some((cell) => /email/i.test(cell.trim())));
+  const headerRow = rows[headerRowIndex] ?? rows[0] ?? [];
+  return headerRow.map((cell) => cell.trim()).filter(Boolean);
 }
 
 export interface StudentCsvRow {
@@ -64,8 +76,13 @@ export interface StudentCsvRow {
   validationError?: string;
 }
 
-export const STUDENT_CSV_REQUIRED_HEADERS = ["email", "name"] as const;
-export const STUDENT_CSV_OPTIONAL_HEADERS = ["phone", "coursename", "specialization", "skills"] as const;
+export const STUDENT_CSV_REQUIRED_HEADERS = ['email', 'name'] as const;
+export const STUDENT_CSV_OPTIONAL_HEADERS = [
+  'phone',
+  'coursename',
+  'specialization',
+  'skills',
+] as const;
 
 /** Parses a student-roster CSV file and validates every row — every row in
  * the file gets a result (never silently dropped), so the caller can report
@@ -75,7 +92,7 @@ export async function parseStudentCsvFile(file: File): Promise<StudentCsvRow[]> 
   const cleanRows = parseCsv(text);
 
   if (cleanRows.length === 0) {
-    throw new Error("This CSV file has no data.");
+    throw new Error('This CSV file has no data.');
   }
 
   // The real header row isn't always the first line — spreadsheet exports
@@ -86,7 +103,7 @@ export async function parseStudentCsvFile(file: File): Promise<StudentCsvRow[]> 
     row.findIndex((cell) => /email/.test(cell.trim().toLowerCase()));
   const headerRowIndex = cleanRows.findIndex((row) => findEmailCol(row) !== -1);
   if (headerRowIndex === -1) {
-    throw new Error("CSV is missing required headers: email, name.");
+    throw new Error('CSV is missing required headers: email, name.');
   }
 
   const headers = cleanRows[headerRowIndex].map((h) => h.trim().toLowerCase());
@@ -94,24 +111,30 @@ export async function parseStudentCsvFile(file: File): Promise<StudentCsvRow[]> 
   // Google Forms roster/attendance sheets commonly say "Your Name", "Email
   // Address", etc. Match exactly first, then fall back to any column whose
   // header contains the word.
-  const emailIdx = headers.indexOf("email") !== -1 ? headers.indexOf("email") : findEmailCol(cleanRows[headerRowIndex]);
-  const nameIdx = headers.indexOf("name") !== -1 ? headers.indexOf("name") : headers.findIndex((h) => h.includes("name"));
+  const emailIdx =
+    headers.indexOf('email') !== -1
+      ? headers.indexOf('email')
+      : findEmailCol(cleanRows[headerRowIndex]);
+  const nameIdx =
+    headers.indexOf('name') !== -1
+      ? headers.indexOf('name')
+      : headers.findIndex((h) => h.includes('name'));
   if (nameIdx === -1) {
-    throw new Error("CSV is missing required headers: email, name.");
+    throw new Error('CSV is missing required headers: email, name.');
   }
 
-  const phoneIdx = headers.indexOf("phone");
-  const courseIdx = headers.indexOf("coursename");
-  const specIdx = headers.indexOf("specialization");
-  const skillsIdx = headers.indexOf("skills");
+  const phoneIdx = headers.indexOf('phone');
+  const courseIdx = headers.indexOf('coursename');
+  const specIdx = headers.indexOf('specialization');
+  const skillsIdx = headers.indexOf('skills');
 
   const seenEmails = new Set<string>();
   const rows = cleanRows.slice(headerRowIndex + 1);
 
   return rows.map((values, index) => {
     const rowNumber = index + 1;
-    const email = (values[emailIdx] ?? "").trim();
-    const name = (values[nameIdx] ?? "").trim();
+    const email = (values[emailIdx] ?? '').trim();
+    const name = (values[nameIdx] ?? '').trim();
     const row: StudentCsvRow = { rowNumber, email, name };
 
     if (phoneIdx !== -1 && values[phoneIdx]?.trim()) row.phone = values[phoneIdx].trim();
@@ -120,19 +143,19 @@ export async function parseStudentCsvFile(file: File): Promise<StudentCsvRow[]> 
     if (skillsIdx !== -1 && values[skillsIdx]?.trim()) {
       row.skills = values[skillsIdx]
         .trim()
-        .split(",")
+        .split(',')
         .map((s) => s.trim())
         .filter(Boolean);
     }
 
     if (!email) {
-      row.validationError = "Email is required.";
+      row.validationError = 'Email is required.';
     } else if (!isValidEmail(email)) {
-      row.validationError = "Invalid email address format.";
+      row.validationError = 'Invalid email address format.';
     } else if (!name) {
-      row.validationError = "Name is required.";
+      row.validationError = 'Name is required.';
     } else if (seenEmails.has(email.toLowerCase())) {
-      row.validationError = "Duplicate row in the uploaded file.";
+      row.validationError = 'Duplicate row in the uploaded file.';
     }
 
     if (!row.validationError) {
@@ -146,7 +169,7 @@ export async function parseStudentCsvFile(file: File): Promise<StudentCsvRow[]> 
 /** A minimal, correctly-quoted example CSV, offered as a downloadable
  * starting point from the import modal. */
 export function buildStudentCsvTemplate(): string {
-  const header = "email,name,phone,courseName,specialization,skills";
+  const header = 'email,name,phone,courseName,specialization,skills';
   const example =
     'jane@example.com,Jane Student,+1 555 000 0000,Full Stack Web Development,Frontend,"JavaScript, React, TypeScript"';
   return `${header}\n${example}\n`;

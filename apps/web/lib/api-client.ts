@@ -1,6 +1,6 @@
-import { clearStoredToken, getStoredToken } from "./session";
+import { clearStoredToken, getStoredToken } from './session';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '';
 
 export class ApiError extends Error {
   status: number;
@@ -8,7 +8,7 @@ export class ApiError extends Error {
 
   constructor(message: string, status: number, code?: string) {
     super(message);
-    this.name = "ApiError";
+    this.name = 'ApiError';
     this.status = status;
     this.code = code;
   }
@@ -53,7 +53,7 @@ export interface MembershipSummary {
   membershipId: string;
   workspaceId: string;
   workspaceName: string;
-  role: "MENTOR" | "STUDENT";
+  role: 'MENTOR' | 'STUDENT';
   isCR: boolean;
   crBatches: CRBatchSummary[];
 }
@@ -70,24 +70,24 @@ export interface CurrentUserResult {
  * form error, not a session expiry. This is the shared trigger for both cases below.
  */
 function handleSessionExpired(hadToken: boolean) {
-  if (!hadToken || typeof window === "undefined") {
+  if (!hadToken || typeof window === 'undefined') {
     return;
   }
   clearStoredToken();
-  if (!window.location.pathname.startsWith("/login")) {
-    window.location.href = "/login?reason=session-expired";
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login?reason=session-expired';
   }
 }
 
 async function request<T>(
-  method: "GET" | "POST" | "PATCH" | "DELETE",
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
-  body?: unknown
+  body?: unknown,
 ): Promise<T> {
   const token = getStoredToken();
   let response: Response;
   try {
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -98,7 +98,7 @@ async function request<T>(
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError("Could not reach the server. Check your connection and try again.", 0);
+    throw new ApiError('Could not reach the server. Check your connection and try again.', 0);
   }
 
   const payload = await response.json().catch(() => null);
@@ -108,9 +108,9 @@ async function request<T>(
       handleSessionExpired(Boolean(token));
     }
     throw new ApiError(
-      payload?.error?.message ?? "Something went wrong. Please try again.",
+      payload?.error?.message ?? 'Something went wrong. Please try again.',
       response.status,
-      payload?.error?.code
+      payload?.error?.code,
     );
   }
 
@@ -118,43 +118,77 @@ async function request<T>(
 }
 
 function getJson<T>(path: string): Promise<T> {
-  return request<T>("GET", path);
+  return request<T>('GET', path);
 }
 
 function postJson<T>(path: string, body?: unknown): Promise<T> {
-  return request<T>("POST", path, body);
+  return request<T>('POST', path, body);
 }
 
 function patchJson<T>(path: string, body: unknown): Promise<T> {
-  return request<T>("PATCH", path, body);
+  return request<T>('PATCH', path, body);
 }
 
 function deleteJson<T>(path: string): Promise<T> {
-  return request<T>("DELETE", path);
+  return request<T>('DELETE', path);
+}
+
+async function postForm<T>(path: string, formData: FormData): Promise<T> {
+  const token = getStoredToken();
+  let response: Response;
+  try {
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+  } catch {
+    throw new ApiError('Could not reach the server. Check your connection and try again.', 0);
+  }
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      handleSessionExpired(Boolean(token));
+    }
+    throw new ApiError(
+      payload?.error?.message ?? 'Something went wrong. Please try again.',
+      response.status,
+      payload?.error?.code,
+    );
+  }
+
+  return payload?.data as T;
 }
 
 export function login(payload: LoginPayload): Promise<AuthResult> {
-  return postJson<AuthResult>("/auth/login", payload);
+  return postJson<AuthResult>('/auth/login', payload);
 }
 
 export function signup(payload: SignupPayload): Promise<AuthResult> {
-  return postJson<AuthResult>("/auth/signup", payload);
+  return postJson<AuthResult>('/auth/signup', payload);
 }
 
 export function logout(): Promise<void> {
-  return postJson<void>("/auth/logout");
+  return postJson<void>('/auth/logout');
 }
 
 export function getCurrentUser(): Promise<CurrentUserResult> {
-  return getJson<CurrentUserResult>("/auth/me");
+  return getJson<CurrentUserResult>('/auth/me');
 }
 
 export function forgotPassword(email: string): Promise<{ message: string }> {
-  return postJson<{ message: string }>("/auth/forgot-password", { email });
+  return postJson<{ message: string }>('/auth/forgot-password', { email });
 }
 
 export function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
-  return postJson<{ message: string }>("/auth/reset-password", { token, newPassword });
+  return postJson<{ message: string }>('/auth/reset-password', { token, newPassword });
 }
 
 export interface Batch {
@@ -167,7 +201,7 @@ export interface Batch {
   attendanceDurationMinsOverride: number | null;
 }
 
-export type SessionStatus = "SCHEDULED" | "STARTED" | "ENDED" | "CANCELLED";
+export type SessionStatus = 'SCHEDULED' | 'STARTED' | 'ENDED' | 'CANCELLED';
 
 export interface SessionSummary {
   id: string;
@@ -182,8 +216,8 @@ export interface SessionSummary {
   currentCode: string | null;
 }
 
-export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
-export type AttendanceMethod = "SELF_SUBMITTED" | "MANUAL";
+export type AttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT' | 'EXCUSED';
+export type AttendanceMethod = 'SELF_SUBMITTED' | 'MANUAL';
 
 export interface AttendanceRosterItem {
   studentBatchMembershipId: string;
@@ -201,9 +235,9 @@ export interface AttendanceRosterItem {
   } | null;
 }
 
-export type BatchStatusFilter = "active" | "archived" | "all";
+export type BatchStatusFilter = 'active' | 'archived' | 'all';
 
-export function listBatches(status: BatchStatusFilter = "active"): Promise<Batch[]> {
+export function listBatches(status: BatchStatusFilter = 'active'): Promise<Batch[]> {
   return getJson<Batch[]>(`/batches?status=${status}`);
 }
 
@@ -216,7 +250,7 @@ export interface BatchPayload {
 }
 
 export function createBatch(payload: BatchPayload): Promise<Batch> {
-  return postJson<Batch>("/batches", payload);
+  return postJson<Batch>('/batches', payload);
 }
 
 export function updateBatch(batchId: string, payload: Partial<BatchPayload>): Promise<Batch> {
@@ -227,7 +261,7 @@ export function listSessions(batchId: string): Promise<SessionSummary[]> {
   return getJson<SessionSummary[]>(`/batches/${batchId}/sessions`);
 }
 
-export type SessionType = "REGULAR" | "MAKEUP" | "EXAM";
+export type SessionType = 'REGULAR' | 'MAKEUP' | 'EXAM';
 
 export interface CreateSessionPayload {
   title: string;
@@ -268,11 +302,17 @@ export interface UpdateSessionResult {
   type: SessionType;
 }
 
-export function createSession(batchId: string, payload: CreateSessionPayload): Promise<CreateSessionResult> {
+export function createSession(
+  batchId: string,
+  payload: CreateSessionPayload,
+): Promise<CreateSessionResult> {
   return postJson<CreateSessionResult>(`/batches/${batchId}/sessions`, payload);
 }
 
-export function updateSession(sessionId: string, payload: UpdateSessionPayload): Promise<UpdateSessionResult> {
+export function updateSession(
+  sessionId: string,
+  payload: UpdateSessionPayload,
+): Promise<UpdateSessionResult> {
   return patchJson<UpdateSessionResult>(`/sessions/${sessionId}`, payload);
 }
 
@@ -335,15 +375,51 @@ export interface AttendanceRecord {
   submittedAt?: string;
 }
 
-export function manualMarkAttendance(sessionId: string, payload: ManualMarkPayload): Promise<AttendanceRecord> {
+export function manualMarkAttendance(
+  sessionId: string,
+  payload: ManualMarkPayload,
+): Promise<AttendanceRecord> {
   return postJson<AttendanceRecord>(`/sessions/${sessionId}/attendance/manual`, payload);
+}
+
+export type AttendanceImportRowStatus = 'SUCCESS' | 'FAILED' | 'SKIPPED';
+
+export interface AttendanceImportRowResult {
+  rowNumber: number;
+  email: string;
+  status: AttendanceImportRowStatus;
+  errorMessage: string | null;
+}
+
+export interface AttendanceImportSummary {
+  sessionId: string;
+  totalRows: number;
+  successRows: number;
+  failedRows: number;
+  rows: AttendanceImportRowResult[];
+}
+
+/** Bulk-marks attendance for a session from a CSV (`email`, `status` columns).
+ * Unlike the student roster import, this is processed synchronously — a
+ * session roster is small enough that there's no need for job polling. */
+export function importSessionAttendance(
+  sessionId: string,
+  file: File,
+  emailColumn: string,
+  statusColumn: string,
+): Promise<AttendanceImportSummary> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('emailColumn', emailColumn);
+  formData.append('statusColumn', statusColumn);
+  return postForm<AttendanceImportSummary>(`/sessions/${sessionId}/attendance/import`, formData);
 }
 
 export function submitAttendance(sessionId: string, code: string): Promise<AttendanceRecord> {
   return postJson<AttendanceRecord>(`/sessions/${sessionId}/attendance/submit`, { code });
 }
 
-export type MembershipRole = "MENTOR" | "STUDENT";
+export type MembershipRole = 'MENTOR' | 'STUDENT';
 
 export interface InviteMemberPayload {
   email: string;
@@ -358,10 +434,10 @@ export interface InviteMemberResult {
 }
 
 export function inviteMember(payload: InviteMemberPayload): Promise<InviteMemberResult> {
-  return postJson<InviteMemberResult>("/workspace/members/invite", payload);
+  return postJson<InviteMemberResult>('/workspace/members/invite', payload);
 }
 
-export type MembershipStatus = "ACTIVE" | "INACTIVE" | "INVITED";
+export type MembershipStatus = 'ACTIVE' | 'INACTIVE' | 'INVITED';
 
 export interface Member {
   id: string;
@@ -371,7 +447,7 @@ export interface Member {
 }
 
 export function listMembers(): Promise<Member[]> {
-  return getJson<Member[]>("/workspace/members?page=1&limit=100");
+  return getJson<Member[]>('/workspace/members?page=1&limit=100');
 }
 
 export function removeMember(membershipId: string): Promise<null> {
@@ -389,7 +465,7 @@ export interface Workspace {
 }
 
 export function getWorkspace(): Promise<Workspace> {
-  return getJson<Workspace>("/workspace");
+  return getJson<Workspace>('/workspace');
 }
 
 export interface UpdateWorkspaceSettingsPayload {
@@ -398,8 +474,10 @@ export interface UpdateWorkspaceSettingsPayload {
   lateThresholdMins?: number;
 }
 
-export function updateWorkspaceSettings(payload: UpdateWorkspaceSettingsPayload): Promise<Workspace> {
-  return patchJson<Workspace>("/workspace/settings", payload);
+export function updateWorkspaceSettings(
+  payload: UpdateWorkspaceSettingsPayload,
+): Promise<Workspace> {
+  return patchJson<Workspace>('/workspace/settings', payload);
 }
 
 export interface BatchDetails extends Batch {
@@ -431,7 +509,11 @@ export function listBatchStudents(batchId: string): Promise<BatchStudent[]> {
   return getJson<BatchStudent[]>(`/batches/${batchId}/students?page=1&limit=100`);
 }
 
-export function enrollStudent(batchId: string, membershipId: string, isCR = false): Promise<BatchStudent> {
+export function enrollStudent(
+  batchId: string,
+  membershipId: string,
+  isCR = false,
+): Promise<BatchStudent> {
   return postJson<BatchStudent>(`/batches/${batchId}/students`, { membershipId, isCR });
 }
 
@@ -451,9 +533,12 @@ export interface BatchMembershipUpdateResult {
 export function setBatchMemberCR(
   batchId: string,
   batchMembershipId: string,
-  isCR: boolean
+  isCR: boolean,
 ): Promise<BatchMembershipUpdateResult> {
-  return patchJson<BatchMembershipUpdateResult>(`/batches/${batchId}/members/${batchMembershipId}`, { isCR });
+  return patchJson<BatchMembershipUpdateResult>(
+    `/batches/${batchId}/members/${batchMembershipId}`,
+    { isCR },
+  );
 }
 
 export interface MyBatch {
@@ -468,7 +553,7 @@ export interface MyBatch {
 
 /** The current user's own batch enrollments — used by student-facing pages. */
 export function getMyBatches(): Promise<MyBatch[]> {
-  return getJson<MyBatch[]>("/workspace/my-batches");
+  return getJson<MyBatch[]>('/workspace/my-batches');
 }
 
 export interface AttendanceHistoryItem {
@@ -482,13 +567,15 @@ export interface AttendanceHistoryItem {
   manualReason: string | null;
 }
 
-export function getStudentAttendanceHistory(batchMembershipId: string): Promise<AttendanceHistoryItem[]> {
+export function getStudentAttendanceHistory(
+  batchMembershipId: string,
+): Promise<AttendanceHistoryItem[]> {
   return getJson<AttendanceHistoryItem[]>(`/students/${batchMembershipId}/attendance`);
 }
 
-export type HireStatus = "EMPLOYED" | "JOB_SEEKING" | "FREELANCING" | "STUDENT_ONLY";
-export type JobType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "FREELANCE" | "NOT_LOOKING";
-export type WorkplacePreference = "REMOTE" | "ONSITE" | "HYBRID" | "NO_PREFERENCE";
+export type HireStatus = 'EMPLOYED' | 'JOB_SEEKING' | 'FREELANCING' | 'STUDENT_ONLY';
+export type JobType = 'FULL_TIME' | 'PART_TIME' | 'INTERNSHIP' | 'FREELANCE' | 'NOT_LOOKING';
+export type WorkplacePreference = 'REMOTE' | 'ONSITE' | 'HYBRID' | 'NO_PREFERENCE';
 
 export interface StudentProfile {
   membershipId: string;
@@ -511,11 +598,11 @@ export function getStudentProfile(membershipId: string): Promise<StudentProfile>
   return getJson<StudentProfile>(`/students/${membershipId}/profile`);
 }
 
-export type UpdateStudentProfilePayload = Partial<Omit<StudentProfile, "membershipId">>;
+export type UpdateStudentProfilePayload = Partial<Omit<StudentProfile, 'membershipId'>>;
 
 export function updateStudentProfile(
   membershipId: string,
-  payload: UpdateStudentProfilePayload
+  payload: UpdateStudentProfilePayload,
 ): Promise<StudentProfile> {
   return patchJson<StudentProfile>(`/students/${membershipId}/profile`, payload);
 }

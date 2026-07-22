@@ -1,31 +1,37 @@
-"use client";
+'use client';
 
-import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
-import { ApiError, AttendanceHistoryItem, MyBatch, getMyBatches, getStudentAttendanceHistory } from "@/lib/api-client";
-import { useRequireRole } from "@/lib/use-require-role";
-import styles from "../../shared.module.css";
+import { useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+
+import styles from '../../shared.module.css';
+
+import type { AttendanceHistoryItem, MyBatch } from '@/lib/api-client';
+import { ApiError, getMyBatches, getStudentAttendanceHistory } from '@/lib/api-client';
+import { attendanceStatusLabel } from '@/lib/attendance-status';
+import { useRequireRole } from '@/lib/use-require-role';
 
 function formatDateTime(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 }
 
-function statusTone(status: AttendanceHistoryItem["status"]): "success" | "warning" | "danger" | "neutral" {
-  if (status === "PRESENT") return "success";
-  if (status === "LATE") return "warning";
-  if (status === "ABSENT") return "danger";
-  return "neutral";
+function statusTone(
+  status: AttendanceHistoryItem['status'],
+): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (status === 'PRESENT') return 'success';
+  if (status === 'LATE') return 'warning';
+  if (status === 'ABSENT') return 'danger';
+  return 'neutral';
 }
 
 function MyAttendanceContent() {
   const searchParams = useSearchParams();
-  const batchFromQuery = searchParams.get("batch");
+  const batchFromQuery = searchParams.get('batch');
 
   const [batches, setBatches] = useState<MyBatch[] | null>(null);
   const [batchesError, setBatchesError] = useState<string | null>(null);
@@ -40,11 +46,18 @@ function MyAttendanceContent() {
       .then((result) => {
         if (cancelled) return;
         setBatches(result);
-        const preselected = batchFromQuery ? result.find((b) => b.batchId === batchFromQuery) : null;
-        setSelectedBatchMembershipId(preselected?.batchMembershipId ?? result[0]?.batchMembershipId ?? null);
+        const preselected = batchFromQuery
+          ? result.find((b) => b.batchId === batchFromQuery)
+          : null;
+        setSelectedBatchMembershipId(
+          preselected?.batchMembershipId ?? result[0]?.batchMembershipId ?? null,
+        );
       })
       .catch((error) => {
-        if (!cancelled) setBatchesError(error instanceof ApiError ? error.message : "Could not load your batches.");
+        if (!cancelled)
+          setBatchesError(
+            error instanceof ApiError ? error.message : 'Could not load your batches.',
+          );
       });
     return () => {
       cancelled = true;
@@ -63,7 +76,10 @@ function MyAttendanceContent() {
         if (!cancelled) setHistory(result);
       })
       .catch((error) => {
-        if (!cancelled) setHistoryError(error instanceof ApiError ? error.message : "Could not load attendance history.");
+        if (!cancelled)
+          setHistoryError(
+            error instanceof ApiError ? error.message : 'Could not load attendance history.',
+          );
       });
     return () => {
       cancelled = true;
@@ -81,7 +97,7 @@ function MyAttendanceContent() {
         {batches && batches.length > 0 ? (
           <select
             className={styles.select}
-            value={selectedBatchMembershipId ?? ""}
+            value={selectedBatchMembershipId ?? ''}
             onChange={(event) => setSelectedBatchMembershipId(event.target.value)}
           >
             {batches.map((batch) => (
@@ -134,11 +150,11 @@ function MyAttendanceContent() {
                       <td>{formatDateTime(item.sessionDate)}</td>
                       <td>
                         <span className={styles.badge} data-tone={statusTone(item.status)}>
-                          {item.status}
+                          {attendanceStatusLabel(item.status)}
                         </span>
                       </td>
-                      <td>{item.method === "SELF_SUBMITTED" ? "Self check-in" : "Manual"}</td>
-                      <td>{item.manualReason ?? "—"}</td>
+                      <td>{item.method === 'SELF_SUBMITTED' ? 'Self check-in' : 'Manual'}</td>
+                      <td>{item.manualReason ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -152,7 +168,7 @@ function MyAttendanceContent() {
 }
 
 export default function MyAttendancePage() {
-  const isAuthorized = useRequireRole("STUDENT");
+  const isAuthorized = useRequireRole('STUDENT');
 
   if (!isAuthorized) {
     return null;
