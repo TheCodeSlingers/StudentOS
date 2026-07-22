@@ -1,43 +1,53 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
+
+import styles from '../../shared.module.css';
+
+import { AttendanceImportModal } from '@/components/modals/attendance-import-modal';
+import type { AttendanceHistoryItem, Batch, BatchStudent, SessionSummary } from '@/lib/api-client';
 import {
   ApiError,
-  AttendanceHistoryItem,
-  Batch,
-  BatchStudent,
   getStudentAttendanceHistory,
   listBatchStudents,
   listBatches,
-} from "@/lib/api-client";
-import { notify } from "@/lib/toast";
-import { useRequireRole } from "@/lib/use-require-role";
-import styles from "../../shared.module.css";
+  listSessions,
+} from '@/lib/api-client';
+import { attendanceStatusLabel } from '@/lib/attendance-status';
+import { notify } from '@/lib/toast';
+import { useRequireRole } from '@/lib/use-require-role';
 
 function formatDateTime(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 }
 
-function statusTone(status: AttendanceHistoryItem["status"]): "success" | "warning" | "danger" | "neutral" {
-  if (status === "PRESENT") return "success";
-  if (status === "LATE") return "warning";
-  if (status === "ABSENT") return "danger";
-  return "neutral";
+function statusTone(
+  status: AttendanceHistoryItem['status'],
+): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (status === 'PRESENT') return 'success';
+  if (status === 'LATE') return 'warning';
+  if (status === 'ABSENT') return 'danger';
+  return 'neutral';
 }
 
 export default function AttendanceOverviewPage() {
-  const isAuthorized = useRequireRole("MENTOR");
+  const isAuthorized = useRequireRole('MENTOR');
   const [batches, setBatches] = useState<Batch[] | null>(null);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
   const [students, setStudents] = useState<BatchStudent[] | null>(null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
+  const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
 
   const [history, setHistory] = useState<AttendanceHistoryItem[] | null>(null);
 
@@ -51,7 +61,7 @@ export default function AttendanceOverviewPage() {
         if (result.length > 0) setSelectedBatchId(result[0].id);
       })
       .catch((fetchError) => {
-        if (!cancelled) notify.error(fetchError, "Could not load batches.");
+        if (!cancelled) notify.error(fetchError, 'Could not load batches.');
       });
     return () => {
       cancelled = true;
@@ -70,7 +80,26 @@ export default function AttendanceOverviewPage() {
         setSelectedStudentId(result[0]?.batchMembershipId ?? null);
       })
       .catch((fetchError) => {
-        if (!cancelled) notify.error(fetchError, "Could not load students.");
+        if (!cancelled) notify.error(fetchError, 'Could not load students.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBatchId]);
+
+  useEffect(() => {
+    if (!selectedBatchId) return;
+    let cancelled = false;
+    setSessions(null);
+    setSelectedSessionId(null);
+    listSessions(selectedBatchId)
+      .then((result) => {
+        if (cancelled) return;
+        setSessions(result);
+        setSelectedSessionId(result[0]?.id ?? null);
+      })
+      .catch((fetchError) => {
+        if (!cancelled) notify.error(fetchError, 'Could not load sessions.');
       });
     return () => {
       cancelled = true;
@@ -88,12 +117,12 @@ export default function AttendanceOverviewPage() {
         if (!cancelled) setHistory(result);
       })
       .catch((fetchError) => {
-        if (!cancelled) notify.error(fetchError, "Could not load attendance history.");
+        if (!cancelled) notify.error(fetchError, 'Could not load attendance history.');
       });
     return () => {
       cancelled = true;
     };
-  }, [selectedStudentId]);
+  }, [selectedStudentId, historyRefreshKey]);
 
   if (!isAuthorized) {
     return null;
@@ -111,7 +140,7 @@ export default function AttendanceOverviewPage() {
           {batches && batches.length > 0 ? (
             <select
               className={styles.select}
-              value={selectedBatchId ?? ""}
+              value={selectedBatchId ?? ''}
               onChange={(event) => setSelectedBatchId(event.target.value)}
             >
               {batches.map((batch) => (
@@ -125,7 +154,7 @@ export default function AttendanceOverviewPage() {
           {students && students.length > 0 ? (
             <select
               className={styles.select}
-              value={selectedStudentId ?? ""}
+              value={selectedStudentId ?? ''}
               onChange={(event) => setSelectedStudentId(event.target.value)}
             >
               {students.map((student) => (
@@ -137,6 +166,30 @@ export default function AttendanceOverviewPage() {
           ) : null}
         </div>
       </div>
+
+      {sessions && sessions.length > 0 ? (
+        <div className={styles.toolbar}>
+          <select
+            className={styles.select}
+            value={selectedSessionId ?? ''}
+            onChange={(event) => setSelectedSessionId(event.target.value)}
+          >
+            {sessions.map((session) => (
+              <option key={session.id} value={session.id}>
+                {session.title} — {formatDateTime(session.scheduledStart)}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className={styles.textButton}
+            disabled={!selectedSessionId}
+            onClick={() => setIsImportOpen(true)}
+          >
+            Import CSV
+          </button>
+        </div>
+      ) : null}
 
       <div className={styles.card}>
         {students === null && batches !== null && batches.length > 0 ? (
@@ -166,11 +219,11 @@ export default function AttendanceOverviewPage() {
                     <td>{formatDateTime(item.sessionDate)}</td>
                     <td>
                       <span className={styles.badge} data-tone={statusTone(item.status)}>
-                        {item.status}
+                        {attendanceStatusLabel(item.status)}
                       </span>
                     </td>
-                    <td>{item.method === "SELF_SUBMITTED" ? "Self check-in" : "Manual"}</td>
-                    <td>{item.manualReason ?? "—"}</td>
+                    <td>{item.method === 'SELF_SUBMITTED' ? 'Self check-in' : 'Manual'}</td>
+                    <td>{item.manualReason ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -178,6 +231,15 @@ export default function AttendanceOverviewPage() {
           </div>
         ) : null}
       </div>
+
+      {selectedSessionId ? (
+        <AttendanceImportModal
+          sessionId={selectedSessionId}
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          onImported={() => setHistoryRefreshKey((key) => key + 1)}
+        />
+      ) : null}
     </div>
   );
 }

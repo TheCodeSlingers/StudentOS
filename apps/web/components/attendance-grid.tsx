@@ -1,21 +1,18 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/Button";
-import {
-  ApiError,
-  AttendanceRosterItem,
-  AttendanceStatus,
-  getSessionRoster,
-  manualMarkAttendance,
-} from "@/lib/api-client";
-import { notify } from "@/lib/toast";
-import styles from "./attendance-grid.module.css";
+import { useEffect, useState } from 'react';
 
-const STATUS_OPTIONS: AttendanceStatus[] = ["PRESENT", "LATE", "ABSENT", "EXCUSED"];
+import styles from './attendance-grid.module.css';
+
+import { AttendanceImportModal } from '@/components/modals/attendance-import-modal';
+import { Button } from '@/components/ui/Button';
+import type { AttendanceRosterItem, AttendanceStatus } from '@/lib/api-client';
+import { ApiError, getSessionRoster, manualMarkAttendance } from '@/lib/api-client';
+import { attendanceStatusLabel, MANUAL_ATTENDANCE_STATUS_OPTIONS } from '@/lib/attendance-status';
+import { notify } from '@/lib/toast';
 
 interface RowState {
-  status: AttendanceStatus | "";
+  status: AttendanceStatus | '';
   reason: string;
   isSaving: boolean;
 }
@@ -29,7 +26,12 @@ interface AttendanceGridProps {
 function CloseIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path
+        d="M5 5l10 10M15 5L5 15"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -38,6 +40,8 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
   const [roster, setRoster] = useState<AttendanceRosterItem[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [rows, setRows] = useState<Record<string, RowState>>({});
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!isOpen) {
@@ -56,17 +60,17 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
             result.map((item) => [
               item.studentBatchMembershipId,
               {
-                status: item.attendance?.status ?? "",
-                reason: "",
+                status: item.attendance?.status ?? '',
+                reason: '',
                 isSaving: false,
               } satisfies RowState,
-            ])
-          )
+            ]),
+          ),
         );
       })
       .catch((error) => {
         if (cancelled) return;
-        notify.error(error, "Could not load the roster.");
+        notify.error(error, 'Could not load the roster.');
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -75,7 +79,7 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
     return () => {
       cancelled = true;
     };
-  }, [isOpen, sessionId]);
+  }, [isOpen, sessionId, refreshKey]);
 
   if (!isOpen) {
     return null;
@@ -91,11 +95,11 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
   async function handleSaveRow(studentBatchMembershipId: string) {
     const row = rows[studentBatchMembershipId];
     if (!row || !row.status) {
-      notify.error("Choose a status before saving.");
+      notify.error('Choose a status before saving.');
       return;
     }
     if (!row.reason.trim()) {
-      notify.error("A reason is required for a manual override.");
+      notify.error('A reason is required for a manual override.');
       return;
     }
 
@@ -108,26 +112,27 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
         manualReason: row.reason.trim(),
       });
 
-      notify.success("Attendance override saved.");
-      setRoster((current) =>
-        current?.map((item) =>
-          item.studentBatchMembershipId === studentBatchMembershipId
-            ? {
-                ...item,
-                attendance: {
-                  id: record.id,
-                  status: record.status,
-                  method: record.method,
-                  submittedAt: record.submittedAt ?? null,
-                  manualReason: row.reason.trim(),
-                  markedBy: item.attendance?.markedBy ?? null,
-                },
-              }
-            : item
-        ) ?? current
+      notify.success('Attendance override saved.');
+      setRoster(
+        (current) =>
+          current?.map((item) =>
+            item.studentBatchMembershipId === studentBatchMembershipId
+              ? {
+                  ...item,
+                  attendance: {
+                    id: record.id,
+                    status: record.status,
+                    method: record.method,
+                    submittedAt: record.submittedAt ?? null,
+                    manualReason: row.reason.trim(),
+                    markedBy: item.attendance?.markedBy ?? null,
+                  },
+                }
+              : item,
+          ) ?? current,
       );
     } catch (error) {
-      notify.error(error, "Could not save this override.");
+      notify.error(error, 'Could not save this override.');
     } finally {
       updateRow(studentBatchMembershipId, { isSaving: false });
     }
@@ -147,11 +152,27 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
             <h2 id="attendance-grid-title" className={styles.title}>
               Manual marking
             </h2>
-            <p className={styles.subtitle}>Override attendance status and record a reason for each change.</p>
+            <p className={styles.subtitle}>
+              Override attendance status and record a reason for each change.
+            </p>
           </div>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close dialog">
-            <CloseIcon />
-          </button>
+          <div className={styles.headerActions}>
+            <button
+              type="button"
+              className={styles.importButton}
+              onClick={() => setIsImportOpen(true)}
+            >
+              Import CSV
+            </button>
+            <button
+              type="button"
+              className={styles.closeButton}
+              onClick={onClose}
+              aria-label="Close dialog"
+            >
+              <CloseIcon />
+            </button>
+          </div>
         </div>
 
         <div className={styles.body}>
@@ -183,8 +204,13 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                         {item.isCR ? <span className={styles.crBadge}>CR</span> : null}
                       </td>
                       <td>
-                        <span className={styles.statusBadge} data-status={item.attendance?.status ?? "UNMARKED"}>
-                          {item.attendance?.status ?? "UNMARKED"}
+                        <span
+                          className={styles.statusBadge}
+                          data-status={item.attendance?.status ?? 'UNMARKED'}
+                        >
+                          {item.attendance
+                            ? attendanceStatusLabel(item.attendance.status)
+                            : 'Unmarked'}
                         </span>
                       </td>
                       <td>
@@ -198,9 +224,9 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                           }
                         >
                           <option value="">Select status</option>
-                          {STATUS_OPTIONS.map((option) => (
+                          {MANUAL_ATTENDANCE_STATUS_OPTIONS.map((option) => (
                             <option key={option} value={option}>
-                              {option}
+                              {attendanceStatusLabel(option)}
                             </option>
                           ))}
                         </select>
@@ -221,7 +247,7 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
                           <Button
                             type="button"
                             variant="secondary"
-                            style={{ width: "auto" }}
+                            style={{ width: 'auto' }}
                             isLoading={row.isSaving}
                             onClick={() => handleSaveRow(item.studentBatchMembershipId)}
                           >
@@ -237,6 +263,13 @@ export function AttendanceGrid({ sessionId, isOpen, onClose }: AttendanceGridPro
           ) : null}
         </div>
       </div>
+
+      <AttendanceImportModal
+        sessionId={sessionId}
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImported={() => setRefreshKey((key) => key + 1)}
+      />
     </div>
   );
 }

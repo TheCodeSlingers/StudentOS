@@ -1,18 +1,15 @@
-"use client";
+'use client';
 
-import { FormEvent, useEffect, useState } from "react";
-import { Button } from "@/components/ui/Button";
-import { TextField } from "@/components/ui/TextField";
-import {
-  CreateSessionPayload,
-  SessionSummary,
-  SessionType,
-  createSession,
-  getSession,
-  updateSession,
-} from "@/lib/api-client";
-import { notify } from "@/lib/toast";
-import styles from "./modal.module.css";
+import type { FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+
+import styles from './modal.module.css';
+
+import { Button } from '@/components/ui/Button';
+import { TextField } from '@/components/ui/TextField';
+import type { CreateSessionPayload, SessionSummary, SessionType } from '@/lib/api-client';
+import { createSession, getSession, updateSession } from '@/lib/api-client';
+import { notify } from '@/lib/toast';
 
 interface SessionFormModalProps {
   isOpen: boolean;
@@ -33,15 +30,37 @@ interface FormErrors {
 function CloseIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path
+        d="M5 5l10 10M15 5L5 15"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
 
-function toDateTimeLocalValue(iso: string): string {
+function pad(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function toDatePart(iso: string): string {
   const date = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function toTimePart(iso: string): string {
+  const date = new Date(iso);
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+/** Combines separate date + time inputs back into a Date — null when
+ * either half is still empty, so callers can tell "not filled in yet"
+ * apart from "filled in with an invalid value". */
+function combineDateTime(date: string, time: string): Date | null {
+  if (!date || !time) return null;
+  const combined = new Date(`${date}T${time}`);
+  return Number.isNaN(combined.getTime()) ? null : combined;
 }
 
 function isValidUrl(value: string): boolean {
@@ -53,28 +72,38 @@ function isValidUrl(value: string): boolean {
   }
 }
 
-export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }: SessionFormModalProps) {
+export function SessionFormModal({
+  isOpen,
+  onClose,
+  batchId,
+  session,
+  onSaved,
+}: SessionFormModalProps) {
   const isEditing = Boolean(session);
   // Times can't change once attendance has been opened for this session.
-  const timesLocked = isEditing && session?.status !== "SCHEDULED";
+  const timesLocked = isEditing && session?.status !== 'SCHEDULED';
 
-  const [title, setTitle] = useState("");
-  const [scheduledStart, setScheduledStart] = useState("");
-  const [scheduledEnd, setScheduledEnd] = useState("");
-  const [meetLink, setMeetLink] = useState("");
-  const [description, setDescription] = useState("");
-  const [type, setType] = useState<SessionType>("REGULAR");
+  const [title, setTitle] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [meetLink, setMeetLink] = useState('');
+  const [description, setDescription] = useState('');
+  const [type, setType] = useState<SessionType>('REGULAR');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
-    setTitle(session?.title ?? "");
-    setScheduledStart(session ? toDateTimeLocalValue(session.scheduledStart) : "");
-    setScheduledEnd(session ? toDateTimeLocalValue(session.scheduledEnd) : "");
-    setMeetLink(session?.meetLink ?? "");
-    setDescription("");
-    setType("REGULAR");
+    setTitle(session?.title ?? '');
+    setStartDate(session ? toDatePart(session.scheduledStart) : '');
+    setStartTime(session ? toTimePart(session.scheduledStart) : '');
+    setEndDate(session ? toDatePart(session.scheduledEnd) : '');
+    setEndTime(session ? toTimePart(session.scheduledEnd) : '');
+    setMeetLink(session?.meetLink ?? '');
+    setDescription('');
+    setType('REGULAR');
     setIsSubmitting(false);
 
     // The session list only carries summary fields — fetch the full detail so
@@ -85,7 +114,7 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
       getSession(session.id)
         .then((detail) => {
           if (cancelled) return;
-          setDescription(detail.description ?? "");
+          setDescription(detail.description ?? '');
           setType(detail.type);
         })
         .catch((error) => {
@@ -110,25 +139,29 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
     event.preventDefault();
 
     if (!title.trim()) {
-      notify.error("Title is required.");
+      notify.error('Title is required.');
       return;
     }
+
+    const start = combineDateTime(startDate, startTime);
+    const end = combineDateTime(endDate, endTime);
+
     if (!timesLocked) {
-      if (!scheduledStart) {
-        notify.error("Start time is required.");
+      if (!start) {
+        notify.error('Start date and time are required.');
         return;
       }
-      if (!scheduledEnd) {
-        notify.error("End time is required.");
+      if (!end) {
+        notify.error('End date and time are required.');
         return;
       }
-      if (new Date(scheduledEnd) <= new Date(scheduledStart)) {
-        notify.error("End time must be after the start time.");
+      if (end <= start) {
+        notify.error('End time must be after the start time.');
         return;
       }
     }
     if (meetLink.trim() && !isValidUrl(meetLink.trim())) {
-      notify.error("Enter a valid URL for the meeting link.");
+      notify.error('Enter a valid URL for the meeting link.');
       return;
     }
 
@@ -137,11 +170,11 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
       if (isEditing && session) {
         await updateSession(session.id, {
           title: title.trim(),
-          ...(timesLocked
+          ...(timesLocked || !start || !end
             ? {}
             : {
-                scheduledStart: new Date(scheduledStart).toISOString(),
-                scheduledEnd: new Date(scheduledEnd).toISOString(),
+                scheduledStart: start.toISOString(),
+                scheduledEnd: end.toISOString(),
               }),
           meetLink: meetLink.trim() || null,
           description: description.trim() || null,
@@ -150,19 +183,19 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
       } else {
         const payload: CreateSessionPayload = {
           title: title.trim(),
-          scheduledStart: new Date(scheduledStart).toISOString(),
-          scheduledEnd: new Date(scheduledEnd).toISOString(),
+          scheduledStart: start!.toISOString(),
+          scheduledEnd: end!.toISOString(),
           type,
         };
         if (meetLink.trim()) payload.meetLink = meetLink.trim();
         if (description.trim()) payload.description = description.trim();
         await createSession(batchId, payload);
       }
-      notify.success(isEditing ? "Session updated successfully." : "Session created successfully.");
+      notify.success(isEditing ? 'Session updated successfully.' : 'Session created successfully.');
       onSaved();
       onClose();
     } catch (error) {
-      notify.error(error, "Could not save this session.");
+      notify.error(error, 'Could not save this session.');
     } finally {
       setIsSubmitting(false);
     }
@@ -180,38 +213,67 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
         <div className={styles.header}>
           <div>
             <h2 id="session-form-title" className={styles.title}>
-              {isEditing ? "Edit session" : "New session"}
+              {isEditing ? 'Edit session' : 'New session'}
             </h2>
             <p className={styles.subtitle}>
-              {isEditing ? "Update this session's details." : "Schedule a new session for this batch."}
+              {isEditing
+                ? "Update this session's details."
+                : 'Schedule a new session for this batch.'}
             </p>
           </div>
-          <button type="button" className={styles.closeButton} onClick={onClose} aria-label="Close dialog">
+          <button
+            type="button"
+            className={styles.closeButton}
+            onClick={onClose}
+            aria-label="Close dialog"
+          >
             <CloseIcon />
           </button>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
-          <TextField label="Title" value={title} onChange={(event) => setTitle(event.target.value)} />
+          <TextField
+            label="Title"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
 
           <div className={styles.fieldRow}>
             <TextField
-              label="Start"
-              type="datetime-local"
-              value={scheduledStart}
-              onChange={(event) => setScheduledStart(event.target.value)}
+              label="Start date"
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
               disabled={timesLocked}
             />
             <TextField
-              label="End"
-              type="datetime-local"
-              value={scheduledEnd}
-              onChange={(event) => setScheduledEnd(event.target.value)}
+              label="Start time"
+              type="time"
+              value={startTime}
+              onChange={(event) => setStartTime(event.target.value)}
+              disabled={timesLocked}
+            />
+          </div>
+          <div className={styles.fieldRow}>
+            <TextField
+              label="End date"
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              disabled={timesLocked}
+            />
+            <TextField
+              label="End time"
+              type="time"
+              value={endTime}
+              onChange={(event) => setEndTime(event.target.value)}
               disabled={timesLocked}
             />
           </div>
           {timesLocked ? (
-            <p className={styles.hint}>Times can&apos;t be changed once attendance has been opened for this session.</p>
+            <p className={styles.hint}>
+              Times can&apos;t be changed once attendance has been opened for this session.
+            </p>
           ) : null}
 
           <div className={styles.fieldGroup}>
@@ -251,7 +313,7 @@ export function SessionFormModal({ isOpen, onClose, batchId, session, onSaved }:
               Cancel
             </Button>
             <Button type="submit" isLoading={isSubmitting} disabled={isLoadingDetail}>
-              {isEditing ? "Save changes" : "Create session"}
+              {isEditing ? 'Save changes' : 'Create session'}
             </Button>
           </div>
         </form>
